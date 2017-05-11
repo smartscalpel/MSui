@@ -44,3 +44,10 @@ sqlTICone<-paste0('select rt,sum(intensity) as tic,spectrid ',
                   'where rt<= 600 and spectrid=?',
                   'group by spectrid,rt ',
                   'order by spectrid,rt')
+
+sqlGetMZdata<-paste0('select id, mz,rt,scan,intensity,spectrid ',
+                     'from peak ',
+                     'where spectrid=? ')
+sqlGetMZset<-paste0('select id, mz,rt,scan,intensity,spectrid ',
+                     'from peak ',
+                     'where spectrid between ? and ? ')
