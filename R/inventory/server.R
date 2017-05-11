@@ -16,6 +16,7 @@ library(dtplyr)
 library(stringr)
 library(MonetDBLite)
 library(data.table)
+library(ggrepel)
 source('db.R')
 load('MetaData.Rdata')
 load('features.Rdat')
@@ -128,6 +129,7 @@ selectedXIC<-reactive({
 
 selectedSpectr<-reactive({
   mzDT<-selectedMZ()
+  cat(min(mzDT$spectrid),max(mzDT$spectrid),'\n')
   cat(dim(mzDT),ranges$rt,'\n')
   if(is.null(ranges$rt)){
     mz<-mzDT[,.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
@@ -144,7 +146,7 @@ output$xicPlot <- renderPlot({
   }else{
     tic<-selectedXIC()[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
   }
-  cat(dim(tic),'\n')
+  cat("xicPlot ",dim(tic),'\n')
   ggplot(tic, aes(rt, tic)) +
     geom_line() +
     geom_point(size=0.1)+
@@ -158,15 +160,20 @@ output$mzPlot <- renderPlot({
   }else{
     mz<-selectedSpectr()[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
   }
-  cat(dim(mz),'\n')
+  mz[,lab:=paste(round(mz,4))]
+  mz[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+  cat("mzPlot ",dim(mz),'\n')
+  
   # ggplot(mz[intensity>0.05*max(intensity)], aes(x=mz,y=intensity)) +
   #   geom_line() +
   #   geom_point(size=0.1) + #scale_y_log10()+
-  ggplot(mz[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity)) +
+  ggplot(mz[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
     geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+    geom_text_repel(aes(x = mz,y=intensity,label=lab))+
 #    geom_col()+
 #    geom_smooth(alpha=0.3,span=0.25)+
-    coord_cartesian(xlim = ranges$mz)
+    coord_cartesian(xlim = ranges$mz)+ 
+    theme(legend.position="none")
 })
 
 observeEvent(input$xic_dblclick, {
