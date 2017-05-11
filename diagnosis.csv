@@ -1,0 +1,42 @@
+ID,Name,Description,Ref
+1,Adenoma,Аденома
+2,Astrocytoma,Астроцитома
+3,Ganglioglioma,Ганглиоглиома
+4,Germinoma,Герминома
+5,Glioblastoma,Глиобластома
+6,Carcinoma,Карцинома
+7,Melanoma,Меланома
+8,Meningioma,Менингиома
+9,Neurinoma,Невринома
+10,Neurofibroma,Нейрофиброма
+11,Oligoastrocytoma,Олигоастроцитома
+12,Subependimoma,Субэпендимома
+13,Chordoma,Хордома
+14,Ependimoma,Эпендимома
+15,Neuroepithelial tumor,Дизэмбриобластическая нейроэпителиальная опухоль 
+16,Primitive neuroectodermal tumor,Примитивная нейроэктодермальная опухоль
+17,Cholesteatoma,Холестеатома
+18,Medulloblastoma,Медуллобластома
+19,Adenocarcinoma,Аденокарцинома
+20,Xantoastrocytoma,Ксантоастроцитома
+22,Glioneural tumor,глио-нейрональная опухоль 4 желудочка
+23,Chorioidpapilloma,Хориодипапиллома
+25,Craniofaringioma,Краниофарингиома
+26,Necrosis,Некроз
+28,Hemangioblastoma,Гемангиобластома
+29,Giant-cell tumor of bone,Гигантоклеточная опухоль
+30,Gliosarkoma,Глиосаркома
+31,Primary lymphoma of B-cell,Лимфома первичная В-клеточная 
+33,Metastasis NSCLC,Метастаз немелкоклеточного рака легкого
+34,Metastasis clear cell,Метастаз светлоклеточного рака
+35,Brain,Мозг
+36,Metastatic prostate cancer moles,метастаз рака мол железы
+37,Oligodendroglioma,Олигодендроглиома
+39,Schwannoma,Шваннома
+40,n/d,без диагноза/нет в списке
+41,Ameloblastoma,амелобластома
+42,Pinealoma,пинеоцитома
+43,papillary tumor,папиллярная опухоль
+44,clear-cell carcinoma,рак почки
+45,gangioastrocytoma,гангиоастроцитома
+46,glia hyperplasia,гиперплазия глиальной ткани
