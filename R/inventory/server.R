@@ -210,6 +210,8 @@ observeEvent(input$mz_dblclick, {
 # })
 # 
 
+  output$metadata<-renderTable({specT[specT$id==input$spectr,]})
+
   output$table<-DT::renderDataTable({patients})
   # ,
   #                               options = list(

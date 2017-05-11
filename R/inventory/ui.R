@@ -40,13 +40,16 @@ shinyUI(shinyUI(navbarPage("My Application",
         tabPanel(title="Spectr", 
  #                wellPanel(
                    fluidRow(
-                     column(width=6,
+                     column(width=2,
                             h4("Select data ")),
                      column(width=2,
                             numericInput(
                               "spectr", "ID",
                               value = 1,
                               min = 1, max = 100, step = 1)
+                     ),
+                     column(width=10,
+                            tabPanel("Metadata", tableOutput("metadata"))
                      )
                    ),
                    fluidRow(
