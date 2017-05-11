@@ -2,7 +2,7 @@ getCon<-function(con){
   if(dbIsValid(con)){
     return(con)
   }else{
-    res<-try(dbRollback(conn = con))
+    res<-try(dbRollback(conn = con),silent = TRUE)
     if(class(res)=='try-error'){
       return(prepareCon)
     }else{
