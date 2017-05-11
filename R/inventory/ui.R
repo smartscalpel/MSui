@@ -8,30 +8,68 @@
 #
 
 library(shiny)
-
+library(plotly)
 # Define UI for application that draws a histogram
-shinyUI(fluidPage(
-  
-  # Application title
-  titlePanel("Spectra inventory"),
-  
-  # Sidebar with a slider input for number of bins 
-  sidebarLayout(
-    sidebarPanel(
-       sliderInput("lines",
-                   "Number of lines:",
-                   min = 1,
-                   max = 50,
-                   value = 30)
-    ),
-    
-    # Show a plot of the generated distribution
-    mainPanel(
-      tabsetPanel(
-        tabPanel("Plot", plotOutput("distPlot")), 
-        tabPanel("Summary", verbatimTextOutput("summary")), 
-        tabPanel("Table", tableOutput("table"))
-      )
+shinyUI(shinyUI(navbarPage("My Application",
+        tabPanel("Table", DT::dataTableOutput("table")),
+        tabPanel(title="TIC", 
+                 wellPanel(
+                   fluidRow(
+                     column(width=6,
+                            h4("Select range ")),
+                     column(width=2,
+                            numericInput(
+                              "beg", "First",
+                              value = 1,
+                              min = 1, max = 100, step = 1)
+                     ),
+                     column(width=2,
+                            numericInput(
+                              "fin", "Last",
+                              value = 1,
+                              min = 1, max = 100, step = 1)
+                     )
+                   ),
+                   fluidRow(
+                     column(width=12,
+                   plotlyOutput("ticPlot")
+                   ))
+                   
+                 )
+                 ),
+        tabPanel(title="Spectr", 
+ #                wellPanel(
+                   fluidRow(
+                     column(width=6,
+                            h4("Select data ")),
+                     column(width=2,
+                            numericInput(
+                              "spectr", "ID",
+                              value = 1,
+                              min = 1, max = 100, step = 1)
+                     )
+                   ),
+                   fluidRow(
+                     column(width=12,class = "well",
+                            plotOutput("xicPlot",height = 300,
+                                         dblclick = "xic_dblclick",
+                                         brush = brushOpts(
+                                           id = "xic_brush",
+                                           resetOnNew = TRUE)
+                     ))),
+                   fluidRow(
+                     column(width=12,class = "well",
+                            plotOutput("mzPlot",height = 300,
+                                        dblclick = "mz_dblclick",
+                                        brush = brushOpts(
+                                          id = "mz_brush",
+                                          resetOnNew = TRUE)
+                     )))
+                   
+#                 )
+        ),
+        tabPanel("Features", tableOutput("features"))
+)
     )
   )
-))
+
