@@ -12,6 +12,7 @@ library(plotly)
 #library(RSQLite)
 library(DBI)
 library(dplyr)
+library(dtplyr)
 library(stringr)
 library(MonetDBLite)
 library(data.table)
@@ -24,28 +25,64 @@ con <- prepareCon(dbdir)
 monetdb_conn <- src_monetdb(con = con)
 specT<-collect(tbl(monetdb_conn,'spectra'))
 
+dtParam<-list(beg=1,fin=1,dt=data.table())
 #source(system.file("shinyApp", "serverRoutines.R", package = "TVTB"))
 
 #Sys.sleep(2)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
+  
+  selectedTIC<-reactive({
+    cat('iBeg=',input$beg,' iFin=',input$fin,'\n')
+    if(is.numeric(input$beg)&
+       dtParam$beg==input$beg&
+       is.numeric(input$fin)&
+       dtParam$fin==input$fin&dim(dtParam$dt)[1]>0){
+      return(dtParam)
+    }else{
+      if(is.numeric(input$beg)&dtParam$beg!=input$beg){dtParam$beg<-input$beg}
+      if(is.numeric(input$fin)){dtParam$fin<-max(input$fin,dtParam$beg)}
+      cat('Beg=',dtParam$beg,' Fin=',dtParam$fin,'\n')
+      # con<-getCon(con)
+      # system.time(p<-data.table(dbGetQuery(con,sqlGetMZset,dtParam$beg,dtParam$fin)))
+      # pdt<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
+      con<-getCon(con)
+      cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,dtParam$beg,dtParam$fin))),'\n')
+      wdt<-merge(peakDT,specT,by.x = c('spectrid'),by.y = 'id')
+      dtParam$dt<-wdt
+      return(dtParam)
+    }
+  })
+
   observeEvent(input$beg,{
     cat('New beg=',input$beg,'\n')
-    if(input$beg>input$fin){
-    updateNumericInput(session,'fin',value=input$beg)
+    if(!is.numeric(input$begDT)){
+      updateNumericInput(session,'beg',value=selectedTIC()$beg)
+    } else if(selectedTIC()$beg>input$fin){
+      updateNumericInput(session,'fin',value=selectedTIC()$beg)
+      updateNumericInput(session,'beg',value=selectedTIC()$beg)
     }
-    })
-  output$ticPlot <- renderPlotly({
+  })
+  
+  observeEvent(input$fin, {
+    cat('New fin=', input$fin, '\n')
+    if (!is.numeric(input$finT)) {
+      updateNumericInput(session, 'fin', value = selectedTIC()$fin)
+    } else if (selectedTIC()$beg > input$fin) {
+      updateNumericInput(session, 'fin', value = selectedTIC()$beg)
+      updateNumericInput(session, 'beg', value = selectedTIC()$beg)
+    }
+  })
+  
+output$ticPlot <- renderPlotly({
     cat(paste('plot starts',Sys.time(),'\n'))
-    beg<-input$beg
-    fin<-max(input$fin,input$beg)
-    cat('Beg=',beg,' Fin=',fin,'\n')
-    con<-getCon(con)
-    system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,beg,fin)))
-    wdt<-merge(peakDT,specT,by.x = c('spectrid'),by.y = 'id')
+    cat('Beg=',selectedTIC()$beg,' Fin=',selectedTIC()$fin,'\n')
+    # con<-getCon(con)
+    # system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,beg,fin)))
+    # wdt<-merge(peakDT,specT,by.x = c('spectrid'),by.y = 'id')
     cat(paste('peak is ready',Sys.time(),'\n'))
-    p<-ggplot(wdt,aes(x=rt,y=tic,color=fname,
+    p<-ggplot(selectedTIC()$dt,aes(x=rt,y=tic,color=fname,
                       patient=patient,
                       st=state,
                       diag=diagname,
@@ -63,6 +100,116 @@ shinyServer(function(input, output, session) {
     ggplotly(pf)
   })
   
+ 
+ranges <- reactiveValues(rt = NULL, mz = NULL)
+
+selectedMZ<-reactive({
+  cat('ID=',input$spectr,'\n')
+  if(is.numeric(input$spectr)){spID<-input$spectr}else{spID<-1}
+  con<-getCon(con)
+  system.time(p<-data.table(dbGetQuery(con,sqlGetMZdata,spID)))
+  # pdt<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
+  cat(dim(p),'\n')
+  binz<-seq(min(p$mz),max(p$mz),by=0.01)
+  p[,bin:=findInterval(mz, binz)]
+  p
+})
+
+selectedXIC<-reactive({
+  mzDT<-selectedMZ()
+  cat(dim(mzDT),'\n')
+  if(is.null(ranges$mz)){
+    tic<-mzDT[,.(tic=sum(intensity)),by=.(rt,spectrid)]
+  }else{
+    tic<-mzDT[mz>=ranges$mz[1]&mz<=ranges$mz[2],.(tic=sum(intensity)),by=.(rt,spectrid)]
+  }
+  tic
+})
+
+selectedSpectr<-reactive({
+  mzDT<-selectedMZ()
+  cat(dim(mzDT),ranges$rt,'\n')
+  if(is.null(ranges$rt)){
+    mz<-mzDT[,.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
+  }else{
+    mz<-mzDT[rt>=ranges$rt[1]&rt<=ranges$rt[2],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
+  }
+  mz
+})
+# When a double-click happens, check if there's a brush on the plot.
+# If so, zoom to the brush bounds; if not, reset the zoom.
+output$xicPlot <- renderPlot({
+  if(is.null(ranges$rt)){
+    tic<-selectedXIC()
+  }else{
+    tic<-selectedXIC()[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
+  }
+  cat(dim(tic),'\n')
+  ggplot(tic, aes(rt, tic)) +
+    geom_line() +
+    geom_point(size=0.1)+
+    geom_smooth(alpha=0.3,span=0.25)+
+    coord_cartesian(xlim = ranges$rt)
+})
+
+output$mzPlot <- renderPlot({
+  if(is.null(ranges$mz)){
+    mz<-selectedSpectr()
+  }else{
+    mz<-selectedSpectr()[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+  }
+  cat(dim(mz),'\n')
+  # ggplot(mz[intensity>0.05*max(intensity)], aes(x=mz,y=intensity)) +
+  #   geom_line() +
+  #   geom_point(size=0.1) + #scale_y_log10()+
+  ggplot(mz[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity)) +
+    geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+#    geom_col()+
+#    geom_smooth(alpha=0.3,span=0.25)+
+    coord_cartesian(xlim = ranges$mz)
+})
+
+observeEvent(input$xic_dblclick, {
+  brush <- input$xic_brush
+  if (!is.null(brush)) {
+    ranges$rt <- c(brush$xmin, brush$xmax)
+    
+  } else {
+    ranges$rt <- NULL
+  }
+})
+
+observeEvent(input$mz_dblclick, {
+  brush <- input$mz_brush
+  if (!is.null(brush)) {
+    ranges$mz <- c(brush$xmin, brush$xmax)
+    
+  } else {
+    ranges$mz <- NULL
+  }
+})
+# 
+# observe({
+#   brush <- input$xic_brush
+#   cat('XIC (',c(brush$xmin, brush$xmax),')\n')
+#   if (!is.null(brush)) {
+#     ranges$rt <- c(brush$xmin, brush$xmax)
+#     
+#   } 
+# })
+# 
+# observe({
+#   brush <- input$mz_brush
+#   cat('MZ (',c(brush$xmin, brush$xmax),')\n')
+#   if (!is.null(brush)) {
+#     ranges$mz <- c(brush$xmin, brush$xmax)
+#     
+#   } else {
+#     ranges$mz <- NULL
+#   }
+# })
+# 
+
   output$table<-DT::renderDataTable({patients})
   # ,
   #                               options = list(
