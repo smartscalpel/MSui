@@ -46,3 +46,23 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 library(RColorBrewer)
 .palette <- brewer.pal(12,'Paired')
+
+getSpanMZ<-function(mzDT,r,i,ranges){
+  mz1<-mzDT[rt>=r$min[i]&rt<=r$max[i],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
+  cat('dim(mzDT)',dim(mzDT),'dim(r)',dim(r),'i',i,'ranges',ranges,'\n')
+  if(!is.null(ranges)){
+    mz1<-mz1[mz>=ranges[1]&mz<=ranges[2]]
+  }
+  mz1[,lab:=paste(round(mz,4))]
+  mz1[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+  cat(dim(mz1),'\n')
+  return(mz1)
+}
+getSpanPlot<-function(mz1,r,i,ranges){
+  p<-ggplot(mz1[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
+    geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+    geom_text_repel(aes(x = mz,y=intensity,label=lab))+
+    coord_cartesian(xlim = ranges)+ 
+    labs(title=sprintf('rt [%.2f : %.2f]',r$min[i],r$max[i]))+
+    theme(legend.position="none")
+}
