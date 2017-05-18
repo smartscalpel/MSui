@@ -58,11 +58,16 @@ getSpanMZ<-function(mzDT,r,i,ranges){
   cat(dim(mz1),'\n')
   return(mz1)
 }
-getSpanPlot<-function(mz1,r,i,ranges){
+getSpanPlot<-function(mz1,r,i,xranges,yranges=NULL){
   p<-ggplot(mz1[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
     geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
     geom_text_repel(aes(x = mz,y=intensity,label=lab))+
-    coord_cartesian(xlim = ranges)+ 
     labs(title=sprintf('rt [%.2f : %.2f]',r$min[i],r$max[i]))+
     theme(legend.position="none")
+  if(!is.null(yranges)){
+    p<-p+coord_cartesian(xlim = xranges,ylim = yranges)
+  }else{
+    p<-p+coord_cartesian(xlim = xranges)
+  }
+  return(p)
 }

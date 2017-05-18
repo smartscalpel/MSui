@@ -258,84 +258,42 @@ output$tsPlot <- renderPlot({
     r<-spans$rt
     mzDT<-selectedMZ()
     mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
-    p<-getSpanPlot(mz1,r,i=1,ranges$mz)
+    p<-getSpanPlot(mz1,r,i=1,ranges$mz,range(mz1$intensity))
   }else if(dim(spans$rt)[1]==2){
     r<-spans$rt
-    cat('len=2.1 len ',length(r),paste(unlist(r)),'\n')
-    cat('len=2.1',r$i,r$color,r$range,'\n')
     mzDT<-selectedMZ()
-    mz1<-mzDT[rt>=r$min[1]&rt<=r$max[1],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
-    if(!is.null(ranges$mz)){
-      mz1<-mz1[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
-    }
-    mz1[,lab:=paste(round(mz,4))]
-    mz1[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
-    cat('len=2, mz1:',dim(mz1),'\n')
-    p1<-ggplot(mz1[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
-      geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
-      geom_text_repel(aes(x = mz,y=intensity,label=lab))+
-      coord_cartesian(xlim = ranges$mz)+ 
-      labs(title=sprintf('rt [%.2f : %.2f]',r$min[1],r$max[1]))+
-      theme(legend.position="none")
-    mzDT<-selectedMZ()
-    mz2<-mzDT[rt>=r$min[2]&rt<=r$max[2],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
-    if(!is.null(ranges$mz)){
-      mz2<-mz2[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
-    }
-    mz2[,lab:=paste(round(mz,4))]
-    mz2[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
-    cat('len=2, mz2:',dim(mz2),'\n')
-    p2<-ggplot(mz2[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
-      geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
-      geom_text_repel(aes(x = mz,y=intensity,label=lab))+
-      coord_cartesian(xlim = ranges$mz)+ 
-      labs(title=sprintf('rt [%.2f : %.2f]',r$min[2],r$max[2]))+
-      theme(legend.position="none")
+    mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
+    mz2<-getSpanMZ(mzDT,r,i=2,ranges$mz)
+    ylm<-range(c(mz1$intensity,mz2$intensity))
+    p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
+    p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
     p<-multiplot(p1, p2,cols=1)
   }else if(dim(spans$rt)[1]==3){
     r<-spans$rt
     mzDT<-selectedMZ()
-    mz1<-mzDT[rt>=r$min[1]&rt<=r$max[1],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
-    if(!is.null(ranges$mz)){
-      mz1<-mz1[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
-    }
-    mz1[,lab:=paste(round(mz,4))]
-    mz1[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
-    p1<-ggplot(mz1[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
-      geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
-      geom_text_repel(aes(x = mz,y=intensity,label=lab))+
-      coord_cartesian(xlim = ranges$mz)+ 
-      labs(title=sprintf('rt [%.2f : %.2f]',r$min[1],r$max[1]))+
-      theme(legend.position="none")
-    mzDT<-selectedMZ()
-    mz2<-mzDT[rt>=r$min[2]&rt<=r$max[2],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
-    if(!is.null(ranges$mz)){
-      mz2<-mz2[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
-    }
-    mz2[,lab:=paste(round(mz,4))]
-    mz2[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
-    p2<-ggplot(mz2[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
-      geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
-      geom_text_repel(aes(x = mz,y=intensity,label=lab))+
-      coord_cartesian(xlim = ranges$mz)+ 
-      labs(title=sprintf('rt [%.2f : %.2f]',r$min[2],r$max[2]))+
-      theme(legend.position="none")
-    mzDT<-selectedMZ()
-    mz3<-mzDT[rt>=r$min[3]&rt<=r$max[3],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
-    if(!is.null(ranges$mz)){
-      mz3<-mz3[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
-    }
-    mz3[,lab:=paste(round(mz,4))]
-    mz3[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
-    p3<-ggplot(mz3[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
-      geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
-      geom_text_repel(aes(x = mz,y=intensity,label=lab))+
-      coord_cartesian(xlim = ranges$mz)+ 
-      labs(title=sprintf('rt [%.2f : %.2f]',r$min[3],r$max[3]))+
-      theme(legend.position="none")
+    mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
+    mz2<-getSpanMZ(mzDT,r,i=2,ranges$mz)
+    mz3<-getSpanMZ(mzDT,r,i=3,ranges$mz)
+    ylm<-range(c(mz1$intensity,mz2$intensity,mz3$intensity))
+    p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
+    p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
+    p3<-getSpanPlot(mz3,r,i=3,ranges$mz,ylm)
     p<-multiplot(p1, p2,p3,cols=1)
-  }
-  p
+  }else if(dim(spans$rt)[1]==4){
+  r<-spans$rt
+  mzDT<-selectedMZ()
+  mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
+  mz2<-getSpanMZ(mzDT,r,i=2,ranges$mz)
+  mz3<-getSpanMZ(mzDT,r,i=3,ranges$mz)
+  mz4<-getSpanMZ(mzDT,r,i=4,ranges$mz)
+  ylm<-range(c(mz1$intensity,mz2$intensity,mz3$intensity,mz4$intensity))
+  p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
+  p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
+  p3<-getSpanPlot(mz3,r,i=3,ranges$mz,ylm)
+  p4<-getSpanPlot(mz4,r,i=4,ranges$mz,ylm)
+  p<-multiplot(p1, p2,p3,p4,cols=1)
+}
+p
 })
 
 output$spansText<-renderText({
