@@ -13,13 +13,23 @@ library(plotly)
 shinyUI(shinyUI(pageWithSidebar(
   headerPanel("Conditional Panels"),
   sidebarPanel(
-    conditionalPanel(condition="input.conditionedPanels==1",
-                     helpText("Content Panel 1")
-    ),
-    conditionalPanel(condition="input.conditionedPanels==2",
-                     helpText("Content Panel 2")
-    ) 
-  ),
+    fluidRow(column(
+      width = 12,
+      fluidRow(column(
+        width = 12,
+        numericInput(
+          "spectr",
+          "ID",
+          value = 1,
+          min = 1,
+          max = 100,
+          step = 1
+        )
+      )),
+      fluidRow(column(width = 12,
+                      DT::dataTableOutput("metaS",width = '80%')))
+    ))
+),
   mainPanel(
     tabsetPanel(tabPanel("Table", DT::dataTableOutput("table"),value = 1),
         tabPanel(title="TIC", value = 2,
@@ -49,16 +59,6 @@ shinyUI(shinyUI(pageWithSidebar(
                  ),
         tabPanel(title="Spectr", value = 3,
  #                wellPanel(
-                   fluidRow(
-                     column(width=6,
-                            h4("Select data ")),
-                     column(width=2,
-                            numericInput(
-                              "spectr", "ID",
-                              value = 1,
-                              min = 1, max = 100, step = 1)
-                     )
-                   ),
                    fluidRow(
                      column(width=12,class = "well",
                             plotOutput("xicPlot",height = 300,
