@@ -146,6 +146,19 @@ selectedSpectr<-reactive({
   }
   mz
 })
+output$rangesText<-renderText({
+  if(!is.null(ranges$mz)&!is.null(ranges$rt)){
+    s<-paste0("Ranges mz=[",round(ranges$mz[1],2),',',round(ranges$mz[2],2),'], rt=[',round(ranges$rt[1],2),',',round(ranges$rt[2],2),']')
+  }else if(is.null(ranges$mz)&!is.null(ranges$rt)){
+    s<-paste0("Ranges mz=[FULL range], rt=[",round(ranges$rt[1],2),',',round(ranges$rt[2],2),']')
+  }else if(is.null(ranges$rt)&!is.null(ranges$mz)){
+    s<-paste0("Ranges mz=[",round(ranges$mz[1],2),',',round(ranges$mz[2],2),'], rt=[FULL range]')
+  }else{
+    s<-paste0("Ranges mz=[FULL range], rt=[FULL range]")
+  }
+  cat('Ranges:',s,'\n')
+  s
+})
 # When a double-click happens, check if there's a brush on the plot.
 # If so, zoom to the brush bounds; if not, reset the zoom.
 output$xicPlot <- renderPlot({

@@ -16,7 +16,7 @@ shinyUI(shinyUI(pageWithSidebar(
     fluidRow(column(
       width = 12,
       fluidRow(column(
-        width = 12,
+        width = 2,
         numericInput(
           "spectr",
           "ID",
@@ -25,7 +25,10 @@ shinyUI(shinyUI(pageWithSidebar(
           max = 100,
           step = 1
         )
-      )),
+      ),
+      column(width=10,
+             textOutput("rangesText"))
+      ),
       fluidRow(column(width = 12,
                       DT::dataTableOutput("metaS",width = '80%')))
     ))
