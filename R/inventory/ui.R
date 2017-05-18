@@ -10,9 +10,19 @@
 library(shiny)
 library(plotly)
 # Define UI for application that draws a histogram
-shinyUI(shinyUI(navbarPage("My Application",
-        tabPanel("Table", DT::dataTableOutput("table")),
-        tabPanel(title="TIC", 
+shinyUI(shinyUI(pageWithSidebar(
+  headerPanel("Conditional Panels"),
+  sidebarPanel(
+    conditionalPanel(condition="input.conditionedPanels==1",
+                     helpText("Content Panel 1")
+    ),
+    conditionalPanel(condition="input.conditionedPanels==2",
+                     helpText("Content Panel 2")
+    ) 
+  ),
+  mainPanel(
+    tabsetPanel(tabPanel("Table", DT::dataTableOutput("table"),value = 1),
+        tabPanel(title="TIC", value = 2,
                  wellPanel(
                    fluidRow(
                      column(width=6,
@@ -37,7 +47,7 @@ shinyUI(shinyUI(navbarPage("My Application",
                    
                  )
                  ),
-        tabPanel(title="Spectr", 
+        tabPanel(title="Spectr", value = 3,
  #                wellPanel(
                    fluidRow(
                      column(width=6,
@@ -68,8 +78,10 @@ shinyUI(shinyUI(navbarPage("My Application",
                    
 #                 )
         ),
-        tabPanel("Features", tableOutput("features"))
+        tabPanel("Features", tableOutput("features"),value=4)
 )
     )
   )
+)
+)
 
