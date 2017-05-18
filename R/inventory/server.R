@@ -18,6 +18,7 @@ library(MonetDBLite)
 library(data.table)
 library(ggrepel)
 source('db.R')
+source('plot.R')
 load('MetaData.Rdata')
 load('features.Rdat')
 dbdir <- '~/Documents/Projects/MSpeaks/data/MonetDBPeaks/'
@@ -214,6 +215,176 @@ observeEvent(input$mz_dblclick, {
     
   } else {
     ranges$mz <- NULL
+  }
+})
+
+spans <- reactiveValues(rt=NULL)
+
+output$tsxicPlot <- renderPlot({
+    tic<-selectedXIC()
+  cat("xicPlot ",dim(tic),'\n')
+  ggplot(tic, aes(rt, tic)) +
+    geom_line() +
+    geom_point(size=0.1)+
+    geom_smooth(alpha=0.3,span=0.15)+
+    coord_cartesian(xlim = ranges$rt)
+})
+
+
+
+output$tsPlot <- renderPlot({
+  if(is.null(ranges$mz)){
+    mz<-selectedSpectr()
+  }else{
+    mz<-selectedSpectr()[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+  }
+  mz[,lab:=paste(round(mz,4))]
+  mz[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+  cat("tsPlot ",dim(mz),'\n')
+  if(is.null(spans$rt)){cat('spans$rt is NULL\n')}else{cat('spans rt len=',length(spans$rt),'\n')}
+  if(is.null(spans$rt)|length(spans$rt)>3){
+  p<-ggplot(mz[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
+    geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+    geom_text_repel(aes(x = mz,y=intensity,label=lab))+
+    coord_cartesian(xlim = ranges$mz)+ 
+    theme(legend.position="none")
+  }else if(length(spans$rt)==1){
+    r<-spans$rt[[1]]
+    cat('len=1',r$i,r$color,r$range,'\n')
+    mzDT<-selectedMZ()
+    mz1<-mzDT[rt>=r$range[1]&rt<=r$range[2],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
+    if(!is.null(ranges$mz)){
+      mz1<-mz1[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+    }
+    mz1[,lab:=paste(round(mz,4))]
+    mz1[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+    cat(dim(mz1),'\n')
+    p<-ggplot(mz1[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
+      geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+      geom_text_repel(aes(x = mz,y=intensity,label=lab))+
+      coord_cartesian(xlim = ranges$mz)+ 
+      labs(title=sprintf('range [%.2f-%.2f]',r$range[1],r$range[2]))+
+      theme(legend.position="none")
+  }else if(length(spans$rt)==2){
+    r<-spans$rt[[1]]
+    cat('len=2.1 len ',length(r),paste(unlist(r)),'\n')
+    cat('len=2.1',r$i,r$color,r$range,'\n')
+    mzDT<-selectedMZ()
+    mz1<-mzDT[rt>=r$range[1]&rt<=r$range[2],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
+    if(!is.null(ranges$mz)){
+      mz1<-mz1[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+    }
+    mz1[,lab:=paste(round(mz,4))]
+    mz1[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+    cat('len=2, mz1:',dim(mz1),'\n')
+    p1<-ggplot(mz1[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
+      geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+      geom_text_repel(aes(x = mz,y=intensity,label=lab))+
+      coord_cartesian(xlim = ranges$mz)+ 
+      labs(title=sprintf('range [%.2f-%.2f]',r$range[1],r$range[2]))+
+      theme(legend.position="none")
+    r<-spans$rt[[2]]
+    cat('len=2.2 len ',length(r),paste(unlist(r)),'\n')
+    cat('len=2.2',r$i,r$color,r$range,'\n')
+    mzDT<-selectedMZ()
+    mz2<-mzDT[rt>=r$range[1]&rt<=r$range[2],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
+    if(!is.null(ranges$mz)){
+      mz2<-mz2[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+    }
+    mz2[,lab:=paste(round(mz,4))]
+    mz2[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+    cat('len=2, mz2:',dim(mz2),'\n')
+    p2<-ggplot(mz2[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
+      geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+      geom_text_repel(aes(x = mz,y=intensity,label=lab))+
+      coord_cartesian(xlim = ranges$mz)+ 
+      labs(title=sprintf('range [%.2f-%.2f]',r$range[1],r$range[2]))+
+      theme(legend.position="none")
+    p<-multiplot(p1, p2,cols=1)
+  }else if(length(spans$rt)==3){
+    r<-spans$rt[[1]]
+    mzDT<-selectedMZ()
+    mz1<-mzDT[rt>=r$range[1]&rt<=r$range[2],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
+    if(!is.null(ranges$mz)){
+      mz1<-mz1[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+    }
+    mz1[,lab:=paste(round(mz,4))]
+    mz1[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+    p1<-ggplot(mz1[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
+      geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+      geom_text_repel(aes(x = mz,y=intensity,label=lab))+
+      coord_cartesian(xlim = ranges$mz)+ 
+      labs(title=sprintf('range [%.2f-%.2f]',r$range[1],r$range[2]))+
+      theme(legend.position="none")
+    r<-spans$rt[[2]]
+    mzDT<-selectedMZ()
+    mz2<-mzDT[rt>=r$range[1]&rt<=r$range[2],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
+    if(!is.null(ranges$mz)){
+      mz2<-mz2[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+    }
+    mz2[,lab:=paste(round(mz,4))]
+    mz2[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+    p2<-ggplot(mz2[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
+      geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+      geom_text_repel(aes(x = mz,y=intensity,label=lab))+
+      coord_cartesian(xlim = ranges$mz)+ 
+      labs(title=sprintf('range [%.2f-%.2f]',r$range[1],r$range[2]))+
+      theme(legend.position="none")
+    r<-spans$rt[[3]]
+    mzDT<-selectedMZ()
+    mz3<-mzDT[rt>=r$range[1]&rt<=r$range[2],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
+    if(!is.null(ranges$mz)){
+      mz3<-mz3[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+    }
+    mz3[,lab:=paste(round(mz,4))]
+    mz3[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+    p3<-ggplot(mz3[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
+      geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+      geom_text_repel(aes(x = mz,y=intensity,label=lab))+
+      coord_cartesian(xlim = ranges$mz)+ 
+      labs(title=sprintf('range [%.2f-%.2f]',r$range[1],r$range[2]))+
+      theme(legend.position="none")
+    p<-multiplot(p1, p2,p3,cols=1)
+  }
+  p
+})
+
+output$spansText<-renderText({
+  if(length(spans$rt)>6){
+    s<-'At most 6 spans could be selected.'
+  }else{
+      s<-''
+  }
+  s
+})
+observeEvent(input$tsxic_dblclick, {
+  brush <- input$tsxic_brush
+  if (!is.null(brush)) {
+    if(is.null(spans$rt)){
+      cat('TS double click ',brush$xmin, brush$xmax,'\n')
+    spans$rt <- list(list(i=1,color=.palette[1],range=c(brush$xmin, brush$xmax)))
+    }else{
+      i<-length(spans$rt)
+      cat('TS double click ',i,brush$xmin, brush$xmax,'\n')
+      spans$rt[[i+1]]<-list(i=1,color=.palette[1],range=c(brush$xmin, brush$xmax))
+    }
+  } else {
+    if(!is.null(spans$rt)){
+      is.sel<-FALSE
+      rt<-spans$rt
+      x<-input$tsxic_dblclick$x
+      for(i in 1:length(spans$rt)){
+        if(x>=spans$rt[[i]]$range[1]&x<=spans$rt[[i]]$range[2]){
+          is.sel<-TRUE
+          rt<-rt[-i]
+        }
+      }
+      if(length(rt)==0){
+      spans$rt <- NULL
+      }else{
+        spans$rt<-rt
+      }
+    }
   }
 })
 # 

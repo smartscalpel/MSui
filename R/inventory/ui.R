@@ -84,6 +84,26 @@ shinyUI(shinyUI(pageWithSidebar(
                  
                  #                 )
         ),
+        tabPanel(title="Time slices", value = 5,
+                 #                wellPanel(
+                 fluidRow(
+                   column(width=10,
+                          tabPanel("MetadataTS", tableOutput("metadataTS"))
+                   ),
+                   column(width=2,textOutput("spansText"))
+                 ),
+                 fluidRow(
+                   column(width=12,class = "well",
+                          plotOutput("tsxicPlot",height = 100,
+                                     dblclick = "tsxic_dblclick",
+                                     brush = brushOpts(
+                                       id = "tsxic_brush",
+                                       resetOnNew = TRUE)
+                          ))),
+                 fluidRow(
+                   column(width=12,class = "well",
+                          plotOutput("tsPlot",height = 500)))
+        ),
         tabPanel("Features", tableOutput("features"),value=4)
     )
     )
