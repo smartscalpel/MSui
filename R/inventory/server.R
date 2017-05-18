@@ -176,6 +176,7 @@ output$xicPlot <- renderPlot({
     coord_cartesian(xlim = ranges$rt)
 })
 
+
 output$mzPlot <- renderPlot({
   if(is.null(ranges$mz)){
     mz<-selectedSpectr()
@@ -409,8 +410,9 @@ observeEvent(input$tsxic_dblclick, {
 # })
 # 
 
-  output$metadata<-renderTable({specT[specT$id==input$spectr,]})
-  output$metaS<-DT::renderDataTable(specT[,c(2,3,5,7)], 
+output$metadata<-renderTable({specT[specT$id==input$spectr,]})
+output$metadataTS<-renderTable({specT[specT$id==input$spectr,]})
+output$metaS<-DT::renderDataTable(specT[,c(2,3,5,7)], 
                                     selection = list(mode = 'single', 
                                                      selected = 1))
   
