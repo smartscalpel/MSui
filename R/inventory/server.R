@@ -94,7 +94,7 @@ output$ticPlot <- renderPlotly({
                       grade=grade))
     pf<-p+scale_y_log10()+geom_line(alpha=0.5)+
       geom_point(size=0.1)+
-      geom_smooth(alpha=0.3,span=0.25)+ 
+      geom_smooth(alpha=0.3,span=0.15)+ 
       theme(legend.position="none")
     # generate bins based on input$bins from ui.R
     # x    <- faithful[, 2] 
@@ -154,7 +154,7 @@ output$xicPlot <- renderPlot({
   ggplot(tic, aes(rt, tic)) +
     geom_line() +
     geom_point(size=0.1)+
-    geom_smooth(alpha=0.3,span=0.25)+
+    geom_smooth(alpha=0.3,span=0.15)+
     coord_cartesian(xlim = ranges$rt)
 })
 
