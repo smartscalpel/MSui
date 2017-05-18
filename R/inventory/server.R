@@ -373,13 +373,13 @@ observeEvent(input$tsxic_dblclick, {
       is.sel<-FALSE
       rt<-spans$rt
       x<-input$tsxic_dblclick$x
-      for(i in 1:length(spans$rt)){
-        if(x>=spans$rt[[i]]$range[1]&x<=spans$rt[[i]]$range[2]){
+      for(i in 1:dim(rt)[1]){
+        if(x>=spans$rt$min[i]&x<=spans$rt$max[i]){
           is.sel<-TRUE
           rt<-rt[-i,]
         }
       }
-      if(length(rt)==0){
+      if(dim(rt)[1]==0){
       spans$rt <- NULL
       }else{
         spans$rt<-rt
