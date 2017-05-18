@@ -2,18 +2,18 @@
 
 # Alphabetical order (ignoring ^default, ^choices, ^all, ...)
 stopifnot(
-  requireNamespace("BiocParallel"),
+#  requireNamespace("BiocParallel"),
   requireNamespace("dplyr"),
   requireNamespace("DT"),
-  requireNamespace("ensembldb"),
-  requireNamespace("ensemblVEP"),
+#  requireNamespace("ensembldb"),
+#  requireNamespace("ensemblVEP"),
   requireNamespace("ggplot2"),
   requireNamespace("reshape2"),
-  requireNamespace("Rsamtools"),
-  requireNamespace("TVTB"),
-  requireNamespace("VariantAnnotation"),
-  requireNamespace("limma"),
-  requireNamespace("rtracklayer")
+  requireNamespace("Rsamtools")
+#  requireNamespace("TVTB"),
+#  requireNamespace("VariantAnnotation"),
+#  requireNamespace("limma"),
+#  requireNamespace("rtracklayer")
 )
 
 .Msgs <- list(

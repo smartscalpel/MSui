@@ -16,6 +16,7 @@ library(dtplyr)
 library(stringr)
 library(MonetDBLite)
 library(data.table)
+library(ggrepel)
 source('db.R')
 load('MetaData.Rdata')
 load('features.Rdat')
@@ -23,7 +24,7 @@ dbdir <- '~/Documents/Projects/MSpeaks/data/MonetDBPeaks/'
 #my_db <- MonetDBLite::src_monetdblite(dbdir)
 con <- prepareCon(dbdir)
 monetdb_conn <- src_monetdb(con = con)
-specT<-collect(tbl(monetdb_conn,'spectra'))
+specT<-dplyr::collect(tbl(monetdb_conn,'spectra'))
 
 dtParam<-list(beg=1,fin=1,dt=data.table())
 #source(system.file("shinyApp", "serverRoutines.R", package = "TVTB"))
@@ -65,6 +66,10 @@ shinyServer(function(input, output, session) {
     }
   })
   
+  observe({
+    id<-input$metaS_rows_selected
+    updateNumericInput(session,'spectr',value=id)
+  })
   observeEvent(input$fin, {
     cat('New fin=', input$fin, '\n')
     if (!is.numeric(input$finT)) {
@@ -89,7 +94,7 @@ output$ticPlot <- renderPlotly({
                       grade=grade))
     pf<-p+scale_y_log10()+geom_line(alpha=0.5)+
       geom_point(size=0.1)+
-      geom_smooth(alpha=0.3,span=0.25)+ 
+      geom_smooth(alpha=0.3,span=0.15)+ 
       theme(legend.position="none")
     # generate bins based on input$bins from ui.R
     # x    <- faithful[, 2] 
@@ -128,6 +133,7 @@ selectedXIC<-reactive({
 
 selectedSpectr<-reactive({
   mzDT<-selectedMZ()
+  cat(min(mzDT$spectrid),max(mzDT$spectrid),'\n')
   cat(dim(mzDT),ranges$rt,'\n')
   if(is.null(ranges$rt)){
     mz<-mzDT[,.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
@@ -144,11 +150,11 @@ output$xicPlot <- renderPlot({
   }else{
     tic<-selectedXIC()[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
   }
-  cat(dim(tic),'\n')
+  cat("xicPlot ",dim(tic),'\n')
   ggplot(tic, aes(rt, tic)) +
     geom_line() +
     geom_point(size=0.1)+
-    geom_smooth(alpha=0.3,span=0.25)+
+    geom_smooth(alpha=0.3,span=0.15)+
     coord_cartesian(xlim = ranges$rt)
 })
 
@@ -158,15 +164,20 @@ output$mzPlot <- renderPlot({
   }else{
     mz<-selectedSpectr()[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
   }
-  cat(dim(mz),'\n')
+  mz[,lab:=paste(round(mz,4))]
+  mz[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+  cat("mzPlot ",dim(mz),'\n')
+  
   # ggplot(mz[intensity>0.05*max(intensity)], aes(x=mz,y=intensity)) +
   #   geom_line() +
   #   geom_point(size=0.1) + #scale_y_log10()+
-  ggplot(mz[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity)) +
+  ggplot(mz[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
     geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+    geom_text_repel(aes(x = mz,y=intensity,label=lab))+
 #    geom_col()+
 #    geom_smooth(alpha=0.3,span=0.25)+
-    coord_cartesian(xlim = ranges$mz)
+    coord_cartesian(xlim = ranges$mz)+ 
+    theme(legend.position="none")
 })
 
 observeEvent(input$xic_dblclick, {
@@ -210,6 +221,11 @@ observeEvent(input$mz_dblclick, {
 # })
 # 
 
+  output$metadata<-renderTable({specT[specT$id==input$spectr,]})
+  output$metaS<-DT::renderDataTable(specT[,c(2,3,5,7)], 
+                                    selection = list(mode = 'single', 
+                                                     selected = 1))
+  
   output$table<-DT::renderDataTable({patients})
   # ,
   #                               options = list(
