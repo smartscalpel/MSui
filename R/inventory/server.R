@@ -25,7 +25,7 @@ dbdir <- '~/Documents/Projects/MSpeaks/data/MonetDBPeaks/'
 con <- prepareCon(dbdir)
 monetdb_conn <- src_monetdb(con = con)
 specT<-dplyr::collect(tbl(monetdb_conn,'spectra'))
-
+specT$fname<-gsub('.raw$','',gsub('.mzXML','',specT$fname))
 dtParam<-list(beg=1,fin=1,dt=data.table())
 #source(system.file("shinyApp", "serverRoutines.R", package = "TVTB"))
 
