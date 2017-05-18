@@ -11,7 +11,7 @@ library(shiny)
 library(plotly)
 # Define UI for application that draws a histogram
 shinyUI(shinyUI(pageWithSidebar(
-  headerPanel("Conditional Panels"),
+  headerPanel("Brain tumor Mass spectra"),
   sidebarPanel(
     fluidRow(column(
       width = 12,
