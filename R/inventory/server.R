@@ -49,9 +49,13 @@ shinyServer(function(input, output, session) {
       # system.time(p<-data.table(dbGetQuery(con,sqlGetMZset,dtParam$beg,dtParam$fin)))
       # pdt<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
       con<-getCon(con)
-      cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,dtParam$beg,dtParam$fin))),'\n')
+      if(is.null(ranges$mz)){
+        cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,dtParam$beg,dtParam$fin))),'\n')
+      }else{
+        cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICsetMZ,dtParam$beg,dtParam$fin,ranges$mz[1],ranges$mz[2]))),'\n')
+      }
       wdt<-merge(peakDT,specT,by.x = c('spectrid'),by.y = 'id')
-      dtParam$dt<-wdt
+        dtParam$dt<-wdt
       return(dtParam)
     }
   })

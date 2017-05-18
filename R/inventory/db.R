@@ -38,6 +38,12 @@ sqlTICset<-paste0('select rt,sum(intensity) as tic,spectrid ',
                   'where rt<= 600 and spectrid between ? and ?',
                   'group by spectrid,rt ',
                   'order by spectrid,rt')
+sqlTICsetMZ<-paste0('select rt,sum(intensity) as tic,spectrid ',
+                  'from peak ',
+                  'where rt<= 600 and spectrid between ? and ?',
+                  'and mz between ? and ?',
+                  'group by spectrid,rt ',
+                  'order by spectrid,rt')
 
 sqlTICone<-paste0('select rt,sum(intensity) as tic,spectrid ',
                   'from peak ',

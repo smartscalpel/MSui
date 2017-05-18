@@ -32,11 +32,9 @@ shinyUI(shinyUI(pageWithSidebar(
 ),
   mainPanel(
     tabsetPanel(tabPanel("Table", DT::dataTableOutput("table"),value = 1),
-        tabPanel(title="TIC", value = 2,
+        tabPanel(title="XIC", value = 2,
                  wellPanel(
                    fluidRow(
-                     column(width=6,
-                            h4("Select range ")),
                      column(width=2,
                             numericInput(
                               "beg", "First",
