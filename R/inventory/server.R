@@ -16,15 +16,17 @@ library(dtplyr)
 library(stringr)
 library(MonetDBLite)
 library(data.table)
+library(ggrepel)
 source('db.R')
+source('plot.R')
 load('MetaData.Rdata')
 load('features.Rdat')
 dbdir <- '~/Documents/Projects/MSpeaks/data/MonetDBPeaks/'
 #my_db <- MonetDBLite::src_monetdblite(dbdir)
 con <- prepareCon(dbdir)
 monetdb_conn <- src_monetdb(con = con)
-specT<-collect(tbl(monetdb_conn,'spectra'))
-
+specT<-dplyr::collect(tbl(monetdb_conn,'spectra'))
+specT$fname<-gsub('.raw$','',gsub('.mzXML','',specT$fname))
 dtParam<-list(beg=1,fin=1,dt=data.table())
 #source(system.file("shinyApp", "serverRoutines.R", package = "TVTB"))
 
@@ -48,9 +50,13 @@ shinyServer(function(input, output, session) {
       # system.time(p<-data.table(dbGetQuery(con,sqlGetMZset,dtParam$beg,dtParam$fin)))
       # pdt<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
       con<-getCon(con)
-      cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,dtParam$beg,dtParam$fin))),'\n')
+      if(is.null(ranges$mz)){
+        cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,dtParam$beg,dtParam$fin))),'\n')
+      }else{
+        cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICsetMZ,dtParam$beg,dtParam$fin,ranges$mz[1],ranges$mz[2]))),'\n')
+      }
       wdt<-merge(peakDT,specT,by.x = c('spectrid'),by.y = 'id')
-      dtParam$dt<-wdt
+        dtParam$dt<-wdt
       return(dtParam)
     }
   })
@@ -65,6 +71,10 @@ shinyServer(function(input, output, session) {
     }
   })
   
+  observe({
+    id<-input$metaS_rows_selected
+    updateNumericInput(session,'spectr',value=id)
+  })
   observeEvent(input$fin, {
     cat('New fin=', input$fin, '\n')
     if (!is.numeric(input$finT)) {
@@ -89,7 +99,7 @@ output$ticPlot <- renderPlotly({
                       grade=grade))
     pf<-p+scale_y_log10()+geom_line(alpha=0.5)+
       geom_point(size=0.1)+
-      geom_smooth(alpha=0.3,span=0.25)+ 
+      geom_smooth(alpha=0.3,span=0.15)+ 
       theme(legend.position="none")
     # generate bins based on input$bins from ui.R
     # x    <- faithful[, 2] 
@@ -128,6 +138,7 @@ selectedXIC<-reactive({
 
 selectedSpectr<-reactive({
   mzDT<-selectedMZ()
+  cat(min(mzDT$spectrid),max(mzDT$spectrid),'\n')
   cat(dim(mzDT),ranges$rt,'\n')
   if(is.null(ranges$rt)){
     mz<-mzDT[,.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
@@ -135,6 +146,19 @@ selectedSpectr<-reactive({
     mz<-mzDT[rt>=ranges$rt[1]&rt<=ranges$rt[2],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
   }
   mz
+})
+output$rangesText<-renderText({
+  if(!is.null(ranges$mz)&!is.null(ranges$rt)){
+    s<-paste0("Ranges mz=[",round(ranges$mz[1],2),',',round(ranges$mz[2],2),'], rt=[',round(ranges$rt[1],2),',',round(ranges$rt[2],2),']')
+  }else if(is.null(ranges$mz)&!is.null(ranges$rt)){
+    s<-paste0("Ranges mz=[FULL range], rt=[",round(ranges$rt[1],2),',',round(ranges$rt[2],2),']')
+  }else if(is.null(ranges$rt)&!is.null(ranges$mz)){
+    s<-paste0("Ranges mz=[",round(ranges$mz[1],2),',',round(ranges$mz[2],2),'], rt=[FULL range]')
+  }else{
+    s<-paste0("Ranges mz=[FULL range], rt=[FULL range]")
+  }
+  cat('Ranges:',s,'\n')
+  s
 })
 # When a double-click happens, check if there's a brush on the plot.
 # If so, zoom to the brush bounds; if not, reset the zoom.
@@ -144,13 +168,14 @@ output$xicPlot <- renderPlot({
   }else{
     tic<-selectedXIC()[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
   }
-  cat(dim(tic),'\n')
+  cat("xicPlot ",dim(tic),'\n')
   ggplot(tic, aes(rt, tic)) +
     geom_line() +
     geom_point(size=0.1)+
-    geom_smooth(alpha=0.3,span=0.25)+
+    geom_smooth(alpha=0.3,span=0.15)+
     coord_cartesian(xlim = ranges$rt)
 })
+
 
 output$mzPlot <- renderPlot({
   if(is.null(ranges$mz)){
@@ -158,15 +183,20 @@ output$mzPlot <- renderPlot({
   }else{
     mz<-selectedSpectr()[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
   }
-  cat(dim(mz),'\n')
+  mz[,lab:=paste(round(mz,4))]
+  mz[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+  cat("mzPlot ",dim(mz),'\n')
+  
   # ggplot(mz[intensity>0.05*max(intensity)], aes(x=mz,y=intensity)) +
   #   geom_line() +
   #   geom_point(size=0.1) + #scale_y_log10()+
-  ggplot(mz[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity)) +
+  ggplot(mz[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
     geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+    geom_text_repel(aes(x = mz,y=intensity,label=lab))+
 #    geom_col()+
 #    geom_smooth(alpha=0.3,span=0.25)+
-    coord_cartesian(xlim = ranges$mz)
+    coord_cartesian(xlim = ranges$mz)+ 
+    theme(legend.position="none")
 })
 
 observeEvent(input$xic_dblclick, {
@@ -186,6 +216,122 @@ observeEvent(input$mz_dblclick, {
     
   } else {
     ranges$mz <- NULL
+  }
+})
+
+spans <- reactiveValues(rt=NULL)
+
+output$tsxicPlot <- renderPlot({
+    tic<-selectedXIC()
+  cat("xicPlot ",dim(tic),'\n')
+  p<-ggplot(tic, aes(rt, tic)) +
+    geom_line() +
+    geom_point(size=0.1)+
+    geom_smooth(alpha=0.3,span=0.15)+
+    coord_cartesian(xlim = ranges$rt)
+  if(!is.null(spans$rt)){
+    p<-p+    geom_rect(data=spans$rt, inherit.aes=FALSE, aes(xmin=min, xmax=max, ymin=min(tic$tic),
+                                                             ymax=max(tic$tic), group=i), color="transparent", fill=spans$rt$color, alpha=0.3)
+  }
+  p
+})
+
+
+
+output$tsPlot <- renderPlot({
+  if(is.null(ranges$mz)){
+    mz<-selectedSpectr()
+  }else{
+    mz<-selectedSpectr()[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+  }
+  mz[,lab:=paste(round(mz,4))]
+  mz[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
+  cat("tsPlot ",dim(mz),'\n')
+  if(is.null(spans$rt)){cat('spans$rt is NULL\n')}else{cat('spans rt dim=',dim(spans$rt),'\n')}
+  if(is.null(spans$rt)){#|dim(spans$rt)[1]>6){
+  p<-ggplot(mz[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
+    geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
+    geom_text_repel(aes(x = mz,y=intensity,label=lab))+
+    coord_cartesian(xlim = ranges$mz)+ 
+    theme(legend.position="none")
+  }else if(dim(spans$rt)[1]==1){
+    r<-spans$rt
+    mzDT<-selectedMZ()
+    mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
+    p<-getSpanPlot(mz1,r,i=1,ranges$mz,range(mz1$intensity))
+  }else if(dim(spans$rt)[1]==2){
+    r<-spans$rt
+    mzDT<-selectedMZ()
+    mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
+    mz2<-getSpanMZ(mzDT,r,i=2,ranges$mz)
+    ylm<-range(c(mz1$intensity,mz2$intensity))
+    p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
+    p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
+    p<-multiplot(p1, p2,cols=1)
+  }else if(dim(spans$rt)[1]==3){
+    r<-spans$rt
+    mzDT<-selectedMZ()
+    mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
+    mz2<-getSpanMZ(mzDT,r,i=2,ranges$mz)
+    mz3<-getSpanMZ(mzDT,r,i=3,ranges$mz)
+    ylm<-range(c(mz1$intensity,mz2$intensity,mz3$intensity))
+    p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
+    p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
+    p3<-getSpanPlot(mz3,r,i=3,ranges$mz,ylm)
+    p<-multiplot(p1, p2,p3,cols=1)
+  }else if(dim(spans$rt)[1]==4){
+  r<-spans$rt
+  mzDT<-selectedMZ()
+  mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
+  mz2<-getSpanMZ(mzDT,r,i=2,ranges$mz)
+  mz3<-getSpanMZ(mzDT,r,i=3,ranges$mz)
+  mz4<-getSpanMZ(mzDT,r,i=4,ranges$mz)
+  ylm<-range(c(mz1$intensity,mz2$intensity,mz3$intensity,mz4$intensity))
+  p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
+  p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
+  p3<-getSpanPlot(mz3,r,i=3,ranges$mz,ylm)
+  p4<-getSpanPlot(mz4,r,i=4,ranges$mz,ylm)
+  p<-multiplot(p1, p2,p3,p4,cols=1)
+}
+p
+})
+
+output$spansText<-renderText({
+  if(length(spans$rt)>6){
+    s<-'At most 6 spans could be selected.'
+  }else{
+      s<-''
+  }
+  s
+})
+observeEvent(input$tsxic_dblclick, {
+  brush <- input$tsxic_brush
+  if (!is.null(brush)) {
+    if(is.null(spans$rt)){
+      cat('TS double click ',brush$xmin, brush$xmax,'\n')
+    spans$rt <- data.frame(i=1,color=.palette[1],min=brush$xmin, max=brush$xmax,stringsAsFactors = FALSE)
+    }else{
+      i<-dim(spans$rt)[1]
+      cat('TS double click ',i,brush$xmin, brush$xmax,'\n')
+      spans$rt[i+1,]<-list(i=1,color=.palette[i+1],min=brush$xmin, max=brush$xmax)
+    }
+  } else {
+    if(!is.null(spans$rt)){
+      is.sel<-FALSE
+      rt<-spans$rt
+      x<-input$tsxic_dblclick$x
+      for(i in 1:dim(rt)[1]){
+        if(x>=spans$rt$min[i]&x<=spans$rt$max[i]){
+          is.sel<-TRUE
+          rt<-rt[-i,]
+        }
+      }
+      if(dim(rt)[1]==0){
+      spans$rt <- NULL
+      }else{
+        spans$rt<-rt
+      }
+    }
   }
 })
 # 
@@ -210,6 +356,12 @@ observeEvent(input$mz_dblclick, {
 # })
 # 
 
+output$metadata<-renderTable({specT[specT$id==input$spectr,]})
+output$metadataTS<-renderTable({specT[specT$id==input$spectr,]})
+output$metaS<-DT::renderDataTable(specT[,c(2,3,5,7)], 
+                                    selection = list(mode = 'single', 
+                                                     selected = 1))
+  
   output$table<-DT::renderDataTable({patients})
   # ,
   #                               options = list(
