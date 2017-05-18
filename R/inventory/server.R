@@ -24,7 +24,7 @@ dbdir <- '~/Documents/Projects/MSpeaks/data/MonetDBPeaks/'
 #my_db <- MonetDBLite::src_monetdblite(dbdir)
 con <- prepareCon(dbdir)
 monetdb_conn <- src_monetdb(con = con)
-specT<-collect(tbl(monetdb_conn,'spectra'))
+specT<-dplyr::collect(tbl(monetdb_conn,'spectra'))
 
 dtParam<-list(beg=1,fin=1,dt=data.table())
 #source(system.file("shinyApp", "serverRoutines.R", package = "TVTB"))
@@ -66,6 +66,10 @@ shinyServer(function(input, output, session) {
     }
   })
   
+  observe({
+    id<-input$metaS_rows_selected
+    updateNumericInput(session,'spectr',value=id)
+  })
   observeEvent(input$fin, {
     cat('New fin=', input$fin, '\n')
     if (!is.numeric(input$finT)) {
@@ -218,7 +222,10 @@ observeEvent(input$mz_dblclick, {
 # 
 
   output$metadata<-renderTable({specT[specT$id==input$spectr,]})
-
+  output$metaS<-DT::renderDataTable(specT[,c(2,3,5,7)], 
+                                    selection = list(mode = 'single', 
+                                                     selected = 1))
+  
   output$table<-DT::renderDataTable({patients})
   # ,
   #                               options = list(
