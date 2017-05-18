@@ -59,28 +59,33 @@ shinyUI(shinyUI(pageWithSidebar(
                  )
                  ),
         tabPanel(title="Spectr", value = 3,
- #                wellPanel(
-                   fluidRow(
-                     column(width=12,class = "well",
-                            plotOutput("xicPlot",height = 300,
-                                         dblclick = "xic_dblclick",
-                                         brush = brushOpts(
-                                           id = "xic_brush",
-                                           resetOnNew = TRUE)
-                     ))),
-                   fluidRow(
-                     column(width=12,class = "well",
-                            plotOutput("mzPlot",height = 300,
-                                        dblclick = "mz_dblclick",
-                                        brush = brushOpts(
-                                          id = "mz_brush",
-                                          resetOnNew = TRUE)
-                     )))
-                   
-#                 )
+                 #                wellPanel(
+                 fluidRow(
+                   column(width=12,
+                          tabPanel("Metadata", tableOutput("metadata"))
+                   )
+                 ),
+                 fluidRow(
+                   column(width=12,class = "well",
+                          plotOutput("xicPlot",height = 300,
+                                     dblclick = "xic_dblclick",
+                                     brush = brushOpts(
+                                       id = "xic_brush",
+                                       resetOnNew = TRUE)
+                          ))),
+                 fluidRow(
+                   column(width=12,class = "well",
+                          plotOutput("mzPlot",height = 300,
+                                     dblclick = "mz_dblclick",
+                                     brush = brushOpts(
+                                       id = "mz_brush",
+                                       resetOnNew = TRUE)
+                          )))
+                 
+                 #                 )
         ),
         tabPanel("Features", tableOutput("features"),value=4)
-)
+    )
     )
   )
 )
