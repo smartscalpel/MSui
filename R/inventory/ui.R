@@ -34,7 +34,7 @@ shinyUI(shinyUI(pageWithSidebar(
     ))
 ),
 mainPanel(tabsetPanel(
-  tabPanel("Table", DT::dataTableOutput("table"), value = 1),
+#  tabPanel("Table", DT::dataTableOutput("table"), value = 1),
   tabPanel(
     title = "XIC",
     value = 2,
@@ -55,7 +55,7 @@ mainPanel(tabsetPanel(
         numericInput(
           "fin",
           "Last",
-          value = 1,
+          value = 2,
           min = 1,
           max = 100,
           step = 1
