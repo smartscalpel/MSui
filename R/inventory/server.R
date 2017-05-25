@@ -117,7 +117,10 @@ output$ticPlot <- renderPlotly({
     # hist(x, breaks = bins, col = 'darkgray', border = 'white')
     ggplotly(pf)
   })
+
+output$pcaPlot<- renderPlot({
   
+})
  
 ranges <- reactiveValues(rt = NULL, mz = NULL)
 
@@ -268,15 +271,15 @@ output$tsPlot <- renderPlot({
     r<-spans$rt
     mzDT<-selectedMZ()
     mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
-    p<-getSpanPlot(mz1,r,i=1,ranges$mz,range(mz1$intensity))
+    p<-getSpanPlot(mz1,r,i=1,xranges,range(mz1$intensity))
   }else if(dim(spans$rt)[1]==2){
     r<-spans$rt
     mzDT<-selectedMZ()
     mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
     mz2<-getSpanMZ(mzDT,r,i=2,ranges$mz)
     ylm<-range(c(mz1$intensity,mz2$intensity))
-    p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
-    p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
+    p1<-getSpanPlot(mz1,r,i=1,xranges,ylm)
+    p2<-getSpanPlot(mz2,r,i=2,xranges,ylm)
     p<-multiplot(p1, p2,cols=1)
   }else if(dim(spans$rt)[1]==3){
     r<-spans$rt
@@ -285,9 +288,9 @@ output$tsPlot <- renderPlot({
     mz2<-getSpanMZ(mzDT,r,i=2,ranges$mz)
     mz3<-getSpanMZ(mzDT,r,i=3,ranges$mz)
     ylm<-range(c(mz1$intensity,mz2$intensity,mz3$intensity))
-    p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
-    p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
-    p3<-getSpanPlot(mz3,r,i=3,ranges$mz,ylm)
+    p1<-getSpanPlot(mz1,r,i=1,xranges,ylm)
+    p2<-getSpanPlot(mz2,r,i=2,xranges,ylm)
+    p3<-getSpanPlot(mz3,r,i=3,xranges,ylm)
     p<-multiplot(p1, p2,p3,cols=1)
   }else if(dim(spans$rt)[1]==4){
   r<-spans$rt
@@ -297,10 +300,10 @@ output$tsPlot <- renderPlot({
   mz3<-getSpanMZ(mzDT,r,i=3,ranges$mz)
   mz4<-getSpanMZ(mzDT,r,i=4,ranges$mz)
   ylm<-range(c(mz1$intensity,mz2$intensity,mz3$intensity,mz4$intensity))
-  p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
-  p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
-  p3<-getSpanPlot(mz3,r,i=3,ranges$mz,ylm)
-  p4<-getSpanPlot(mz4,r,i=4,ranges$mz,ylm)
+  p1<-getSpanPlot(mz1,r,i=1,xranges,ylm)
+  p2<-getSpanPlot(mz2,r,i=2,xranges,ylm)
+  p3<-getSpanPlot(mz3,r,i=3,xranges,ylm)
+  p4<-getSpanPlot(mz4,r,i=4,xranges,ylm)
   p<-multiplot(p1, p2,p3,p4,cols=1)
 }
 p

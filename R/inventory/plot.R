@@ -58,6 +58,7 @@ getSpanMZ<-function(mzDT,r,i,ranges){
   cat(dim(mz1),'\n')
   return(mz1)
 }
+
 getSpanPlot<-function(mz1,r,i,xranges,yranges=NULL){
   p<-ggplot(mz1[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
     geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
