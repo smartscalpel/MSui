@@ -32,13 +32,13 @@ con <- prepareCon(dbdir)
 monetdb_conn <- src_monetdb(con = con)
 specT<-dplyr::collect(tbl(monetdb_conn,'spectra'))
 specT$fname<-gsub('.raw$','',gsub('.mzXML','',specT$fname))
-dtParam<-list(beg=1,fin=1,dt=data.table(),mz=data.table())
 #source(system.file("shinyApp", "serverRoutines.R", package = "TVTB"))
 
 #Sys.sleep(2)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
+  dtParam<-reactiveValues(beg=1,fin=1,dt=data.table(),mz=data.table())
   
   selectedTIC<-reactive({
     cat('iBeg=',input$beg,' iFin=',input$fin,'\n')
@@ -61,6 +61,7 @@ shinyServer(function(input, output, session) {
         cat(dim(p),'\n')
         binz<-seq(min(p$mz),max(p$mz),by=0.01)
         p[,bin:=findInterval(mz, binz)]
+        p[,rcomp:=rcomp(intensity,total=1e6),by=.(spectrid)]
         peakDT<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
       }else{
         cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICsetMZ,dtParam$beg,dtParam$fin,ranges$mz[1],ranges$mz[2]))),'\n')
@@ -121,24 +122,42 @@ output$ticPlot <- renderPlotly({
     ggplotly(pf)
   })
 
-output$pcaPlot<- renderPlot({
+selectedMatrix<-reactive({
   mz<-selectedTIC()$mz
   beg<-selectedTIC()$beg
   fin<-selectedTIC()$fin
   pDTa<-mz[,.(mz=mean(mz),intensity=sum(intensity)),by=.(spectrid,bin)]
   pDTa[,rcomp:=rcomp(intensity,total=1e6),by=.(spectrid)]
   m<-spMatrix(ncol = max(pDTa$bin),
-                   nrow = max(pDTa$spectrid),
-                   j=pDTa$bin,
-                   i=pDTa$spectrid,
-                   x = pDTa$intensity)
+              nrow = max(pDTa$spectrid),
+              j=pDTa$bin,
+              i=pDTa$spectrid,
+              x = pDTa$intensity)
   idx<-which(colSums(m)>0)
-  pcaM<-prcomp(m[,idx],scale. = TRUE)
-  fviz_screeplot(pcaM,ncp=10)
-  p <- fviz_pca_ind(pcaM,label='none',habillage = specT$state[beg:fin],addEllipses = FALSE)
+  cat('Matrix:',length(idx),'\n')
+  return(m[,idx])
+})
+
+pcaM<-reactive({
+  pca=prcomp(selectedMatrix(),scale. = TRUE)
+  cat('PCA\n')
+  pca
+  })
+
+
+output$pcaIndPlot<- renderPlot({
+  p <- fviz_pca_ind(pcaM(),label='none',habillage = specT$state[dtParam$beg:dtParam$fin],addEllipses = FALSE)
   p
 })
  
+output$pcaScreePlot<- renderPlot({
+  fviz_screeplot(pcaM(),ncp=10)
+})
+output$pcaVarPlot<- renderPlot({
+  p<-fviz_pca_var(pcaM(),label='var',geom=c('point',text),select.var = list(cos2=5))
+  p
+})
+
 ranges <- reactiveValues(rt = NULL, mz = NULL)
 
 selectedMZ<-reactive({

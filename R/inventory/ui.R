@@ -138,8 +138,24 @@ mainPanel(tabsetPanel(
       width = 12,
       class = "well",
       plotOutput(
-        "pcaPlot",
-        height = 600
+        "pcaScreePlot",
+        height = 100)
+      )
+    ),
+    fluidRow(column(
+      width = 12,
+      class = "well",
+      plotOutput(
+        "pcaIndPlot",
+        height = 300)
+    )
+    ),
+    fluidRow(column(
+      width = 12,
+      class = "well",
+      plotOutput(
+        "pcaVarPlot",
+        height = 300
       )
     ))
   ),
