@@ -17,6 +17,8 @@ library(stringr)
 library(MonetDBLite)
 library(data.table)
 library(ggrepel)
+library(FactoMineR)
+library(factoextra)
 source('db.R')
 source('plot.R')
 load('MetaData.Rdata')
@@ -27,7 +29,7 @@ con <- prepareCon(dbdir)
 monetdb_conn <- src_monetdb(con = con)
 specT<-dplyr::collect(tbl(monetdb_conn,'spectra'))
 specT$fname<-gsub('.raw$','',gsub('.mzXML','',specT$fname))
-dtParam<-list(beg=1,fin=1,dt=data.table())
+dtParam<-list(beg=1,fin=1,dt=data.table(),mz=data.table())
 #source(system.file("shinyApp", "serverRoutines.R", package = "TVTB"))
 
 #Sys.sleep(2)
@@ -51,12 +53,18 @@ shinyServer(function(input, output, session) {
       # pdt<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
       con<-getCon(con)
       if(is.null(ranges$mz)){
-        cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,dtParam$beg,dtParam$fin))),'\n')
+#        cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,dtParam$beg,dtParam$fin))),'\n')
+        cat(system.time(p<-data.table(dbGetQuery(con,sqlGetMZset,dtParam$beg,dtParam$fin))),'\n')
+        cat(dim(p),'\n')
+        binz<-seq(min(p$mz),max(p$mz),by=0.01)
+        p[,bin:=findInterval(mz, binz)]
+        peakDT<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
       }else{
         cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICsetMZ,dtParam$beg,dtParam$fin,ranges$mz[1],ranges$mz[2]))),'\n')
       }
       wdt<-merge(peakDT,specT,by.x = c('spectrid'),by.y = 'id')
-        dtParam$dt<-wdt
+      dtParam$dt<-wdt
+      dtParam$mz<-p
       return(dtParam)
     }
   })
@@ -241,8 +249,10 @@ output$tsxicPlot <- renderPlot({
 output$tsPlot <- renderPlot({
   if(is.null(ranges$mz)){
     mz<-selectedSpectr()
+    xranges<-range(mz$mz)
   }else{
     mz<-selectedSpectr()[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+    xranges<-ranges$mz
   }
   mz[,lab:=paste(round(mz,4))]
   mz[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
