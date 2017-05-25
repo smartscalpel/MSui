@@ -19,6 +19,9 @@ library(data.table)
 library(ggrepel)
 library(FactoMineR)
 library(factoextra)
+library(Matrix)
+library(compositions)
+
 source('db.R')
 source('plot.R')
 load('MetaData.Rdata')
@@ -119,7 +122,21 @@ output$ticPlot <- renderPlotly({
   })
 
 output$pcaPlot<- renderPlot({
-  
+  mz<-selectedTIC()$mz
+  beg<-selectedTIC()$beg
+  fin<-selectedTIC()$fin
+  pDTa<-mz[,.(mz=mean(mz),intensity=sum(intensity)),by=.(spectrid,bin)]
+  pDTa[,rcomp:=rcomp(intensity,total=1e6),by=.(spectrid)]
+  m<-spMatrix(ncol = max(pDTa$bin),
+                   nrow = max(pDTa$spectrid),
+                   j=pDTa$bin,
+                   i=pDTa$spectrid,
+                   x = pDTa$intensity)
+  idx<-which(colSums(m)>0)
+  pcaM<-prcomp(m[,idx],scale. = TRUE)
+  fviz_screeplot(pcaM,ncp=10)
+  p <- fviz_pca_ind(pcaM,label='none',habillage = specT$state[beg:fin],addEllipses = FALSE)
+  p
 })
  
 ranges <- reactiveValues(rt = NULL, mz = NULL)

@@ -131,6 +131,18 @@ mainPanel(tabsetPanel(
       plotOutput("tsPlot", height = 600)
     ))
   ),
+  tabPanel(
+    title = "PCA",
+    value = 6,
+    fluidRow(column(
+      width = 12,
+      class = "well",
+      plotOutput(
+        "pcaPlot",
+        height = 600
+      )
+    ))
+  ),
   tabPanel("Features", tableOutput("features"), value = 4)
 ))
 )
