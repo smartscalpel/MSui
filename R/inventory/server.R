@@ -53,6 +53,12 @@ shinyServer(function(input, output, session) {
     #   if(is.numeric(input$beg)&dtParam$beg!=input$beg){dtParam$beg<-input$beg}
     #   if(is.numeric(input$fin)){dtParam$fin<-max(input$fin,dtParam$beg)}
     # }
+    if(!is.null(ranges$mz)){
+    mzr<-ranges$mz
+    }
+    if(!is.null(ranges$rt)){
+    rtr<-ranges$rt
+    }
     spIDs<-unique(dtParam$mz$spectrid)
     sp_old<-spIDs
     cat('spIDs: [',spIDs,']\n')
