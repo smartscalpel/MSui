@@ -15,18 +15,8 @@ shinyUI(shinyUI(pageWithSidebar(
   sidebarPanel(
     fluidRow(column(
       width = 12,
-      fluidRow(column(
-        width = 2,
-        numericInput(
-          "spectr",
-          "ID",
-          value = 1,
-          min = 1,
-          max = 100,
-          step = 1
-        )
-      ),
-      column(width=10,
+      fluidRow(
+      column(width=12,
              textOutput("rangesText"))
       ),
       fluidRow(column(width = 12,
@@ -38,31 +28,7 @@ mainPanel(tabsetPanel(
   tabPanel(
     title = "XIC",
     value = 2,
-    wellPanel(fluidRow(
-      column(
-        width = 2,
-        numericInput(
-          "beg",
-          "First",
-          value = 1,
-          min = 1,
-          max = 100,
-          step = 1
-        )
-      ),
-      column(
-        width = 2,
-        numericInput(
-          "fin",
-          "Last",
-          value = 2,
-          min = 1,
-          max = 100,
-          step = 1
-        )
-      )
-    ),
-    fluidRow(column(
+    wellPanel(fluidRow(column(
       width = 12,
       plotlyOutput("ticPlot",height = 300)
     )))
@@ -139,23 +105,23 @@ mainPanel(tabsetPanel(
       class = "well",
       plotOutput(
         "pcaScreePlot",
-        height = 100)
+        height = 200)
       )
     ),
     fluidRow(column(
       width = 12,
       class = "well",
-      plotOutput(
+      plotlyOutput(
         "pcaIndPlot",
-        height = 300)
+        height = 400)
     )
     ),
     fluidRow(column(
       width = 12,
       class = "well",
-      plotOutput(
+      plotlyOutput(
         "pcaVarPlot",
-        height = 300
+        height = 400
       )
     ))
   ),

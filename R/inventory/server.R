@@ -31,46 +31,78 @@ dbdir <- '~/Documents/Projects/MSpeaks/data/MonetDBPeaks/'
 con <- prepareCon(dbdir)
 monetdb_conn <- src_monetdb(con = con)
 specT<-dplyr::collect(tbl(monetdb_conn,'spectra'))
-specT$fname<-gsub('.raw$','',gsub('.mzXML','',specT$fname))
+specT$fname<-gsub('_FT.*$','',gsub('.raw$','',gsub('.mzXML','',specT$fname)))
+p1<-getMZ(con,1)
 #source(system.file("shinyApp", "serverRoutines.R", package = "TVTB"))
 
 #Sys.sleep(2)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
-  dtParam<-reactiveValues(beg=1,fin=1,dt=data.table(),mz=data.table())
+  dtParam<-reactiveValues(beg=1,fin=1,dt=data.table(),mz=p1,selection=c(1,2))
   
   selectedTIC<-reactive({
-    cat('iBeg=',input$beg,' iFin=',input$fin,'\n')
-    if(is.numeric(input$beg)&
-       dtParam$beg==input$beg&
-       is.numeric(input$fin)&
-       dtParam$fin==input$fin&dim(dtParam$dt)[1]>0){
-      return(dtParam)
-    }else{
-      if(is.numeric(input$beg)&dtParam$beg!=input$beg){dtParam$beg<-input$beg}
-      if(is.numeric(input$fin)){dtParam$fin<-max(input$fin,dtParam$beg)}
-      cat('Beg=',dtParam$beg,' Fin=',dtParam$fin,'\n')
+    cat('selected rows: [',input$metaS_rows_selected,']\n')
+#    cat('iBeg=',input$beg,' iFin=',input$fin,'\n')
+    # if(is.numeric(input$beg)&
+    #    dtParam$beg==input$beg&
+    #    is.numeric(input$fin)&
+    #    dtParam$fin==input$fin&dim(dtParam$dt)[1]>0){
+    #   return(dtParam)
+    # }else{
+    #   if(is.numeric(input$beg)&dtParam$beg!=input$beg){dtParam$beg<-input$beg}
+    #   if(is.numeric(input$fin)){dtParam$fin<-max(input$fin,dtParam$beg)}
+    # }
+    if(!is.null(ranges$mz)){
+    mzr<-ranges$mz
+    }
+    if(!is.null(ranges$rt)){
+    rtr<-ranges$rt
+    }
+    spIDs<-unique(dtParam$mz$spectrid)
+    sp_old<-spIDs
+    cat('spIDs: [',spIDs,']\n')
+    idx1<-match(spIDs,dtParam$selection)
+    cat('idx1: [',idx1,']\n')
+    if(any(is.na(idx1))){
+      dtParam$mz<-dtParam$mz[!spectrid%in%spIDs[is.na(idx1)]]
+      spIDs<-unique(dtParam$mz$spectrid)
+    }
+    idx2<-match(dtParam$selection,spIDs)
+    cat('idx2: [',idx2,']\n')
+    if(any(is.na(idx2))){
+      id<-dtParam$selection[which(is.na(idx2))[1]]
+      cat('p id=',id,'\n')
+#      cat('Beg=',id,' Fin=',id,'\n')
       # con<-getCon(con)
       # system.time(p<-data.table(dbGetQuery(con,sqlGetMZset,dtParam$beg,dtParam$fin)))
       # pdt<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
+      
       con<-getCon(con)
-      if(is.null(ranges$mz)){
+#      if(is.null(ranges$mz)){
 #        cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,dtParam$beg,dtParam$fin))),'\n')
-        cat(system.time(p<-data.table(dbGetQuery(con,sqlGetMZset,dtParam$beg,dtParam$fin))),'\n')
-        cat(dim(p),'\n')
-        binz<-seq(min(p$mz),max(p$mz),by=0.01)
-        p[,bin:=findInterval(mz, binz)]
-        p[,rcomp:=rcomp(intensity,total=1e6),by=.(spectrid)]
-        peakDT<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
+        p<-getMZ(con,id)
+      # }else{
+      #   p<-getMZ(con,id,)
+      # }
+      dtParam$mz<-rbind(dtParam$mz,p)
+      spIDs<-unique(dtParam$mz$spectrid)
+    }
+    if(!identical(sp_old,spIDs)){
+      if(is.null(ranges$mz)){
+        peakDT<-dtParam$mz[,.(tic=sum(intensity)),by=.(rt,spectrid)]
       }else{
-        cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICsetMZ,dtParam$beg,dtParam$fin,ranges$mz[1],ranges$mz[2]))),'\n')
+        peakDT<-dtParam$mz[mz>=ranges$mz&mz<=ranges$mz,.(tic=sum(intensity)),by=.(rt,spectrid)]
+      }
+      if(!is.null(ranges$rt)){
+        peakDT<-peakDT[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
       }
       wdt<-merge(peakDT,specT,by.x = c('spectrid'),by.y = 'id')
       dtParam$dt<-wdt
-      dtParam$mz<-p
-      return(dtParam)
     }
+    cat('wdt names: ',names(dtParam$dt),'\n')
+    cat('dim(mz)',dim(dtParam$mz),'\n')
+    return(dtParam)
   })
 
   observeEvent(input$beg,{
@@ -85,25 +117,31 @@ shinyServer(function(input, output, session) {
   
   observe({
     id<-input$metaS_rows_selected
-    updateNumericInput(session,'spectr',value=id)
+    if(length(id)==0){id<-c(1,2)}
+    dtParam$selection<-as.numeric(id)
+    cat('metaS_rows_selected:',id,'\n')
+#    updateNumericInput(session,'spectr',value=id)
   })
-  observeEvent(input$fin, {
-    cat('New fin=', input$fin, '\n')
-    if (!is.numeric(input$finT)) {
-      updateNumericInput(session, 'fin', value = selectedTIC()$fin)
-    } else if (selectedTIC()$beg > input$fin) {
-      updateNumericInput(session, 'fin', value = selectedTIC()$beg)
-      updateNumericInput(session, 'beg', value = selectedTIC()$beg)
-    }
-  })
+  
+  # observeEvent(input$fin, {
+  #   cat('New fin=', input$fin, '\n')
+  #   if (!is.numeric(input$finT)) {
+  #     updateNumericInput(session, 'fin', value = selectedTIC()$fin)
+  #   } else if (selectedTIC()$beg > input$fin) {
+  #     updateNumericInput(session, 'fin', value = selectedTIC()$beg)
+  #     updateNumericInput(session, 'beg', value = selectedTIC()$beg)
+  #   }
+  # })
   
 output$ticPlot <- renderPlotly({
     cat(paste('plot starts',Sys.time(),'\n'))
-    cat('Beg=',selectedTIC()$beg,' Fin=',selectedTIC()$fin,'\n')
+    cat('Beg=',min(selectedTIC()$dt$spectrid),' Fin=',max(selectedTIC()$dt$spectrid),'\n')
     # con<-getCon(con)
     # system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,beg,fin)))
     # wdt<-merge(peakDT,specT,by.x = c('spectrid'),by.y = 'id')
     cat(paste('peak is ready',Sys.time(),'\n'))
+    cat('names: ',names(selectedTIC()$dt),'\n')
+    
     p<-ggplot(selectedTIC()$dt,aes(x=rt,y=tic,color=fname,
                       patient=patient,
                       st=state,
@@ -113,6 +151,9 @@ output$ticPlot <- renderPlotly({
       geom_point(size=0.1)+
       geom_smooth(alpha=0.3,span=0.15)+ 
       theme(legend.position="none")
+    if(!is.null(ranges$rt)){
+      pf<-pf+coord_cartesian(xlim = ranges$rt)
+    }
     # generate bins based on input$bins from ui.R
     # x    <- faithful[, 2] 
     # bins <- seq(min(x), max(x), length.out = 1)
@@ -124,17 +165,23 @@ output$ticPlot <- renderPlotly({
 
 selectedMatrix<-reactive({
   mz<-selectedTIC()$mz
-  beg<-selectedTIC()$beg
-  fin<-selectedTIC()$fin
+  if(!is.null(ranges$mz)){
+    mz<-mz[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+  }
+  if(!is.null(ranges$rt)){
+    mz<-mz[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
+  }
   pDTa<-mz[,.(mz=mean(mz),intensity=sum(intensity)),by=.(spectrid,bin)]
   pDTa[,rcomp:=rcomp(intensity,total=1e6),by=.(spectrid)]
+  spIDs<-unique(pDTa$spectrid)
   m<-spMatrix(ncol = max(pDTa$bin),
-              nrow = max(pDTa$spectrid),
+              nrow = length(spIDs),
               j=pDTa$bin,
-              i=pDTa$spectrid,
+              i=match(pDTa$spectrid,spIDs),
               x = pDTa$intensity)
+  row.names(m)<-spIDs
   idx<-which(colSums(m)>0)
-  cat('Matrix:',length(idx),'\n')
+  cat('Matrix:',length(idx),dim(m),'\n')
   return(m[,idx])
 })
 
@@ -145,26 +192,42 @@ pcaM<-reactive({
   })
 
 
-output$pcaIndPlot<- renderPlot({
-  p <- fviz_pca_ind(pcaM(),label='none',habillage = specT$state[dtParam$beg:dtParam$fin],addEllipses = FALSE)
-  p
+output$pcaIndPlot<- renderPlotly({
+  cat('matrix dim',dim(pcaM()),'\n')
+  cat('selection len',length(dtParam$selection))
+  #p <- fviz_pca_ind(pcaM(),label='none',habillage = specT$diagname[dtParam$selection],addEllipses = FALSE)
+  pca.df<-cbind(as.data.frame(pcaM()$x),specT[dtParam$selection,])
+  cat(dim(pca.df),'\n')
+  cat(names(pca.df),'\n')
+  p<-ggplot(pca.df,
+            aes(x=PC1,y=PC2,
+                color=state,
+                diagname=diagname,
+                fname=fname,
+                grade=grade))+
+    geom_point()
+
+  ggplotly(p)
 })
  
 output$pcaScreePlot<- renderPlot({
   fviz_screeplot(pcaM(),ncp=10)
 })
-output$pcaVarPlot<- renderPlot({
+output$pcaVarPlot<- renderPlotly({
   p<-fviz_pca_var(pcaM(),label='var',geom=c('point',text),select.var = list(cos2=5))
-  p
+  ggplotly(p)
 })
 
-ranges <- reactiveValues(rt = NULL, mz = NULL)
+ranges <- reactiveValues(rt = NULL, mz = NULL,intensity=1e2)
+
 
 selectedMZ<-reactive({
-  cat('ID=',input$spectr,'\n')
-  if(is.numeric(input$spectr)){spID<-input$spectr}else{spID<-1}
+  n<-length(selectedTIC()$selection)
+  cat('n=',n,'\n')
+  if(n>0){spID<-selectedTIC()$selection[n]}else{spID<-1}
   con<-getCon(con)
-  system.time(p<-data.table(dbGetQuery(con,sqlGetMZdata,spID)))
+#  system.time(p<-data.table(dbGetQuery(con,sqlGetMZdata,spID)))
+  system.time(p<-selectedTIC()$mz[spectrid==spID])
   # pdt<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
   cat(dim(p),'\n')
   binz<-seq(min(p$mz),max(p$mz),by=0.01)
@@ -195,15 +258,17 @@ selectedSpectr<-reactive({
   mz
 })
 output$rangesText<-renderText({
-  if(!is.null(ranges$mz)&!is.null(ranges$rt)){
-    s<-paste0("Ranges mz=[",round(ranges$mz[1],2),',',round(ranges$mz[2],2),'], rt=[',round(ranges$rt[1],2),',',round(ranges$rt[2],2),']')
-  }else if(is.null(ranges$mz)&!is.null(ranges$rt)){
-    s<-paste0("Ranges mz=[FULL range], rt=[",round(ranges$rt[1],2),',',round(ranges$rt[2],2),']')
-  }else if(is.null(ranges$rt)&!is.null(ranges$mz)){
-    s<-paste0("Ranges mz=[",round(ranges$mz[1],2),',',round(ranges$mz[2],2),'], rt=[FULL range]')
+  if(is.null(ranges$mz)){
+    mz<-range(selectedTIC()$mz$mz)
   }else{
-    s<-paste0("Ranges mz=[FULL range], rt=[FULL range]")
+    mz<-ranges$mz
   }
+  if(is.null(ranges$rt)){
+    rt<-range(selectedTIC()$mz$rt)
+  }else{
+    rt<-ranges$rt
+  }
+    s<-paste0("Ranges mz=[",round(mz[1],2),',',round(mz[2],2),'], rt=[',round(rt[1],2),',',round(rt[2],2),']')
   cat('Ranges:',s,'\n')
   s
 })
@@ -250,7 +315,7 @@ observeEvent(input$xic_dblclick, {
   brush <- input$xic_brush
   if (!is.null(brush)) {
     ranges$rt <- c(brush$xmin, brush$xmax)
-    
+    cat('ranges$rt',ranges$rt,'\n')
   } else {
     ranges$rt <- NULL
   }
@@ -260,7 +325,7 @@ observeEvent(input$mz_dblclick, {
   brush <- input$mz_brush
   if (!is.null(brush)) {
     ranges$mz <- c(brush$xmin, brush$xmax)
-    
+    cat('ranges$mz',ranges$mz,'\n')
   } else {
     ranges$mz <- NULL
   }
@@ -405,11 +470,11 @@ observeEvent(input$tsxic_dblclick, {
 # })
 # 
 
-output$metadata<-renderTable({specT[specT$id==input$spectr,]})
-output$metadataTS<-renderTable({specT[specT$id==input$spectr,]})
-output$metaS<-DT::renderDataTable(specT[,c(2,3,5,7)], 
-                                    selection = list(mode = 'single', 
-                                                     selected = 1))
+output$metadata<-renderTable({specT[specT$id==selectedMZ()$spectrid[1],]})
+output$metadataTS<-renderTable({specT[specT$id==selectedMZ()$spectrid[1],]})
+output$metaS<-DT::renderDataTable(specT[,c(2,3,5,7)], rownames=FALSE,
+                                    selection = list(mode = 'multiple', 
+                                                     selected = c(1,2)))
   
   output$table<-DT::renderDataTable({patients})
   # ,
