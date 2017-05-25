@@ -34,7 +34,7 @@ shinyUI(shinyUI(pageWithSidebar(
     ))
 ),
 mainPanel(tabsetPanel(
-  tabPanel("Table", DT::dataTableOutput("table"), value = 1),
+#  tabPanel("Table", DT::dataTableOutput("table"), value = 1),
   tabPanel(
     title = "XIC",
     value = 2,
