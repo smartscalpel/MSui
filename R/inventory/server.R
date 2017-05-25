@@ -17,6 +17,11 @@ library(stringr)
 library(MonetDBLite)
 library(data.table)
 library(ggrepel)
+library(FactoMineR)
+library(factoextra)
+library(Matrix)
+library(compositions)
+
 source('db.R')
 source('plot.R')
 load('MetaData.Rdata')
@@ -27,13 +32,13 @@ con <- prepareCon(dbdir)
 monetdb_conn <- src_monetdb(con = con)
 specT<-dplyr::collect(tbl(monetdb_conn,'spectra'))
 specT$fname<-gsub('.raw$','',gsub('.mzXML','',specT$fname))
-dtParam<-list(beg=1,fin=1,dt=data.table())
 #source(system.file("shinyApp", "serverRoutines.R", package = "TVTB"))
 
 #Sys.sleep(2)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
+  dtParam<-reactiveValues(beg=1,fin=1,dt=data.table(),mz=data.table())
   
   selectedTIC<-reactive({
     cat('iBeg=',input$beg,' iFin=',input$fin,'\n')
@@ -51,12 +56,19 @@ shinyServer(function(input, output, session) {
       # pdt<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
       con<-getCon(con)
       if(is.null(ranges$mz)){
-        cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,dtParam$beg,dtParam$fin))),'\n')
+#        cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,dtParam$beg,dtParam$fin))),'\n')
+        cat(system.time(p<-data.table(dbGetQuery(con,sqlGetMZset,dtParam$beg,dtParam$fin))),'\n')
+        cat(dim(p),'\n')
+        binz<-seq(min(p$mz),max(p$mz),by=0.01)
+        p[,bin:=findInterval(mz, binz)]
+        p[,rcomp:=rcomp(intensity,total=1e6),by=.(spectrid)]
+        peakDT<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
       }else{
         cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICsetMZ,dtParam$beg,dtParam$fin,ranges$mz[1],ranges$mz[2]))),'\n')
       }
       wdt<-merge(peakDT,specT,by.x = c('spectrid'),by.y = 'id')
-        dtParam$dt<-wdt
+      dtParam$dt<-wdt
+      dtParam$mz<-p
       return(dtParam)
     }
   })
@@ -109,8 +121,43 @@ output$ticPlot <- renderPlotly({
     # hist(x, breaks = bins, col = 'darkgray', border = 'white')
     ggplotly(pf)
   })
-  
+
+selectedMatrix<-reactive({
+  mz<-selectedTIC()$mz
+  beg<-selectedTIC()$beg
+  fin<-selectedTIC()$fin
+  pDTa<-mz[,.(mz=mean(mz),intensity=sum(intensity)),by=.(spectrid,bin)]
+  pDTa[,rcomp:=rcomp(intensity,total=1e6),by=.(spectrid)]
+  m<-spMatrix(ncol = max(pDTa$bin),
+              nrow = max(pDTa$spectrid),
+              j=pDTa$bin,
+              i=pDTa$spectrid,
+              x = pDTa$intensity)
+  idx<-which(colSums(m)>0)
+  cat('Matrix:',length(idx),'\n')
+  return(m[,idx])
+})
+
+pcaM<-reactive({
+  pca=prcomp(selectedMatrix(),scale. = TRUE)
+  cat('PCA\n')
+  pca
+  })
+
+
+output$pcaIndPlot<- renderPlot({
+  p <- fviz_pca_ind(pcaM(),label='none',habillage = specT$state[dtParam$beg:dtParam$fin],addEllipses = FALSE)
+  p
+})
  
+output$pcaScreePlot<- renderPlot({
+  fviz_screeplot(pcaM(),ncp=10)
+})
+output$pcaVarPlot<- renderPlot({
+  p<-fviz_pca_var(pcaM(),label='var',geom=c('point',text),select.var = list(cos2=5))
+  p
+})
+
 ranges <- reactiveValues(rt = NULL, mz = NULL)
 
 selectedMZ<-reactive({
@@ -241,8 +288,10 @@ output$tsxicPlot <- renderPlot({
 output$tsPlot <- renderPlot({
   if(is.null(ranges$mz)){
     mz<-selectedSpectr()
+    xranges<-range(mz$mz)
   }else{
     mz<-selectedSpectr()[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+    xranges<-ranges$mz
   }
   mz[,lab:=paste(round(mz,4))]
   mz[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
@@ -258,15 +307,15 @@ output$tsPlot <- renderPlot({
     r<-spans$rt
     mzDT<-selectedMZ()
     mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
-    p<-getSpanPlot(mz1,r,i=1,ranges$mz,range(mz1$intensity))
+    p<-getSpanPlot(mz1,r,i=1,xranges,range(mz1$intensity))
   }else if(dim(spans$rt)[1]==2){
     r<-spans$rt
     mzDT<-selectedMZ()
     mz1<-getSpanMZ(mzDT,r,i=1,ranges$mz)
     mz2<-getSpanMZ(mzDT,r,i=2,ranges$mz)
     ylm<-range(c(mz1$intensity,mz2$intensity))
-    p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
-    p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
+    p1<-getSpanPlot(mz1,r,i=1,xranges,ylm)
+    p2<-getSpanPlot(mz2,r,i=2,xranges,ylm)
     p<-multiplot(p1, p2,cols=1)
   }else if(dim(spans$rt)[1]==3){
     r<-spans$rt
@@ -275,9 +324,9 @@ output$tsPlot <- renderPlot({
     mz2<-getSpanMZ(mzDT,r,i=2,ranges$mz)
     mz3<-getSpanMZ(mzDT,r,i=3,ranges$mz)
     ylm<-range(c(mz1$intensity,mz2$intensity,mz3$intensity))
-    p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
-    p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
-    p3<-getSpanPlot(mz3,r,i=3,ranges$mz,ylm)
+    p1<-getSpanPlot(mz1,r,i=1,xranges,ylm)
+    p2<-getSpanPlot(mz2,r,i=2,xranges,ylm)
+    p3<-getSpanPlot(mz3,r,i=3,xranges,ylm)
     p<-multiplot(p1, p2,p3,cols=1)
   }else if(dim(spans$rt)[1]==4){
   r<-spans$rt
@@ -287,10 +336,10 @@ output$tsPlot <- renderPlot({
   mz3<-getSpanMZ(mzDT,r,i=3,ranges$mz)
   mz4<-getSpanMZ(mzDT,r,i=4,ranges$mz)
   ylm<-range(c(mz1$intensity,mz2$intensity,mz3$intensity,mz4$intensity))
-  p1<-getSpanPlot(mz1,r,i=1,ranges$mz,ylm)
-  p2<-getSpanPlot(mz2,r,i=2,ranges$mz,ylm)
-  p3<-getSpanPlot(mz3,r,i=3,ranges$mz,ylm)
-  p4<-getSpanPlot(mz4,r,i=4,ranges$mz,ylm)
+  p1<-getSpanPlot(mz1,r,i=1,xranges,ylm)
+  p2<-getSpanPlot(mz2,r,i=2,xranges,ylm)
+  p3<-getSpanPlot(mz3,r,i=3,xranges,ylm)
+  p4<-getSpanPlot(mz4,r,i=4,xranges,ylm)
   p<-multiplot(p1, p2,p3,p4,cols=1)
 }
 p
