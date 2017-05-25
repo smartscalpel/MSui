@@ -55,7 +55,7 @@ mainPanel(tabsetPanel(
         numericInput(
           "fin",
           "Last",
-          value = 1,
+          value = 2,
           min = 1,
           max = 100,
           step = 1
