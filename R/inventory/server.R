@@ -43,7 +43,7 @@ shinyServer(function(input, output, session) {
   
   selectedTIC<-reactive({
     cat('selected rows: [',input$metaS_rows_selected,']\n')
-    cat('iBeg=',input$beg,' iFin=',input$fin,'\n')
+#    cat('iBeg=',input$beg,' iFin=',input$fin,'\n')
     # if(is.numeric(input$beg)&
     #    dtParam$beg==input$beg&
     #    is.numeric(input$fin)&
@@ -145,6 +145,9 @@ output$ticPlot <- renderPlotly({
       geom_point(size=0.1)+
       geom_smooth(alpha=0.3,span=0.15)+ 
       theme(legend.position="none")
+    if(!is.null(ranges$rt)){
+      pf<-pf+coord_cartesian(xlim = ranges$rt)
+    }
     # generate bins based on input$bins from ui.R
     # x    <- faithful[, 2] 
     # bins <- seq(min(x), max(x), length.out = 1)
@@ -183,22 +186,34 @@ pcaM<-reactive({
   })
 
 
-output$pcaIndPlot<- renderPlot({
+output$pcaIndPlot<- renderPlotly({
   cat('matrix dim',dim(pcaM()),'\n')
   cat('selection len',length(dtParam$selection))
-  p <- fviz_pca_ind(pcaM(),label='none',habillage = specT$state[dtParam$selection],addEllipses = FALSE)
-  p
+  #p <- fviz_pca_ind(pcaM(),label='none',habillage = specT$diagname[dtParam$selection],addEllipses = FALSE)
+  pca.df<-cbind(as.data.frame(pcaM()$x),specT[dtParam$selection,])
+  cat(dim(pca.df),'\n')
+  cat(names(pca.df),'\n')
+  p<-ggplot(pca.df,
+            aes(x=PC1,y=PC2,
+                color=state,
+                diagname=diagname,
+                fname=fname,
+                grade=grade))+
+    geom_point()
+
+  ggplotly(p)
 })
  
 output$pcaScreePlot<- renderPlot({
   fviz_screeplot(pcaM(),ncp=10)
 })
-output$pcaVarPlot<- renderPlot({
+output$pcaVarPlot<- renderPlotly({
   p<-fviz_pca_var(pcaM(),label='var',geom=c('point',text),select.var = list(cos2=5))
-  p
+  ggplotly(p)
 })
 
-ranges <- reactiveValues(rt = NULL, mz = NULL)
+ranges <- reactiveValues(rt = NULL, mz = NULL,intensity=1e2)
+
 
 selectedMZ<-reactive({
   n<-length(selectedTIC()$selection)
