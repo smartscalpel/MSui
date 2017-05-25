@@ -33,81 +33,107 @@ shinyUI(shinyUI(pageWithSidebar(
                       DT::dataTableOutput("metaS",width = '80%')))
     ))
 ),
-  mainPanel(
-    tabsetPanel(tabPanel("Table", DT::dataTableOutput("table"),value = 1),
-        tabPanel(title="XIC", value = 2,
-                 wellPanel(
-                   fluidRow(
-                     column(width=2,
-                            numericInput(
-                              "beg", "First",
-                              value = 1,
-                              min = 1, max = 100, step = 1)
-                     ),
-                     column(width=2,
-                            numericInput(
-                              "fin", "Last",
-                              value = 1,
-                              min = 1, max = 100, step = 1)
-                     )
-                   ),
-                   fluidRow(
-                     column(width=12,
-                   plotlyOutput("ticPlot")
-                   ))
-                   
-                 )
-                 ),
-        tabPanel(title="Spectr", value = 3,
-                 #                wellPanel(
-                 fluidRow(
-                   column(width=12,
-                          tabPanel("Metadata", tableOutput("metadata"))
-                   )
-                 ),
-                 fluidRow(
-                   column(width=12,class = "well",
-                          plotOutput("xicPlot",height = 300,
-                                     dblclick = "xic_dblclick",
-                                     brush = brushOpts(
-                                       id = "xic_brush",
-                                       resetOnNew = TRUE)
-                          ))),
-                 fluidRow(
-                   column(width=12,class = "well",
-                          plotOutput("mzPlot",height = 300,
-                                     dblclick = "mz_dblclick",
-                                     brush = brushOpts(
-                                       id = "mz_brush",
-                                       resetOnNew = TRUE)
-                          )))
-                 
-                 #                 )
-        ),
-        tabPanel(title="Time slices", value = 5,
-                 #                wellPanel(
-                 fluidRow(
-                   column(width=10,
-                          tabPanel("MetadataTS", tableOutput("metadataTS"))
-                   ),
-                   column(width=2,textOutput("spansText"))
-                 ),
-                 fluidRow(
-                   column(width=12,class = "well",
-                          plotOutput("tsxicPlot",height = 100,
-                                     dblclick = "tsxic_dblclick",
-                                     brush = brushOpts(
-                                       id = "tsxic_brush",
-                                       resetOnNew = TRUE)
-                          ))),
-                 fluidRow(
-                   column(width=12,class = "well",
-                          plotOutput("tsPlot",height = 500)))
-        ),
-        tabPanel("Features", tableOutput("features"),value=4)
-    )
-    )
-  )
+mainPanel(tabsetPanel(
+  tabPanel("Table", DT::dataTableOutput("table"), value = 1),
+  tabPanel(
+    title = "XIC",
+    value = 2,
+    wellPanel(fluidRow(
+      column(
+        width = 2,
+        numericInput(
+          "beg",
+          "First",
+          value = 1,
+          min = 1,
+          max = 100,
+          step = 1
+        )
+      ),
+      column(
+        width = 2,
+        numericInput(
+          "fin",
+          "Last",
+          value = 10,
+          min = 1,
+          max = 100,
+          step = 1
+        )
+      )
+    ),
+    fluidRow(column(
+      width = 12,
+      plotlyOutput("ticPlot",height = 300)
+    )))
+    # ,
+    # fluidRow(column(
+    #   width = 12,
+    #   plotlyOutput("pcaPlot",height = 300)
+    # )))
+  ),
+  tabPanel(
+    title = "Spectr",
+    value = 3,
+    #                wellPanel(
+    fluidRow(column(
+      width = 12,
+      tabPanel("Metadata", tableOutput("metadata"))
+    )),
+    fluidRow(column(
+      width = 12,
+      class = "well",
+      plotOutput(
+        "xicPlot",
+        height = 300,
+        dblclick = "xic_dblclick",
+        brush = brushOpts(id = "xic_brush",
+                          resetOnNew = TRUE)
+      )
+    )),
+    fluidRow(column(
+      width = 12,
+      class = "well",
+      plotOutput(
+        "mzPlot",
+        height = 300,
+        dblclick = "mz_dblclick",
+        brush = brushOpts(id = "mz_brush",
+                          resetOnNew = TRUE)
+      )
+    ))
+    
+    #                 )
+  ),
+  tabPanel(
+    title = "Time slices",
+    value = 5,
+    #                wellPanel(
+    fluidRow(column(
+      width = 10,
+      tabPanel("MetadataTS", tableOutput("metadataTS"))
+    ),
+    column(width = 2, textOutput("spansText"))),
+    fluidRow(column(
+      width = 12,
+      class = "well",
+      plotOutput(
+        "tsxicPlot",
+        height = 100,
+        dblclick = "tsxic_dblclick",
+        brush = brushOpts(id = "tsxic_brush",
+                          resetOnNew = TRUE)
+      )
+    )),
+    fluidRow(column(
+      width = 12,
+      class = "well",
+      plotOutput("tsPlot", height = 600)
+    ))
+  ),
+  tabPanel("Features", tableOutput("features"), value = 4)
+))
+)
 )
 )
 
