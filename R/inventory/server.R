@@ -21,7 +21,7 @@ library(FactoMineR)
 library(factoextra)
 library(Matrix)
 library(compositions)
-
+library(KernSmooth)
 source('db.R')
 source('plot.R')
 load('MetaData.Rdata')
@@ -81,7 +81,7 @@ shinyServer(function(input, output, session) {
       con<-getCon(con)
 #      if(is.null(ranges$mz)){
 #        cat(system.time(peakDT<-data.table(dbGetQuery(con,sqlTICset,dtParam$beg,dtParam$fin))),'\n')
-        p<-getMZ(con,id)
+        p<-getMZ(con,id,threshold = ranges$intensity)
       # }else{
       #   p<-getMZ(con,id,)
       # }
@@ -90,9 +90,9 @@ shinyServer(function(input, output, session) {
     }
     if(!identical(sp_old,spIDs)){
       if(is.null(ranges$mz)){
-        peakDT<-dtParam$mz[,.(tic=sum(intensity)),by=.(rt,spectrid)]
+        peakDT<-dtParam$mz[intensity>=ranges$intensity,.(tic=sum(intensity)),by=.(rt,spectrid)]
       }else{
-        peakDT<-dtParam$mz[mz>=ranges$mz&mz<=ranges$mz,.(tic=sum(intensity)),by=.(rt,spectrid)]
+        peakDT<-dtParam$mz[mz>=ranges$mz&mz<=ranges$mz&intensity>=ranges$intensity,.(tic=sum(intensity)),by=.(rt,spectrid)]
       }
       if(!is.null(ranges$rt)){
         peakDT<-peakDT[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
@@ -102,6 +102,7 @@ shinyServer(function(input, output, session) {
     }
     cat('wdt names: ',names(dtParam$dt),'\n')
     cat('dim(mz)',dim(dtParam$mz),'\n')
+    cat('range(mz$intensity)',range(mz$intensity),'\n')
     return(dtParam)
   })
 
@@ -171,7 +172,7 @@ selectedMatrix<-reactive({
   if(!is.null(ranges$rt)){
     mz<-mz[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
   }
-  pDTa<-mz[,.(mz=mean(mz),intensity=sum(intensity)),by=.(spectrid,bin)]
+  pDTa<-mz[intensity>=ranges$intensity,.(mz=mean(mz),intensity=sum(intensity)),by=.(spectrid,bin)]
   pDTa[,rcomp:=rcomp(intensity,total=1e6),by=.(spectrid)]
   spIDs<-unique(pDTa$spectrid)
   m<-spMatrix(ncol = max(pDTa$bin),
@@ -201,7 +202,8 @@ output$pcaIndPlot<- renderPlotly({
   cat(names(pca.df),'\n')
   p<-ggplot(pca.df,
             aes(x=PC1,y=PC2,
-                color=state,
+                color=diagname,
+                shape=state,
                 diagname=diagname,
                 fname=fname,
                 grade=grade))+
@@ -209,7 +211,22 @@ output$pcaIndPlot<- renderPlotly({
 
   ggplotly(p)
 })
- 
+
+output$ecdfPlot<- renderPlot({
+  mz<-selectedTIC()$mz
+  if(!is.null(ranges$mz)){
+    mz<-mz[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+  }
+  if(!is.null(ranges$rt)){
+    mz<-mz[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
+  }
+  mz<-mz[intensity>=ranges$intensity]
+  kse<-bkde(x = log10(mz$intensity))
+  kse$ydec<-dim(mz)[1]*(1-cumsum(kse$y)/sum(kse$y))
+  p<-qplot(10^(kse$x),kse$ydec,geom ='line',log = 'xy',xlab = 'Intensity',ylab = 'N')
+  p
+})
+
 output$pcaScreePlot<- renderPlot({
   fviz_screeplot(pcaM(),ncp=10)
 })
@@ -225,9 +242,9 @@ selectedMZ<-reactive({
   n<-length(selectedTIC()$selection)
   cat('n=',n,'\n')
   if(n>0){spID<-selectedTIC()$selection[n]}else{spID<-1}
-  con<-getCon(con)
+  #con<-getCon(con)
 #  system.time(p<-data.table(dbGetQuery(con,sqlGetMZdata,spID)))
-  system.time(p<-selectedTIC()$mz[spectrid==spID])
+  system.time(p<-selectedTIC()$mz[spectrid==spID&intensity>=ranges$intensity])
   # pdt<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
   cat(dim(p),'\n')
   binz<-seq(min(p$mz),max(p$mz),by=0.01)
@@ -239,9 +256,9 @@ selectedXIC<-reactive({
   mzDT<-selectedMZ()
   cat(dim(mzDT),'\n')
   if(is.null(ranges$mz)){
-    tic<-mzDT[,.(tic=sum(intensity)),by=.(rt,spectrid)]
+    tic<-mzDT[intensity>=ranges$intensity,.(tic=sum(intensity)),by=.(rt,spectrid)]
   }else{
-    tic<-mzDT[mz>=ranges$mz[1]&mz<=ranges$mz[2],.(tic=sum(intensity)),by=.(rt,spectrid)]
+    tic<-mzDT[mz>=ranges$mz[1]&mz<=ranges$mz[2]&intensity>=ranges$intensity,.(tic=sum(intensity)),by=.(rt,spectrid)]
   }
   tic
 })
@@ -251,9 +268,9 @@ selectedSpectr<-reactive({
   cat(min(mzDT$spectrid),max(mzDT$spectrid),'\n')
   cat(dim(mzDT),ranges$rt,'\n')
   if(is.null(ranges$rt)){
-    mz<-mzDT[,.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
+    mz<-mzDT[intensity>=ranges$intensity,.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
   }else{
-    mz<-mzDT[rt>=ranges$rt[1]&rt<=ranges$rt[2],.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
+    mz<-mzDT[rt>=ranges$rt[1]&rt<=ranges$rt[2]&intensity>=ranges$intensity,.(intensity=sum(intensity),mz=mean(mz)),by=.(bin,spectrid)]
   }
   mz
 })
@@ -268,7 +285,7 @@ output$rangesText<-renderText({
   }else{
     rt<-ranges$rt
   }
-    s<-paste0("Ranges mz=[",round(mz[1],2),',',round(mz[2],2),'], rt=[',round(rt[1],2),',',round(rt[2],2),']')
+    s<-paste0("Ranges mz=[",round(mz[1],2),',',round(mz[2],2),'], rt=[',round(rt[1],2),',',round(rt[2],2),'], I=',sprintf('%.2g',ranges$intensity))
   cat('Ranges:',s,'\n')
   s
 })
@@ -277,37 +294,42 @@ output$rangesText<-renderText({
 output$xicPlot <- renderPlot({
   if(is.null(ranges$rt)){
     tic<-selectedXIC()
+    rrt<-range(tic$rt)
   }else{
     tic<-selectedXIC()[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
+    rrt<-ranges$rt
   }
   cat("xicPlot ",dim(tic),'\n')
+  cat("xlim = ",rrt,'\n')
   ggplot(tic, aes(rt, tic)) +
     geom_line() +
     geom_point(size=0.1)+
     geom_smooth(alpha=0.3,span=0.15)+
-    coord_cartesian(xlim = ranges$rt)
+    coord_cartesian(xlim = rrt)
 })
 
 
 output$mzPlot <- renderPlot({
   if(is.null(ranges$mz)){
     mz<-selectedSpectr()
+    rmz<-range(mz$mz)
   }else{
     mz<-selectedSpectr()[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+    rmz<-ranges$mz
   }
   mz[,lab:=paste(round(mz,4))]
   mz[order(intensity,decreasing = TRUE)[-c(1:10)],lab:='']
   cat("mzPlot ",dim(mz),'\n')
-  
+  cat("xlim = ",rmz,'\n')
   # ggplot(mz[intensity>0.05*max(intensity)], aes(x=mz,y=intensity)) +
   #   geom_line() +
   #   geom_point(size=0.1) + #scale_y_log10()+
-  ggplot(mz[intensity>0.005*max(intensity)], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
+  ggplot(mz[intensity>max(ranges$intensity,0.005*max(intensity))], aes(x=mz,yend=0,xend=mz, y=intensity,color=factor(spectrid))) +
     geom_segment()+geom_point(size=0.15) + #scale_y_log10()+
     geom_text_repel(aes(x = mz,y=intensity,label=lab))+
 #    geom_col()+
 #    geom_smooth(alpha=0.3,span=0.25)+
-    coord_cartesian(xlim = ranges$mz)+ 
+    coord_cartesian(xlim = rmz,expand = FALSE)+ 
     theme(legend.position="none")
 })
 
@@ -328,6 +350,16 @@ observeEvent(input$mz_dblclick, {
     cat('ranges$mz',ranges$mz,'\n')
   } else {
     ranges$mz <- NULL
+  }
+})
+
+observeEvent(input$ecdf_dblclick, {
+  brush <- input$ecdf_brush
+  if (!is.null(brush)) {
+    ranges$intensity <- brush$xmin
+    cat('ranges$intensity',ranges$intensity,'\n')
+  } else {
+    ranges$intensity <- 1e2
   }
 })
 
