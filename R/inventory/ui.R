@@ -26,19 +26,6 @@ shinyUI(shinyUI(pageWithSidebar(
 mainPanel(tabsetPanel(
 #  tabPanel("Table", DT::dataTableOutput("table"), value = 1),
   tabPanel(
-    title = "XIC",
-    value = 2,
-    wellPanel(fluidRow(column(
-      width = 12,
-      plotlyOutput("ticPlot",height = 300)
-    )))
-    # ,
-    # fluidRow(column(
-    #   width = 12,
-    #   plotlyOutput("pcaPlot",height = 300)
-    # )))
-  ),
-  tabPanel(
     title = "Spectr",
     value = 3,
     #                wellPanel(
@@ -72,6 +59,22 @@ mainPanel(tabsetPanel(
     #                 )
   ),
   tabPanel(
+    title = "XIC",
+    value = 2,
+    wellPanel(fluidRow(column(
+      width = 12,
+      plotlyOutput("ticPlot",height = 300)
+    )),
+    fluidRow(column(
+      width = 12,
+      plotOutput("ecdfPlot",
+                 height = 300,
+                 dblclick = "ecdf_dblclick",
+                 brush = brushOpts(id = "ecdf_brush",
+                                   resetOnNew = TRUE))
+    )))
+  ),
+  tabPanel(
     title = "Time slices",
     value = 5,
     #                wellPanel(
@@ -98,7 +101,7 @@ mainPanel(tabsetPanel(
     ))
   ),
   tabPanel(
-    title = "PCA",
+    title = "PCA/NMDS",
     value = 6,
     fluidRow(column(
       width = 12,
@@ -124,6 +127,14 @@ mainPanel(tabsetPanel(
         height = 400
       )
     ))
+  ),
+  tabPanel(
+    title = "Clustering",
+    value = 8#,
+  ),
+  tabPanel(
+    title = "Classification",
+    value = 9#,
   ),
   tabPanel("Features", tableOutput("features"), value = 4)
 ))
