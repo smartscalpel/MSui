@@ -21,7 +21,7 @@ library(FactoMineR)
 library(factoextra)
 library(Matrix)
 library(compositions)
-
+library(KernSmooth)
 source('db.R')
 source('plot.R')
 load('MetaData.Rdata')
@@ -209,7 +209,22 @@ output$pcaIndPlot<- renderPlotly({
 
   ggplotly(p)
 })
- 
+
+output$ecdfPlot<- renderPlot({
+  mz<-selectedTIC()$mz
+  if(!is.null(ranges$mz)){
+    mz<-mz[mz>=ranges$mz[1]&mz<=ranges$mz[2]]
+  }
+  if(!is.null(ranges$rt)){
+    mz<-mz[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
+  }
+  mz<-mz[intensity>=ranges$intensity]
+  kse<-bkde(x = log10(mz$intensity))
+  kse$ydec<-dim(mz)[1]*(1-cumsum(kse$y)/sum(kse$y))
+  p<-qplot(10^(kse$x),kse$ydec,geom ='line',log = 'xy',xlab = 'Intensity',ylab = 'N')
+  p
+})
+
 output$pcaScreePlot<- renderPlot({
   fviz_screeplot(pcaM(),ncp=10)
 })
