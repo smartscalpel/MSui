@@ -22,6 +22,7 @@ library(factoextra)
 library(Matrix)
 library(compositions)
 library(KernSmooth)
+library("ggdendro")
 source('db.R')
 source('plot.R')
 load('MetaData.Rdata')
@@ -34,15 +35,17 @@ specT<-dplyr::collect(tbl(monetdb_conn,'spectra'))
 specT$fname<-gsub('_FT.*$','',gsub('.raw$','',gsub('.mzXML','',specT$fname)))
 p1<-getMZ(con,1)
 #source(system.file("shinyApp", "serverRoutines.R", package = "TVTB"))
-
+load('~/Documents/Projects/MSpeaks/data/res20170404maxwell/0_00_747-15_FT100k.raw.mzXML/dataA.res.xMSAnnotator.RData')
 #Sys.sleep(2)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
-  dtParam<-reactiveValues(beg=1,fin=1,dt=data.table(),mz=p1,selection=c(1,2))
+  dtParam<-reactiveValues(beg=1,fin=1,dt=data.table(),mz=p1,selection=c(1))
   
   selectedTIC<-reactive({
     cat('selected rows: [',input$metaS_rows_selected,']\n')
+    cat('names: {',names(dtParam),'}\n')
+    cat('p1: ',dim(p1),names(p1),'\n')
 #    cat('iBeg=',input$beg,' iFin=',input$fin,'\n')
     # if(is.numeric(input$beg)&
     #    dtParam$beg==input$beg&
@@ -89,10 +92,11 @@ shinyServer(function(input, output, session) {
       spIDs<-unique(dtParam$mz$spectrid)
     }
     if(!identical(sp_old,spIDs)){
+      p<-dtParam$mz[intensity>=ranges$intensity]
       if(is.null(ranges$mz)){
-        peakDT<-dtParam$mz[intensity>=ranges$intensity,.(tic=sum(intensity)),by=.(rt,spectrid)]
+        peakDT<-p[,.(tic=sum(intensity)),by=.(rt,spectrid)]
       }else{
-        peakDT<-dtParam$mz[mz>=ranges$mz&mz<=ranges$mz&intensity>=ranges$intensity,.(tic=sum(intensity)),by=.(rt,spectrid)]
+        peakDT<-p[mz>=ranges$mz[1]&mz<=ranges$mz[2],.(tic=sum(intensity)),by=.(rt,spectrid)]
       }
       if(!is.null(ranges$rt)){
         peakDT<-peakDT[rt>=ranges$rt[1]&rt<=ranges$rt[2]]
@@ -102,7 +106,7 @@ shinyServer(function(input, output, session) {
     }
     cat('wdt names: ',names(dtParam$dt),'\n')
     cat('dim(mz)',dim(dtParam$mz),'\n')
-    cat('range(mz$intensity)',range(mz$intensity),'\n')
+    cat('range(mz$intensity)',range(dtParam$mz$intensity),'\n')
     return(dtParam)
   })
 
@@ -180,7 +184,7 @@ selectedMatrix<-reactive({
               j=pDTa$bin,
               i=match(pDTa$spectrid,spIDs),
               x = pDTa$intensity)
-  row.names(m)<-spIDs
+  row.names(m)<-specT$fname[dtParam$selection]#spIDs
   idx<-which(colSums(m)>0)
   cat('Matrix:',length(idx),dim(m),'\n')
   return(m[,idx])
@@ -191,6 +195,17 @@ pcaM<-reactive({
   cat('PCA\n')
   pca
   })
+
+output$clusterPlot<- renderPlot({
+  #cat('matrix dim',dim(pcaM()),'\n')
+  #cat('selection len',length(dtParam$selection))
+  #p <- fviz_pca_ind(pcaM(),label='none',habillage = specT$diagname[dtParam$selection],addEllipses = FALSE)
+  pca.df<-cbind(as.data.frame(pcaM()$x),specT[dtParam$selection,])
+  #cat(dim(pca.df),'\n')
+  #cat(names(pca.df),'\n')
+  ct<-hclust(dist(pcaM()$x[,1:10]),method = 'ward.D2')
+  ggdendrogram(ct)
+})
 
 
 output$pcaIndPlot<- renderPlotly({
@@ -515,7 +530,8 @@ output$metaS<-DT::renderDataTable(specT[,c(2,3,5,7)], rownames=FALSE,
   #                                 lengthMenu = c(15, 30, 50), 
   #                                 pageLength = 15))
   output$features<-DT::renderDataTable({
-    t<-features[1:30,]
+#    t<-features[1:30,]
+    t<-as.data.table(res$stage5[,-c(1:3)])
     t
   })
   session$onSessionEnded(function() {

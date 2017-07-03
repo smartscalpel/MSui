@@ -130,13 +130,20 @@ mainPanel(tabsetPanel(
   ),
   tabPanel(
     title = "Clustering",
-    value = 8#,
+    value = 8,
+    fluidRow(column(
+      width = 12,
+      class = "well",
+      plotOutput(
+        "clusterPlot",
+        height = 600)))
   ),
   tabPanel(
     title = "Classification",
     value = 9#,
   ),
-  tabPanel("Features", tableOutput("features"), value = 4)
+  tabPanel("Features", value = 4,DT::dataTableOutput("features",width = '80%')
+  )
 ))
 )
 )
