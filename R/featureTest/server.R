@@ -8,19 +8,33 @@
 #
 
 library(shiny)
+library(data.table)
+library(DT)
+loadFeature <- function(fname, env = new.env()) {
+  cat(names(fname),'\n')
+  cat('name: ',fname$name,', size: ',fname$size,', type: ',fname$type,', datapath: ',fname$datapath,'\n')
+  load(file = fname$datapath, envir = env)
+  return(data.table(env$pdts))
+}
+
+load("def.feature.Rdat")
+options(shiny.maxRequestSize=50*1024^2) 
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
    
-  output$distPlot <- renderPlot({
-    
-    # generate bins based on input$bins from ui.R
-    x    <- faithful[, 2] 
-    bins <- seq(min(x), max(x), length.out = input$bins + 1)
-    
-    # draw the histogram with the specified number of bins
-    hist(x, breaks = bins, col = 'darkgray', border = 'white')
-    
-  })
+  
+  output$features<-DT::renderDataTable({
+    inFile <- input$inFile
+    #cat('file:',inFile)
+    if (is.null(inFile))
+      return(def.features)
+    features<-loadFeature(inFile)
+    cat(class(features),'\n')
+    cat(dim(features),'\n')
+    return(features)
+    }, rownames=FALSE,
+    selection = list(mode = 'multiple',
+                     selected = c(1,2)))
   
 })
