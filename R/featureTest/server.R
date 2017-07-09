@@ -108,9 +108,13 @@ prepPlotFeature<-function(p,ion,ppm=20,minClusterSize = 30){
   cP<-which.max(p$intensity[idxIon])
   ionI<-idxIon[cP]
   maxMZ<-p$mz[ionI]
+  ion2<-p$clIon2[ionI]
   cat(sprintf('maxMZ=%f',maxMZ),'\n')
   idx <- which(abs(p$mz - maxMZ) < (ppm * 1e-6 * maxMZ))
   p. <- p[idx, ]
+  p.$mark<-'env'
+  p.$mark[abs(p.$clIon2-ion2)<1e-5]<-'feature'
+  p.$ppm<-(p.$mz - maxMZ)*1e6/maxMZ
   dissim1 = dist(p.$mz)
   dendro1 <- hclust(d = dissim1, method = 'ward.D2')
   ct1 <- cutreeDynamic(
@@ -136,10 +140,12 @@ prepPlotFeature<-function(p,ion,ppm=20,minClusterSize = 30){
 
 plotFeature<-function(p,ion,ppm=20,minClusterSize = 30){
   p.<-prepPlotFeature(p,ion,ppm,minClusterSize)
+  attr(p.,'lm')->l
   p6 = qplot(time,
              mz,
              data = p.,
-             color = color) +
+             color = color,
+             shape=mark) +
     geom_abline(intercept = l$coefficients[1],
                 slope = l$coefficients[2])
   
@@ -151,21 +157,21 @@ options(shiny.maxRequestSize=50*1024^2)
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
    
-  observe({
-    print(input$row1)
-  })
-  featuresT<-reactive({
-    inFile <- input$inFile
-    #cat('file:',inFile)
-    if (is.null(inFile))
-      return(def.features)
-    features<-data.table(loadFeature(inFile)$pdts)[is.finite(ion)]
-    features$Q<-NA
-    cat(class(features),'\n')
-    cat(dim(features),'\n')
-    return(features)
-  })
-  dataT<-reactive({
+  dataRV<-reactiveValues(features=def.features,peaks=def.peaks,Nf=1)
+  
+  # featuresT<-reactive({
+  #   inFile <- input$inFile
+  #   #cat('file:',inFile)
+  #   if (is.null(inFile))
+  #     return(def.features)
+  #   features<-data.table(loadFeature(inFile)$pdts)[is.finite(ion)]
+  #   features$Q<-NA
+  #   cat(class(features),'\n')
+  #   cat(dim(features),'\n')
+  #   return(features)
+  # })
+  
+  observeEvent(input$inFile,{
     inFile <- input$inFile
     #cat('file:',inFile)
     if (is.null(inFile))
@@ -176,32 +182,36 @@ shinyServer(function(input, output) {
     peaks$delta[!is.na(peaks$ion)]<-peaks[!is.na(ion),abs(ion-mz)]
     cat(names(peaks),'\n')
     cat(dim(peaks),'\n')
-    return(peaks)
+    dataRV$peaks<-peaks
+    features<-data.table(loadFeature(inFile)$pdts)[is.finite(ion)]
+    features$Q<-NA
+    dataRV$features<-features
+    dataRV$Nf<-dim(features)[1]
   })
   
   output$peaks<-DT::renderDataTable({
-    inFile <- input$inFile
-    if (is.null(inFile))
-      return(def.peaks)
-    DT::datatable(dataT()[is.finite(ion)]) %>%
+    # inFile <- input$inFile
+    # if (is.null(inFile))
+    #   return(def.peaks)
+    DT::datatable(dataRV$peaks[is.finite(ion)]) %>%
       formatSignif(c('intensity','lm','corTIC','relTIC','delta'),3) %>%
       formatRound(c('mz','ion','time','clIon1','clIon2','corRel'),4)
   })
   
   output$featuresRev<-DT::renderDataTable({
-    inFile <- input$inFile
-    if (is.null(inFile))
-      return(def.features)
-    DT::datatable(featuresT())
+    # inFile <- input$inFile
+    # if (is.null(inFile))
+    #   return(def.features)
+    DT::datatable(dataRV$features)
   })
   
   output$features<-DT::renderDataTable({
-    inFile <- input$inFile
-    if (is.null(inFile))
-      return(def.features)
+    # inFile <- input$inFile
+    # if (is.null(inFile))
+    #   return(def.features)
     featuresDT<-DT::datatable(cbind(
-      Pick=paste0('<input type="checkbox" id="row', featuresT()$ion, '" value="', featuresT()$ion, '">',""), 
-      featuresT()),
+      Pick=paste0('<input type="checkbox" id="row', dataRV$features$ion, '" value="', dataRV$features$ion, '">',""), 
+      dataRV$features),
       options = list(orderClasses = TRUE,
                      lengthMenu = c(5, 25, 50),
                      pageLength = 25 ,
@@ -215,29 +225,29 @@ shinyServer(function(input, output) {
     })
   qIdx<-reactiveVal(value=1,label = 'qtabIdx')
   output$qText<-renderText({
-    s<-sprintf('Features from %d to %d out of %d',qIdx(),(qIdx()+qN-1),dim(featuresT())[1])
+    s<-sprintf('Features from %d to %d out of %d',qIdx(),(qIdx()+qN-1),dataRV$Nf)
   })
   output$qPlot<-renderPlot({
-    p1<-plotFeature(dataT(),featuresT()$ion[qIdx()])
-    cat(qIdx(),featuresT()$ion[qIdx()],'\n')
-    p2<-plotFeature(dataT(),featuresT()$ion[qIdx()+1])
-    cat(qIdx()+1,featuresT()$ion[qIdx()+1],'\n')
-    p3<-plotFeature(dataT(),featuresT()$ion[qIdx()+2])
-    cat(qIdx()+2,featuresT()$ion[qIdx()+2],'\n')
-    p4<-plotFeature(dataT(),featuresT()$ion[qIdx()+3])
-    cat(qIdx()+3,featuresT()$ion[qIdx()+3],'\n')
-    p5<-plotFeature(dataT(),featuresT()$ion[qIdx()+4])
-    cat(qIdx()+4,featuresT()$ion[qIdx()+4],'\n')
-    p6<-plotFeature(dataT(),featuresT()$ion[qIdx()+5])
-    cat(qIdx()+5,featuresT()$ion[qIdx()+5],'\n')
-    p7<-plotFeature(dataT(),featuresT()$ion[qIdx()+6])
-    cat(qIdx()+6,featuresT()$ion[qIdx()+6],'\n')
-    p8<-plotFeature(dataT(),featuresT()$ion[qIdx()+7])
-    cat(qIdx()+7,featuresT()$ion[qIdx()+7],'\n')
-    p9<-plotFeature(dataT(),featuresT()$ion[qIdx()+8])
-    cat(qIdx()+8,featuresT()$ion[qIdx()+8],'\n')
-    p10<-plotFeature(dataT(),featuresT()$ion[qIdx()+9])
-    cat(qIdx()+9,featuresT()$ion[qIdx()+9],'\n')
+    p1<-plotFeature(dataRV$peaks,dataRV$features$ion[qIdx()])
+    cat(qIdx(),dataRV$features$ion[qIdx()],'\n')
+    p2<-plotFeature(dataRV$peaks,dataRV$features$ion[qIdx()+1])
+    cat(qIdx()+1,dataRV$features$ion[qIdx()+1],'\n')
+    p3<-plotFeature(dataRV$peaks,dataRV$features$ion[qIdx()+2])
+    cat(qIdx()+2,dataRV$features$ion[qIdx()+2],'\n')
+    p4<-plotFeature(dataRV$peaks,dataRV$features$ion[qIdx()+3])
+    cat(qIdx()+3,dataRV$features$ion[qIdx()+3],'\n')
+    p5<-plotFeature(dataRV$peaks,dataRV$features$ion[qIdx()+4])
+    cat(qIdx()+4,dataRV$features$ion[qIdx()+4],'\n')
+    p6<-plotFeature(dataRV$peaks,dataRV$features$ion[qIdx()+5])
+    cat(qIdx()+5,dataRV$features$ion[qIdx()+5],'\n')
+    p7<-plotFeature(dataRV$peaks,dataRV$features$ion[qIdx()+6])
+    cat(qIdx()+6,dataRV$features$ion[qIdx()+6],'\n')
+    p8<-plotFeature(dataRV$peaks,dataRV$features$ion[qIdx()+7])
+    cat(qIdx()+7,dataRV$features$ion[qIdx()+7],'\n')
+    p9<-plotFeature(dataRV$peaks,dataRV$features$ion[qIdx()+8])
+    cat(qIdx()+8,dataRV$features$ion[qIdx()+8],'\n')
+    p10<-plotFeature(dataRV$peaks,dataRV$features$ion[qIdx()+9])
+    cat(qIdx()+9,dataRV$features$ion[qIdx()+9],'\n')
     multiplot(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10)
   })
   
@@ -251,8 +261,8 @@ shinyServer(function(input, output) {
     
   })
   observeEvent(input$nextQ, {
-    qIdx(min(qIdx()+qN,dim(featuresT())[1]))
-    if((qIdx()+qN)>=dim(featuresT())[1]){
+    qIdx(min(qIdx()+qN,dataRV$Nf))
+    if((qIdx()+qN)>=dataRV$Nf){
       shinyjs::disable("nextQ")    
     }
     shinyjs::enable("prevQ")   
@@ -260,25 +270,26 @@ shinyServer(function(input, output) {
   })
   mqIdx<-reactiveVal(value=1,label = 'mqtabIdx')
   output$mqText<-renderText({
-    s<-sprintf('Feature %d out of %d',mqIdx(),dim(featuresT())[1])
+    s<-sprintf('Feature %d out of %d',mqIdx(),dataRV$Nf)
   })
   observeEvent(input$prevQm, {
-    qIdx(max(mqIdx()-P,1))
+    mqIdx(max(mqIdx()-1,1))
     if((mqIdx())<= 1){
       shinyjs::disable("prevQm")
     }
     shinyjs::enable("nextQm")   
   })
   observeEvent(input$nextQm, {
-    qIdx(min(mqIdx()+1,dim(featuresT())[1]))
-    if((mqIdx())>=dim(featuresT())[1]){
+    mqIdx(min(mqIdx()+1,dataRV$Nf))
+    if((mqIdx())>=dataRV$Nf){
       shinyjs::disable("nextQm")    
     }
     shinyjs::enable("prevQm")   
   })
 
   observe({
-    if((mqIdx())>=dim(featuresT())[1]){
+    cat('dataRV$Nf="',dataRV$Nf,'"\n')
+    if(mqIdx()>=dataRV$Nf){
       shinyjs::disable("nextQm")    
     }else{
       shinyjs::enable("nextQm") 
@@ -291,20 +302,21 @@ shinyServer(function(input, output) {
     
   })
   observeEvent(input$yesQm, {
-    featuresT()$Q[mqIdx()]<-'g'
-    mqIdx(min(mqIdx()+1,dim(featuresT())[1]))
+    dataRV$features$Q[mqIdx()]<-'g'
+    mqIdx(min(mqIdx()+1,dataRV$Nf))
   })
   observeEvent(input$noQm, {
-    mqIdx(min(mqIdx()+1,dim(featuresT())[1]))
+    dataRV$features$Q[mqIdx()]<-'b'
+    mqIdx(min(mqIdx()+1,dataRV$Nf))
   })
   output$mqPlot<-renderPlot({
-    p.<-prepPlotFeature(dataT(),featuresT()$ion[mqIdx()])
+    p.<-prepPlotFeature(dataRV$peaks,dataRV$features$ion[mqIdx()])
     l<-attr(p.,'lm')
-    p1<-qplot(time,intensity,data = p.,main=paste0('mz',featuresT()$ion[mqIdx()]),log='y',color=color)
-    p2<-qplot(time,mz,data = p.,color=color) +
+    p1<-qplot(time,intensity,data = p.,main=paste0('mz=',dataRV$features$ion[mqIdx()]),log='y',color=color,shape=mark)
+    p2<-qplot(time,mz,data = p.,color=color,shape=mark) +
       geom_abline(intercept = l$coefficients[1],
                   slope = l$coefficients[2])
-    p3<-qplot(mz,intensity,data = p.,color=color)
+    p3<-qplot(ppm,intensity,data = p.,color=color,shape=mark)
     print(multiplot(p1, p2, p3, cols=1))
     
   } )
