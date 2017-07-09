@@ -152,10 +152,10 @@ plotFeature<-function(p,ion,ppm=20,minClusterSize = 30){
 }
 load("def.feature.Rdat")
 qN<-10
-options(shiny.maxRequestSize=50*1024^2) 
+options(shiny.maxRequestSize=150*1024^2) 
 
 # Define server logic required to draw a histogram
-shinyServer(function(input, output) {
+shinyServer(function(input, output,session) {
    
   dataRV<-reactiveValues(features=def.features,peaks=def.peaks,Nf=1)
   
@@ -280,6 +280,7 @@ shinyServer(function(input, output) {
     shinyjs::enable("nextQm")   
   })
   observeEvent(input$nextQm, {
+    cat('observeEvent(input$nextQm\n')
     mqIdx(min(mqIdx()+1,dataRV$Nf))
     if((mqIdx())>=dataRV$Nf){
       shinyjs::disable("nextQm")    
@@ -287,6 +288,17 @@ shinyServer(function(input, output) {
     shinyjs::enable("prevQm")   
   })
 
+  observeEvent(input$qMZ, {
+    cat('observeEvent(input$qMZ\n')
+    inFile <- input$inFile
+    if (!is.null(inFile)) {
+      cat(input$qMZ,abs(dataRV$features$ion[mqIdx()] - input$qMZ),'\n')
+      if (abs(dataRV$features$ion[mqIdx()] - input$qMZ) > 1) {
+        mqIdx(which.min(abs(dataRV$features$ion - input$qMZ)))
+        cat('mqIdx',mqIdx(),which.min(abs(dataRV$features$ion - input$qMZ)),'\n')
+      }
+    }
+  })
   observe({
     cat('dataRV$Nf="',dataRV$Nf,'"\n')
     if(mqIdx()>=dataRV$Nf){
@@ -299,7 +311,7 @@ shinyServer(function(input, output) {
     }else{
       shinyjs::enable("prevQm")
     }
-    
+    isolate(updateSliderInput(session, "qMZ", value = dataRV$features$ion[mqIdx()]))
   })
   observeEvent(input$yesQm, {
     dataRV$features$Q[mqIdx()]<-'g'
@@ -310,6 +322,7 @@ shinyServer(function(input, output) {
     mqIdx(min(mqIdx()+1,dataRV$Nf))
   })
   output$mqPlot<-renderPlot({
+    cat('output$mqPlot\n')
     p.<-prepPlotFeature(dataRV$peaks,dataRV$features$ion[mqIdx()])
     l<-attr(p.,'lm')
     p1<-qplot(time,intensity,data = p.,main=paste0('mz=',dataRV$features$ion[mqIdx()]),log='y',color=color,shape=mark)

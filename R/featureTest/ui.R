@@ -43,7 +43,8 @@ dashboardPage(
             fluidRow(column(width = 1,actionButton("prevQm", "Prev")),
                      column(width = 1,actionButton("yesQm", "Good")),
                      column(width = 1,actionButton("noQm", "Bad")),
-                     column(width=8,textOutput("mqText")),
+                     column(width=4,textOutput("mqText")),
+                     column(width=4,sliderInput("qMZ",'MZ',min=100,max=2000,value = 100)),
                      column(width=1,actionButton("nextQm", "Next"))
             ),
             fluidRow(column(width = 12,
