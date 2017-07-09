@@ -10,24 +10,55 @@
 library(shiny)
 library(data.table)
 library(DT)
+library(ggplot2)
+library(plyr)
+library(cluster)
+library(dynamicTreeCut)
+library(dbscan)
+
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+
 loadFeature <- function(fname, env = new.env()) {
   cat(names(fname),'\n')
   cat('name: ',fname$name,', size: ',fname$size,', type: ',fname$type,', datapath: ',fname$datapath,'\n')
   load(file = fname$datapath, envir = env)
   return(env)#data.table(env$pdts))
 }
-
-#' Calculate quality tab for particular feature
-#'
-#' @param p
-#' @param ion
-#' @param ppm
-#' @param minClusterSize
-#'
-#' @return
-#' @export
-#'
-#' @examples
 
 featureQTab<-function(p,
                       ions,
@@ -44,7 +75,7 @@ featureQTab<-function(p,
                          ppmIQR=NA)
   for(i in 1:length(ions)){
     ion<-ions[i]
-    idxIon<-which((p$ion-ion)<1e-5)
+    idxIon<-which(abs(p$ion-ion)<1e-5)
     cP<-which.max(p$intensity[idxIon])
     ionI<-idxIon[cP]
     maxMZ<-p$mz[ionI]
@@ -71,10 +102,48 @@ featureQTab<-function(p,
   return(qualityTab)
 }
 
-plotFeature<-function(){
-  
+prepPlotFeature<-function(p,ion,ppm=20,minClusterSize = 30){
+  cat(sprintf('ion=%f',ion),'\n')
+  idxIon<-which(abs(p$ion-ion)<1e-5)
+  cP<-which.max(p$intensity[idxIon])
+  ionI<-idxIon[cP]
+  maxMZ<-p$mz[ionI]
+  cat(sprintf('maxMZ=%f',maxMZ),'\n')
+  idx <- which(abs(p$mz - maxMZ) < (ppm * 1e-6 * maxMZ))
+  p. <- p[idx, ]
+  dissim1 = dist(p.$mz)
+  dendro1 <- hclust(d = dissim1, method = 'ward.D2')
+  ct1 <- cutreeDynamic(
+    dendro1,
+    cutHeight = NULL,
+    minClusterSize = minClusterSize,
+    method = "hybrid",
+    deepSplit = 0,
+    pamStage = TRUE,
+    distM = as.matrix(dissim1),
+    maxPamDist = 0,
+    verbose = 0
+  )
+  cct1 <- ct1[which.min(abs(p.$mz - maxMZ))]
+  id.1 <- idx[ct1 == cct1]
+  mz1 <- median(p$mz[id.1])
+  p.$color<-factor(ct1)
+  rl <- get_runLen(p$scan[id.1], scanLen)
+  l<-lm(mz ~ time, data = p[id.1, ])
+  attr(p.,'lm')<-l
+  return(p.)
 }
 
+plotFeature<-function(p,ion,ppm=20,minClusterSize = 30){
+  p.<-prepPlotFeature(p,ion,ppm,minClusterSize)
+  p6 = qplot(time,
+             mz,
+             data = p.,
+             color = color) +
+    geom_abline(intercept = l$coefficients[1],
+                slope = l$coefficients[2])
+  
+}
 load("def.feature.Rdat")
 qN<-10
 options(shiny.maxRequestSize=50*1024^2) 
@@ -90,7 +159,8 @@ shinyServer(function(input, output) {
     #cat('file:',inFile)
     if (is.null(inFile))
       return(def.features)
-    features<-data.table(loadFeature(inFile)$pdts)[!is.na(ion)]
+    features<-data.table(loadFeature(inFile)$pdts)[is.finite(ion)]
+    features$Q<-NA
     cat(class(features),'\n')
     cat(dim(features),'\n')
     return(features)
@@ -147,6 +217,30 @@ shinyServer(function(input, output) {
   output$qText<-renderText({
     s<-sprintf('Features from %d to %d out of %d',qIdx(),(qIdx()+qN-1),dim(featuresT())[1])
   })
+  output$qPlot<-renderPlot({
+    p1<-plotFeature(dataT(),featuresT()$ion[qIdx()])
+    cat(qIdx(),featuresT()$ion[qIdx()],'\n')
+    p2<-plotFeature(dataT(),featuresT()$ion[qIdx()+1])
+    cat(qIdx()+1,featuresT()$ion[qIdx()+1],'\n')
+    p3<-plotFeature(dataT(),featuresT()$ion[qIdx()+2])
+    cat(qIdx()+2,featuresT()$ion[qIdx()+2],'\n')
+    p4<-plotFeature(dataT(),featuresT()$ion[qIdx()+3])
+    cat(qIdx()+3,featuresT()$ion[qIdx()+3],'\n')
+    p5<-plotFeature(dataT(),featuresT()$ion[qIdx()+4])
+    cat(qIdx()+4,featuresT()$ion[qIdx()+4],'\n')
+    p6<-plotFeature(dataT(),featuresT()$ion[qIdx()+5])
+    cat(qIdx()+5,featuresT()$ion[qIdx()+5],'\n')
+    p7<-plotFeature(dataT(),featuresT()$ion[qIdx()+6])
+    cat(qIdx()+6,featuresT()$ion[qIdx()+6],'\n')
+    p8<-plotFeature(dataT(),featuresT()$ion[qIdx()+7])
+    cat(qIdx()+7,featuresT()$ion[qIdx()+7],'\n')
+    p9<-plotFeature(dataT(),featuresT()$ion[qIdx()+8])
+    cat(qIdx()+8,featuresT()$ion[qIdx()+8],'\n')
+    p10<-plotFeature(dataT(),featuresT()$ion[qIdx()+9])
+    cat(qIdx()+9,featuresT()$ion[qIdx()+9],'\n')
+    multiplot(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10)
+  })
+  
   observeEvent(input$prevQ, {
     qIdx(max(qIdx()-qN,1))
     if((qIdx()-qN)< 1){
@@ -164,6 +258,56 @@ shinyServer(function(input, output) {
     shinyjs::enable("prevQ")   
     
   })
+  mqIdx<-reactiveVal(value=1,label = 'mqtabIdx')
+  output$mqText<-renderText({
+    s<-sprintf('Feature %d out of %d',mqIdx(),dim(featuresT())[1])
+  })
+  observeEvent(input$prevQm, {
+    qIdx(max(mqIdx()-P,1))
+    if((mqIdx())<= 1){
+      shinyjs::disable("prevQm")
+    }
+    shinyjs::enable("nextQm")   
+  })
+  observeEvent(input$nextQm, {
+    qIdx(min(mqIdx()+1,dim(featuresT())[1]))
+    if((mqIdx())>=dim(featuresT())[1]){
+      shinyjs::disable("nextQm")    
+    }
+    shinyjs::enable("prevQm")   
+  })
+
+  observe({
+    if((mqIdx())>=dim(featuresT())[1]){
+      shinyjs::disable("nextQm")    
+    }else{
+      shinyjs::enable("nextQm") 
+    }
+    if((mqIdx())<= 1){
+      shinyjs::disable("prevQm")
+    }else{
+      shinyjs::enable("prevQm")
+    }
+    
+  })
+  observeEvent(input$yesQm, {
+    featuresT()$Q[mqIdx()]<-'g'
+    mqIdx(min(mqIdx()+1,dim(featuresT())[1]))
+  })
+  observeEvent(input$noQm, {
+    mqIdx(min(mqIdx()+1,dim(featuresT())[1]))
+  })
+  output$mqPlot<-renderPlot({
+    p.<-prepPlotFeature(dataT(),featuresT()$ion[mqIdx()])
+    l<-attr(p.,'lm')
+    p1<-qplot(time,intensity,data = p.,main=paste0('mz',featuresT()$ion[mqIdx()]),log='y',color=color)
+    p2<-qplot(time,mz,data = p.,color=color) +
+      geom_abline(intercept = l$coefficients[1],
+                  slope = l$coefficients[2])
+    p3<-qplot(mz,intensity,data = p.,color=color)
+    print(multiplot(p1, p2, p3, cols=1))
+    
+  } )
   # output$mytable = DT::renderDataTable({
   #   DT::datatable(cbind(Pick=paste0('<input type="checkbox" id="row', mymtcars$id, '" value="', mymtcars$id, '">',""), mymtcars[, input$show_vars, drop=FALSE]),
   #               options = list(orderClasses = TRUE,

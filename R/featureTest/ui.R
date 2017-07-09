@@ -18,7 +18,8 @@ dashboardPage(
                      menuItem("Load data",tabName = 'File'),
                      menuItem("Feature table",tabName = 'Features'),
                      menuItem("Peak table",tabName = 'Peaks'),
-                     menuItem("Feature plots",tabName = 'qplots')
+                     menuItem("Feature plots",tabName = 'qplots'),
+                     menuItem("Feature asses",tabName = 'mqplots')
                    )),
   dashboardBody(
     tabItems(
@@ -34,9 +35,22 @@ dashboardPage(
               fluidRow(column(width = 1,actionButton("prevQ", "Prev")),
                        column(width=10,textOutput("qText")),
                        column(width=1,actionButton("nextQ", "Next"))
-              ))
-    )
-  ),
+              ),
+              fluidRow(column(width = 12,
+                              class = "well",
+                              plotOutput("qPlot", height = 900)))),
+    tabItem("mqplots",shinyjs::useShinyjs(),
+            fluidRow(column(width = 1,actionButton("prevQm", "Prev")),
+                     column(width = 1,actionButton("yesQm", "Good")),
+                     column(width = 1,actionButton("noQm", "Bad")),
+                     column(width=8,textOutput("mqText")),
+                     column(width=1,actionButton("nextQm", "Next"))
+            ),
+            fluidRow(column(width = 12,
+                            class = "well",
+                            plotOutput("mqPlot", height = 400))))
+  )
+),
   title = "Dashboard example"
 )
 # shinyUI(fluidPage(
