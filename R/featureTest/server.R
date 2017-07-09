@@ -31,7 +31,7 @@ shinyServer(function(input, output) {
     #cat('file:',inFile)
     if (is.null(inFile))
       return(def.features)
-    features<-data.table(loadFeature(inFile)$pdts)
+    features<-data.table(loadFeature(inFile)$pdts)[!is.na(ion)]
     cat(class(features),'\n')
     cat(dim(features),'\n')
     return(features)
