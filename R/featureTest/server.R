@@ -84,7 +84,27 @@ shinyServer(function(input, output) {
       )
     return(featuresDT)
     })
-  
+  qIdx<-reactiveVal(value=1,label = 'qtabIdx')
+  output$qText<-renderText({
+    s<-sprintf('Features from %d to %d out of %d',qIdx(),(qIdx()+qN-1),dim(featuresT())[1])
+  })
+  observeEvent(input$prevQ, {
+    qIdx(max(qIdx()-qN,1))
+    if((qIdx()-qN)< 1){
+      shinyjs::disable("prevQ")
+    }
+    shinyjs::enable("nextQ")   
+    
+    
+  })
+  observeEvent(input$nextQ, {
+    qIdx(min(qIdx()+qN,dim(featuresT())[1]))
+    if((qIdx()+qN)>=dim(featuresT())[1]){
+      shinyjs::disable("nextQ")    
+    }
+    shinyjs::enable("prevQ")   
+    
+  })
   # output$mytable = DT::renderDataTable({
   #   DT::datatable(cbind(Pick=paste0('<input type="checkbox" id="row', mymtcars$id, '" value="', mymtcars$id, '">',""), mymtcars[, input$show_vars, drop=FALSE]),
   #               options = list(orderClasses = TRUE,

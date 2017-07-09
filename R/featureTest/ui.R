@@ -18,7 +18,7 @@ dashboardPage(
                      menuItem("Load data",tabName = 'File'),
                      menuItem("Feature table",tabName = 'Features'),
                      menuItem("Peak table",tabName = 'Peaks'),
-                     menuItem("Feature plots")
+                     menuItem("Feature plots",tabName = 'qplots')
                    )),
   dashboardBody(
     tabItems(
@@ -29,8 +29,12 @@ dashboardPage(
                 DT::dataTableOutput("featuresRev",width = '80%')))
       ),
       tabItem('Features',DT::dataTableOutput("features",width = '80%')),
-      tabItem('Peaks',DT::dataTableOutput("peaks",width = '80%'))
-      
+      tabItem('Peaks',DT::dataTableOutput("peaks",width = '80%')),
+      tabItem("qplots",shinyjs::useShinyjs(),
+              fluidRow(column(width = 1,actionButton("prevQ", "Prev")),
+                       column(width=10,textOutput("qText")),
+                       column(width=1,actionButton("nextQ", "Next"))
+              ))
     )
   ),
   title = "Dashboard example"
