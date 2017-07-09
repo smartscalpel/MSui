@@ -44,12 +44,32 @@ shinyServer(function(input, output) {
     peaks<-data.table(loadFeature(inFile)$pdt)
     cat(class(peaks),'\n')
     cat(dim(peaks),'\n')
+    peaks$delta[!is.na(peaks$ion)]<-peaks[!is.na(ion),abs(ion-mz)]
+    cat(names(peaks),'\n')
+    cat(dim(peaks),'\n')
     return(peaks)
   })
-  output$features<-DT::renderDataTable({
+  
+  output$peaks<-DT::renderDataTable({
     inFile <- input$inFile
     if (is.null(inFile))
       return(def.peaks)
+    DT::datatable(dataT()[is.finite(ion)]) %>%
+      formatSignif(c('intensity','lm','corTIC','relTIC','delta'),3) %>%
+      formatRound(c('mz','ion','time','clIon1','clIon2','corRel'),4)
+  })
+  
+  output$featuresRev<-DT::renderDataTable({
+    inFile <- input$inFile
+    if (is.null(inFile))
+      return(def.features)
+    DT::datatable(featuresT())
+  })
+  
+  output$features<-DT::renderDataTable({
+    inFile <- input$inFile
+    if (is.null(inFile))
+      return(def.features)
     featuresDT<-DT::datatable(cbind(
       Pick=paste0('<input type="checkbox" id="row', featuresT()$ion, '" value="', featuresT()$ion, '">',""), 
       featuresT()),
