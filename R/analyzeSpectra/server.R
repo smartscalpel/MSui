@@ -67,7 +67,7 @@ shinyServer(function(input, output) {
 # Global identifier of the scan to play with
      scanID<-reactive({return(input$sID)})
 # Global RV for data
-     dataRV<-reactiveValues(ncMD=list(),spectra=defSpectra,TIC=0,XIC100=1e-7,XIC400=1e-7,time=1,scans=c(1:4))
+     dataRV<-reactiveValues(ncMD=list(),spectra=defSpectra,TIC=0,XIC100=1e-7,XIC400=1e-7,time=1,scans=c())
 
 # Load spectra from file
   observeEvent(input$inFile,{
@@ -90,40 +90,44 @@ shinyServer(function(input, output) {
     dataRV$tic<-tic
     dataRV$XIC100<-XIC100
     dataRV$XIC400<-XIC400
+    dataRV$scans<-dataRV$ind
   })
   
   observeEvent(input$tic_dblclick, {
     brush <- input$tic_brush
     if (!is.null(brush)) {
-      dataRV$scans <- c(brush$xmin, brush$xmax)
+      dataRV$scans <- seq(from=as.integer(brush$xmin), to=as.integer(brush$xmax))
       cat('dataRV$scans',dataRV$scans,'\n')
     } else {
-      dataRV$scans <- NULL
+      dataRV$scans <- dataRV$ind
     }
   })
   
   observeEvent(input$xic_dblclick, {
     brush <- input$xic_brush
     if (!is.null(brush)) {
-      dataRV$scans <- c(brush$xmin, brush$xmax)
+      dataRV$scans <- seq(from=as.integer(brush$xmin), to=as.integer(brush$xmax))
       cat('dataRV$scans',dataRV$scans,'\n')
     } else {
-      dataRV$scans <- NULL
+      dataRV$scans <- dataRV$ind
     }
   })
   
   
   output$ticPlot<-renderPlot({
-    qtic<-quantile(dataRV$tic,probs = seq(0, 1, 0.1),names = TRUE)
-    ctic<-factor(findInterval(dataRV$tic,qtic),labels = names(qtic))
-    qplot(dataRV$time,dataRV$tic,colour=ctic,shape = ".")+
+    if(length(dataRV$tic[dataRV$scans])==1){return()}
+    cat(length(dataRV$scans),dim(dataRV),'\n')
+    qtic<-quantile(dataRV$tic[dataRV$scans],probs = seq(0, 1, 0.1),names = TRUE)
+    ctic<-factor(findInterval(dataRV$tic[dataRV$scans],qtic),labels = names(qtic))
+    qplot(dataRV$ind[dataRV$scans],dataRV$tic[dataRV$scans],colour=ctic,shape = ".")+
       scale_colour_brewer(palette = 'Spectral')+
       geom_line(aes(group=1))
   })
   output$xicPlot<-renderPlot({
-    df<-rbind(data.frame(time=dataRV$time,XIC=dataRV$XIC100,type='XIC100'),
-              data.frame(time=dataRV$time,XIC=dataRV$XIC400,type='XIC400'))
-    qplot(time,XIC,colour=type,data=df,shape = ".")+
+    if(length(dataRV$tic)==1){return()}
+    df<-rbind(data.frame(ind=dataRV$ind[dataRV$scans],XIC=dataRV$XIC100[dataRV$scans],type='XIC100'),
+              data.frame(ind=dataRV$ind[dataRV$scans],XIC=dataRV$XIC400[dataRV$scans],type='XIC400'))
+    qplot(ind,XIC,colour=type,data=df,shape = ".")+
       scale_colour_brewer(palette = 'Spectral')+
       geom_line()
   })
@@ -137,12 +141,21 @@ shinyServer(function(input, output) {
   
   spSelected<-reactive({
     spId<-input$sID
+    cat('\n SpID=',spId,'\n')
     sc<-input$scale
     nr<-input$norm
     bl<-input$corBL
-    if(spId>length(dataRV$spectra)){
-      spId<-length(dataRV$spectra)
+    #if(spId>length(dataRV$spectra)){
+    if(!spId%in%dataRV$scans){
+      if(any(dataRV$scans>spId)){
+        cat(spId,min(which(dataRV$scans>spId)),'\n')
+        spId<-dataRV$scan[min(which(dataRV$scans>spId))]
+        cat(spId,'\n')
+      }else{
+        spId<-max(dataRV$scans)
+      }
     }
+    cat(spId,'\n')
     sp<-dataRV$spectra[[spId]]
     if(sc){    
       sp<-transformIntensity(sp, method="sqrt")
