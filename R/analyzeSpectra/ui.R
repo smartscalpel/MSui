@@ -23,10 +23,19 @@ dashboardPage(
                      menuItem("Baseline",tabName = 'baseline'),
                      menuItem("SNR",tabName = 'snr'),
                      fileInput('inFile', 'Choose CDF File'),
+                     menuItem('Selectors',
                      sliderInput("sID",'Scan',min=1,max=2000,value = 1),
                      checkboxInput("scale", label = "Scale spectra", value = TRUE),
                      checkboxInput("corBL", label = "Correct baseline", value = TRUE),
-                     checkboxInput("norm", label = "Normalize spectra", value = TRUE)
+                     checkboxInput("norm", label = "Normalize spectra", value = TRUE)),
+                     menuItem('Fragments',
+                              textInput('fragName',label = 'Fragment name',value = ''),
+                              textInput('patID',label = 'Patient ID',value = ''),
+                              textInput('fragType',label = 'Fragment type',value = ''),
+                              verbatimTextOutput("textFrag"),
+                              actionButton('addFrag','Add fragment'),
+                              textInput('outFile',label = 'File name',value = 'dataset'),
+                              downloadButton('saveBtn','Save dataset'))
                    )),
   dashboardBody(
     tabItems(
