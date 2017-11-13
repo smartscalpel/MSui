@@ -67,8 +67,9 @@ shinyServer(function(input, output) {
 # Global identifier of the scan to play with
      scanID<-reactive({return(input$sID)})
 # Global RV for data
-     dataRV<-reactiveValues(ncMD=list(),spectra=defSpectra,TIC=0,XIC100=1e-7,XIC400=1e-7,time=1,scans=c())
+     dataRV<-reactiveValues(ncMD=list(),spectra=defSpectra,TIC=0,XIC100=1e-7,XIC400=1e-7,time=1,scans=c(),inFile='')
 
+     fragments<-reactiveValues(spectra=list(),fragNames=c(),files=c(),patients=c(),numFrag=0,numFiles=0)
 # Load spectra from file
   observeEvent(input$inFile,{
     inFile <- input$inFile
@@ -78,6 +79,9 @@ shinyServer(function(input, output) {
     cat('name: ',inFile$name,', size: ',inFile$size,', type: ',inFile$type,', datapath: ',inFile$datapath,'\n')
     #dataRV$fncMD<- ncatt_get(nc_open(inFile$datapath),0)
     spectra<-import(inFile$datapath,verbose=FALSE)
+    if(any(sapply(spectra, MALDIquant::isEmpty))){
+      spectra<-spectra[!sapply(spectra, MALDIquant::isEmpty)]
+    }
     tic<-sapply(spectra,totalIonCurrent)
     spectra400 <- trim(spectra,range = c(400,1000))
     spectra100 <- trim(spectra,range = c(100,400))
@@ -85,37 +89,77 @@ shinyServer(function(input, output) {
     XIC400<-sapply(spectra400,totalIonCurrent)
     time<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
     dataRV$spectra<-spectra
+    dataRV$inFile<-inFile$name
     dataRV$ind<-sapply(spectra,function(.x)metaData(.x)$number)
     dataRV$time<-time
     dataRV$tic<-tic
     dataRV$XIC100<-XIC100
     dataRV$XIC400<-XIC400
-    dataRV$scans<-dataRV$ind
+    dataRV$scans<-seq_along(dataRV$spectra)
   })
   
   observeEvent(input$tic_dblclick, {
     brush <- input$tic_brush
     if (!is.null(brush)) {
-      dataRV$scans <- seq(from=as.integer(brush$xmin), to=as.integer(brush$xmax))
+      dataRV$scans <- seq(from=max(1,as.integer(brush$xmin)), 
+                          to=min(as.integer(brush$xmax),length(dataRV$spectra)))
       cat('dataRV$scans',dataRV$scans,'\n')
     } else {
-      dataRV$scans <- dataRV$ind
+      dataRV$scans <- seq_along(dataRV$spectra)
     }
   })
   
   observeEvent(input$xic_dblclick, {
     brush <- input$xic_brush
     if (!is.null(brush)) {
-      dataRV$scans <- seq(from=as.integer(brush$xmin), to=as.integer(brush$xmax))
+      dataRV$scans <- seq(from=max(1,as.integer(brush$xmin)), 
+                          to=min(as.integer(brush$xmax),length(dataRV$spectra)))
       cat('dataRV$scans',dataRV$scans,'\n')
     } else {
-      dataRV$scans <- dataRV$ind
+      dataRV$scans <- seq_along(dataRV$spectra)
     }
   })
   
+  output$textFrag<-renderText({
+    sprintf('Fragments: %d; Files: %d',fragments$numFrag,fragments$numFiles)
+  })
+  
+  observeEvent(input$addFrag,{
+    if(length(trimws(input$fragName))==0){
+      cat('there is no name for the fragment\n')
+      return()
+    }
+    i<-fragments$numFrag+1
+    fragments$fragNames<-c(fragments$fragNames,input$fragName)
+    f<-dataRV$spectra[dataRV$scans]
+    cat(length(dataRV$scans),length(f),class(f),class(dataRV$spectra),'\n')
+    for(k in 1:length(f)){
+      f[[k]]@metaData$fName<-trimws(input$fragName)
+      f[[k]]@metaData$fType<-trimws(input$fragType)
+      f[[k]]@metaData$pID<-trimws(input$patID)
+      f[[k]]@metaData$inFile<-trimws(dataRV$inFile)
+    }
+    fragments$spectra[[i]]<-f
+    fragments$numFrag<-i
+    fragments$files<-unique(c(metaData(f[[1]])$inFile,fragments$files))
+    fragments$patients<-unique(c(metaData(f[[1]])$pID,fragments$patients))
+    fragments$numFiles<-length(fragments$files)
+  })
+  
+  # Downloadable Rdata of selected dataset ----
+  output$saveBtn <- downloadHandler(
+    filename = function() {
+      paste0(input$outFile, ".Rdata")
+    },
+    content = function(file) {
+      spectra<-fragments$spectra
+      fragNames<-fragments$fragNames
+      save(spectra,fragNames, file=file)
+    }
+  )
   
   output$ticPlot<-renderPlot({
-    if(length(dataRV$tic[dataRV$scans])==1){return()}
+    if(length(dataRV$tic[dataRV$scans])<=1){return()}
     cat(length(dataRV$scans),dim(dataRV),'\n')
     qtic<-quantile(dataRV$tic[dataRV$scans],probs = seq(0, 1, 0.1),names = TRUE)
     ctic<-factor(findInterval(dataRV$tic[dataRV$scans],qtic),labels = names(qtic))
@@ -142,22 +186,25 @@ shinyServer(function(input, output) {
   spSelected<-reactive({
     spId<-input$sID
     cat('\n SpID=',spId,'\n')
-    sc<-input$scale
+    scl<-input$scale
     nr<-input$norm
     bl<-input$corBL
+    sc<-dataRV$scans
+    cat('\n lenSC=',length(sc),'\n')
     #if(spId>length(dataRV$spectra)){
-    if(!spId%in%dataRV$scans){
-      if(any(dataRV$scans>spId)){
-        cat(spId,min(which(dataRV$scans>spId)),'\n')
-        spId<-dataRV$scan[min(which(dataRV$scans>spId))]
+    if(!spId%in%sc){
+      if(any(sc>spId)){
+        cat(sc)
+        cat(spId,min(which(sc>spId)),'|',sc[min(which(sc>spId))],'|','\n')
+        spId<-sc[min(which(sc>spId))]
         cat(spId,'\n')
       }else{
-        spId<-max(dataRV$scans)
+        spId<-max(sc)
       }
     }
     cat(spId,'\n')
     sp<-dataRV$spectra[[spId]]
-    if(sc){    
+    if(scl){    
       sp<-transformIntensity(sp, method="sqrt")
     }
     sp <- MALDIquant::smoothIntensity(sp, method="SavitzkyGolay",halfWindowSize=halfWindowSize)
