@@ -31,12 +31,15 @@ dashboardPage(
                      menuItem('Fragments',
                               textInput('fragName',label = 'Fragment name',value = ''),
                               textInput('patID',label = 'Patient ID',value = ''),
-                              textInput('fragType',label = 'Fragment type',value = ''),
+                              textInput('fragType',label = 'Fragment type',value = 'h'),
                               verbatimTextOutput("textFrag"),
                               actionButton('addFrag','Add fragment'),
                               textInput('outFile',label = 'File name',value = 'dataset'),
-                              downloadButton('saveBtn','Save dataset'))
-                   )),
+                              downloadButton('saveBtn','Save dataset')),
+                     menuItem('Analysis',
+                              menuSubItem("Corrplot",tabName = 'corplot')
+                     )
+                     )),
   dashboardBody(
     tabItems(
       # tabItem('File',
@@ -52,7 +55,23 @@ dashboardPage(
                                brush = brushOpts(id = "xic_brush",
                                                  resetOnNew = TRUE))),
       tabItem("baseline",plotOutput("blPlot", height = 800)),
-      tabItem("snr",plotOutput("snrPlot", height = 800))
+      tabItem("snr",plotOutput("snrPlot", height = 800)),
+      tabItem("corplot",
+              fluidRow(column(
+                width = 12,
+                tabPanel("Metadata", tableOutput("metadata"))
+              )),
+              fluidRow(column(
+                width = 12,
+                tabPanel("Black List", 
+                         textInput('blackList',label = 'Black List',value = ''),
+                         actionButton("update" ,"Update View", icon("refresh"),
+                                      class = "btn btn-primary"))
+              )),
+              fluidRow(column(
+                width = 12,
+                class = "well",plotOutput("corrPlot", height = 800))
+              ))
     )
   ),
   title = "Dashboard example"
