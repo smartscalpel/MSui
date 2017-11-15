@@ -178,6 +178,8 @@ shinyServer(function(input, output) {
     for(k in 1:length(f)){
       f[[k]]@metaData$fName<-trimws(input$fragName)
       f[[k]]@metaData$fType<-trimws(input$fragType)
+      f[[k]]@metaData$fRes<-trimws(input$fragRes)
+      f[[k]]@metaData$fDiag<-trimws(input$diag)
       f[[k]]@metaData$pID<-trimws(input$patID)
       f[[k]]@metaData$inFile<-trimws(dataRV$inFile)
     }
