@@ -63,6 +63,23 @@ sqlGetMZset<-paste0('select id, mz,rt,scan,intensity,spectrid ',
                      'from peak ',
                      'where spectrid between ? and ? ')
 
+sqlGetMZset<-paste0('select id, mz,rt,scan,intensity,spectrid ',
+                    'from peak ',
+                    'where spectrid between ? and ? ')
+
+sqlSpectra<-'select * from spectra '
+
+getSpectra<-function(con){
+  con<-getCon(con)
+  cat(system.time(p<-
+                    data.table(
+                      dbGetQuery(con,
+                                 sqlSpectra))
+  ),
+  '\n')
+  return(p)
+}
+
 getMZ<-function(con,spID,mzRange=c(0,5000),threshold=1e2){
   con<-getCon(con)
   cat(system.time(p<-
