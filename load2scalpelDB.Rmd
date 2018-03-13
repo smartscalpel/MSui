@@ -1,0 +1,280 @@
+---
+title: "load2scalpelDB"
+author: "Anatoly Sorokin"
+date: '`r format(Sys.time(), "%d.%m.%Y")`'
+output:
+  pdf_document:
+    keep_tex: yes
+    number_sections: yes
+  html_document: default
+params:
+  format: !r if(opts_knit$get("rmarkdown.pandoc.to") == 'html') c('screen', 'print')
+    else 'print'
+  version: !r if(nchar(Sys.which("git"))) system("git describe --long --dirty --abbrev=10  --tags  --always",
+    intern=TRUE) else date()
+header-includes:
+- \usepackage[T2A]{fontenc}
+- \usepackage[utf8]{inputenc}
+- \usepackage[english,russian]{babel}
+- \usepackage{grffile}
+- \usepackage{rotating}
+- \usepackage{caption}
+- \usepackage{longtable}
+- \usepackage{lscape}
+---
+```{r loadPackages, include=FALSE, cache=FALSE}
+## load additional packages in this chunk
+library(pander)
+library(knitr)
+library('Matrix')
+library(ggplot2)
+library(data.table)
+library(plyr)
+library(xtable)
+library(xcms)
+library("FactoMineR")
+library(cluster)
+library(dendextend)
+library(factoextra)
+library(corrplot)
+library(ncdf4)
+library("PerformanceAnalytics")
+library("pvclust")
+library("sda")
+library(RColorBrewer)
+library(MALDIquant)
+library(MALDIquantForeign)
+library(DBI)
+library(MonetDB.R)
+ticThreshold<-0.01
+absTicThreshold<-1000
+```
+
+```{r setup, include=FALSE, cache=FALSE}
+## This chunk should contain global configuration commands.
+## Use this to set knitr options and related things. Everything
+## in this chunk will be included in an appendix to document the
+## configuration used.
+#output <- opts_knit$get("rmarkdown.pandoc.to")
+opts_knit$set(stop_on_error = 2L)
+
+## By default R code is only included in HTML versions of the report
+## (where it can be collapsed). You can generate a PDF version
+## using rmarkdown::pdf_document to get a copy for print. Extensive
+## chunks of R code may or may not be desired in /hat setting. If you
+## want them simply change the following arguments to `echo = TRUE`.
+## In either case the default can be overwritten for individual chunks.
+#opts_chunk$set(echo = output=="html")
+#opts_chunk$set(warning = output=="html")
+#opts_chunk$set(message = output=="html")
+
+## Cache options
+opts_chunk$set(cache=FALSE)
+
+## Figure options
+## Set default figure format
+#options(reportmd.figure.format=params$format)
+
+## Set 'hide.fig.code' to FALSE to include code chunks that
+## produce Figures in the output. Note that this affects all chunks
+## that provide a figure caption.
+opts_chunk$set(hold=TRUE, hide.fig.code=FALSE)
+
+## Set up default plotting options for different formats.
+## These can be overwritten for individual chunks
+#interactiveFig()
+#screenFig()
+#printFig()
+
+## Pander options
+panderOptions("digits", 3)
+panderOptions("table.split.table", 160)
+
+## Configure Figure and Table lables
+#options(figcap.prefix = "Figure", figcap.sep = ":", figcap.prefix.highlight = "**")
+#options(tabcap.prefix = "Table", tabcap.sep = ":", tabcap.prefix.highlight = "**")
+
+## Install required knitr hooks
+#installHooks()
+```
+
+```{r functions, include=FALSE}
+## Custom functions used in the analysis should go into this chunk.
+## They will be listed in their own section of the appendix.
+roundScan<-function(i){
+  scan <- as.data.table(getScan(xraw, sel$scanidx[i], sel$mzrange))
+  sc1<-scan[,.(intensity=median(intensity)),by=.(mz=round(mz,0))]
+  m<-matrix(rep(0,2000),nrow = 1)
+  m[1,sc1[mz<=200]$mz]<-sc1[mz<=200]$intensity
+  return(m)
+}
+
+parseScan<-function(i){
+scan <- as.data.table(getScan(xraw, sel$scanidx[i], sel$mzrange))
+p<-data.frame(id=as.integer(-1),
+mz=scan$mz,
+mz1=round(scan$mz,0),
+mz100=round(scan$mz,2),
+rt=xraw@scantime[i],
+scan=i,
+intensity=scan$intensity,
+spectrid=as.integer(-1),
+reltic=-1e-6)
+tot<-sum(p$intensity)
+p$reltic<-p$intensity/tot
+return(p)
+}
+
+interpolateSpectra<-function(sp,step){
+  step<-round(step,abs(log10(step))+2)
+  xout<-seq(from=min(sp@mass),to=max(sp@mass),by=step)
+  yout<-approx(sp@mass,sp@intensity,xout)
+  md<-metaData(sp)
+  md$interpStep=step
+  sptmp<-createMassSpectrum(mass=yout$x,intensity = yout$y)
+  noise <- estimateNoise(sptmp)
+  #spBL <- removeBaseline(sp, method="SNIP",iterations=100)
+  idx<-(yout$y-noise[,2])>0
+  spOut<-createMassSpectrum(mass=yout$x[idx],intensity = yout$y[idx],metaData = md)
+  return(spOut)
+}
+
+```
+
+
+# Read data
+Before running the code a number of variables should be setted for appropriate data loading:
+ 
+ 1. the path to the data folder *dtPath* 
+ 2. the project ID in the *prjID*
+ 3. the name of the database *dbname*
+ 4. user/password for teh database: *usr* and *pwd*
+ 
+ There are two optional parameters *prjName* and *prjDesc* could be provided. If missing both variables will be the substituted with *prjID*.
+
+
+Для работы необходим параметр `cdf.file`, который содержит полный путь к обрабатываемому файлу. В базу будут загружено содержимое файла `cdf.file`
+```{r check.values}
+if(!(exists('dtPath')&
+     exists('prjID')&
+     exists('dbname')&
+     exists('usr')&
+     exists('pwd')&
+     exists('cdf.file'))){
+  stop('not all obligatory parameters are provided\n')
+}
+if(!exists('pjrName')){prjName<-prjID}
+if(!exists('pjrDesc')){prjDesc<-paste0('project.',prjID)}
+ncMD<- ncatt_get(nc_open(cdf.file),0)
+```
+
+
+# Загрузка данных с помощью MALDIquant
+
+Текущее значение параметра `cdf.file`:
+
+`r cdf.file`
+
+```{r load.cdf,cache=TRUE}
+spectra<-import(cdf.file,verbose=TRUE)
+if(any(sapply(spectra, MALDIquant::isEmpty))){
+  spectra<-spectra[!sapply(spectra, MALDIquant::isEmpty)]
+}
+mzWidth<-sapply(spectra, function(.x)diff(range(mass(.x))))
+if(any(mzWidth<0.2*max(mzWidth))){
+  spectra<-spectra[mzWidth>=0.2*max(mzWidth)]
+}
+#hist(sapply(spectra, length))
+tic<-sapply(spectra,totalIonCurrent)
+eic300<-sapply(trim(spectra,range = c(0,350)),totalIonCurrent)
+eic1000<-sapply(trim(spectra,range = c(400,1000)),totalIonCurrent)
+time<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
+qtic<-quantile(tic,probs = seq(0, 1, 0.1),names = TRUE)
+qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
+#plot(xraw@tic,tic)
+plot(tic)
+abline(h = qth)
+#spectra <- trim(spectra,range = mzrange)
+```
+
+# Load data to DB
+```{r db.connect}
+conn <- dbConnect(MonetDB.R::MonetDB(), 
+                  dbname = dbname,
+                  user=usr,password=pwd)
+```
+
+## Spectrum
+```{r insert.spectrum}
+```
+
+## Scans
+```{r insert.scans}
+```
+
+## Signal
+
+### Disable referential constraints
+```{r drop.reads.constraints}
+rs<-dbSendStatement(conn,'ALTER TABLE reads DROP CONSTRAINT reads_read_id_unique;')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'ALTER TABLE reads DROP CONSTRAINT readunq;')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'ALTER TABLE reads DROP CONSTRAINT FKreads_mg_id;')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+
+```
+
+### Load data
+```{r read.sdata}
+sdata<-load.sdata.from.file(path = prPath)
+s<-sdata[[1]]
+
+```
+
+### Check missing 
+
+### Enable referential constraints
+```{r add.reads.constraints}
+rs<-dbSendStatement(conn,'ALTER TABLE reads ADD CONSTRAINT reads_read_id_unique UNIQUE ("read_id", "md5sum");')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'ALTER TABLE reads ADD CONSTRAINT readunq  UNIQUE ("read_id", "md5sum");')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'ALTER TABLE reads ADD CONSTRAINT FKreads_mg_id FOREIGN KEY (mg_id) REFERENCES asar.metagenome (ID);')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+
+```
+
+
+# Appendix {.tabset}
+## Functions
+```{r functions, eval=FALSE, include=TRUE}
+```
+
+## Setup R
+```{r setup, eval=FALSE}
+```
+
+## Versions
+### Document version
+```{r docVersion, echo=FALSE, results='asis', cache=FALSE}
+cat(params$version)
+```
+
+### Session Info
+```{r sessionInfo, echo=FALSE, results='asis', class='text', warning=FALSE}
+pander(devtools::session_info())
+```
+
