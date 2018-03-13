@@ -141,31 +141,37 @@ interpolateSpectra<-function(sp,step){
 
 ```
 
+```
+{r}
+dbname = "msinvent"
+usr='msinvent'
+pwd='msinvent'
+dtPath = '/Users/lptolik/Yandex.Disk.localized/BD_cdf'
+cdf.file=paste0(dtPath,'/1_02_495_MetCl_2_FT100k.cdf')
+```
 
 # Read data
 Before running the code a number of variables should be setted for appropriate data loading:
  
  1. the path to the data folder *dtPath* 
- 2. the project ID in the *prjID*
- 3. the name of the database *dbname*
+  3. the name of the database *dbname*
  4. user/password for teh database: *usr* and *pwd*
  
- There are two optional parameters *prjName* and *prjDesc* could be provided. If missing both variables will be the substituted with *prjID*.
-
 
 Для работы необходим параметр `cdf.file`, который содержит полный путь к обрабатываемому файлу. В базу будут загружено содержимое файла `cdf.file`
 ```{r check.values}
 if(!(exists('dtPath')&
-     exists('prjID')&
      exists('dbname')&
      exists('usr')&
      exists('pwd')&
      exists('cdf.file'))){
   stop('not all obligatory parameters are provided\n')
 }
-if(!exists('pjrName')){prjName<-prjID}
-if(!exists('pjrDesc')){prjDesc<-paste0('project.',prjID)}
 ncMD<- ncatt_get(nc_open(cdf.file),0)
+experimentData<-ncMD$experiment_date_time_stamp
+fileData<-ncMD$netcdf_file_date_time_stamp
+origFilePath<-ncMD$source_file_reference
+comment<-ncMD$administrative_comments
 ```
 
 
@@ -180,7 +186,7 @@ spectra<-import(cdf.file,verbose=TRUE)
 if(any(sapply(spectra, MALDIquant::isEmpty))){
   spectra<-spectra[!sapply(spectra, MALDIquant::isEmpty)]
 }
-mzWidth<-sapply(spectra, function(.x)diff(range(mass(.x))))
+mzWidth<-sapply(spectra, function(.x)diff(range(.x@mass)))
 if(any(mzWidth<0.2*max(mzWidth))){
   spectra<-spectra[mzWidth>=0.2*max(mzWidth)]
 }
@@ -202,14 +208,54 @@ abline(h = qth)
 conn <- dbConnect(MonetDB.R::MonetDB(), 
                   dbname = dbname,
                   user=usr,password=pwd)
+devices<-dbReadTable(conn,'device')
+devID<-1 #Device
+solvents<-dbReadTable(conn,'solvent')
+solID<-6 #Solvent
+ionSources<-dbReadTable(conn,'ionsource')
+isID<-1 # ionsource
+resolutions<-dbReadTable(conn,'resolution')
+resID<-1 #ResolutionID
+smplID<-1 #SampleID
+stID<-1 #SampleTumorID
+stpID<-1 #SampleTumorPatientID
+nMode<-1 #Negative mode
+note<-paste('exDT:',experimentData,'\nfileDT:',fileData,'\norigFile:',origFilePath,'\ncomment:',comment)
 ```
 
 ## Spectrum
 ```{r insert.spectrum}
+insertComment<-paste('insert into comment(dt,comment,author) values (now(),?,?)')
+getCommentID<-'SELECT ID FROM comment where comment=?'
+insertCommentRef<-paste('insert into spectrum_comment(spectrumid,commentid) values (?,?)')
+insertSpectrum<-paste("INSERT INTO spectrum ",
+ "  (SampleTumorID, ",
+ "  SampleTumorPatientID, ",
+ "  SampleID, ",
+ "  ResolutionID, ",
+ "  Solvent, ",
+ "  Device, ",
+ "  dt, ",
+ "  FileName, ",
+ "  ionsource, ",
+ "  mode) ",
+ "VALUES (?,?,?,?,?,?,now(),?,?,?);")
+getSpecID<-'SELECT ID FROM spectrum where filename=?'
+rs<-dbSendStatement(conn,insertSpectrum,stID,stpID,smplID,resID,solID,devID,basename(cdf.file),isID,nMode)
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
+rs<-dbSendStatement(conn,insertComment,note,'autoloader')
+commentID<-dbGetQuery(conn,getCommentID,note)
+rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
 ```
 
 ## Scans
 ```{r insert.scans}
+for(sp in spectra){
+  md
+}
 ```
 
 ## Signal
