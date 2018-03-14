@@ -146,15 +146,24 @@ interpolateSpectra<-function(sp,step){
 dbname = "msinvent"
 usr='msinvent'
 pwd='msinvent'
-dtPath = '/Users/lptolik/Yandex.Disk.localized/BD_cdf'
-cdf.file=paste0(dtPath,'/1_02_495_MetCl_2_FT100k.cdf')
+dtPath = '/Volumes/AS_WD_HFS/Scalpel/DBData/'
+cdf.file='/Users/lptolik/Yandex.Disk.localized/BD_cdf/1_02_495_MetCl_2_FT100k.cdf'
+devID<-1 #Device
+solID<-6 #Solvent
+isID<-1 # ionsource
+resID<-1 #ResolutionID
+smplID<-1 #SampleID
+stID<-1 #SampleTumorID
+stpID<-1 #SampleTumorPatientID
+nMode<-1 #Negative mode
 ```
 
 # Read data
 Before running the code a number of variables should be setted for appropriate data loading:
  
- 1. the path to the data folder *dtPath* 
-  3. the name of the database *dbname*
+ 1. the path to the folder where data will be moved after upload *dtPath* 
+ 2. the references to device *devID*, solvent *solID*, ion source *isID*, resolution *resID*, mode *nMode*
+ 3. the name of the database *dbname*
  4. user/password for teh database: *usr* and *pwd*
  
 
@@ -164,6 +173,14 @@ if(!(exists('dtPath')&
      exists('dbname')&
      exists('usr')&
      exists('pwd')&
+     exists('devID')&
+     exists('solID')&
+     exists('isID')&
+     exists('resID')&
+     exists('smplID')&
+     exists('stID')&
+     exists('stpID')&
+     exists('nMode')&
      exists('cdf.file'))){
   stop('not all obligatory parameters are provided\n')
 }
@@ -209,17 +226,12 @@ conn <- dbConnect(MonetDB.R::MonetDB(),
                   dbname = dbname,
                   user=usr,password=pwd)
 devices<-dbReadTable(conn,'device')
-devID<-1 #Device
 solvents<-dbReadTable(conn,'solvent')
-solID<-6 #Solvent
 ionSources<-dbReadTable(conn,'ionsource')
-isID<-1 # ionsource
 resolutions<-dbReadTable(conn,'resolution')
-resID<-1 #ResolutionID
 smplID<-1 #SampleID
 stID<-1 #SampleTumorID
 stpID<-1 #SampleTumorPatientID
-nMode<-1 #Negative mode
 note<-paste('exDT:',experimentData,'\nfileDT:',fileData,'\norigFile:',origFilePath,'\ncomment:',comment)
 ```
 
