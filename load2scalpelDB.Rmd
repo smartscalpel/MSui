@@ -226,14 +226,41 @@ conn <- dbConnect(MonetDB.R::MonetDB(),
                   dbname = dbname,
                   user=usr,password=pwd)
 devices<-dbReadTable(conn,'device')
+idxDev<-which(devices$id==devID)
 solvents<-dbReadTable(conn,'solvent')
+idxSol<-which(solvents$id==solID)
 ionSources<-dbReadTable(conn,'ionsource')
+idxIS<-which(ionSources$id==isID)
 resolutions<-dbReadTable(conn,'resolution')
+idxRes<-which(resolutions$id==resID)
+modes<-dbReadTable(conn,'mode')
+idxMode<-which(modes$id==nMode)
 smplID<-1 #SampleID
+getSample<-'select s.id,s.label as name, \'tissue: "\'||t.label||\'"; patient: "\'|| p.emsid||\'"\' as description from smpl s,tissue t, patient p where s.id=? and t.id=s.tumorid and s.tumorpatientid=p.id;'
+sample<-dbGetQuery(conn,getSample,smplID)
 stID<-1 #SampleTumorID
 stpID<-1 #SampleTumorPatientID
 note<-paste('exDT:',experimentData,'\nfileDT:',fileData,'\norigFile:',origFilePath,'\ncomment:',comment)
+parName<-c('Sample','Device','Ion source','Resolution','Mode','Solvent')
+resDF<-cbind(data.frame(Parameter=parName),
+             rbind(sample,
+                   devices[idxDev,c(1,2,4)],
+                   ionSources[idxIS,],
+                   resolutions[idxRes,],
+                   modes[idxMode,],
+                   data.frame(id=solvents$id[idxSol],
+                              name=solvents$name[idxSol],
+                              description=solvents$composition[idxSol])
+                   )
+             )
 ```
+
+
+The data loaded with the following properties:
+```{r prop.table}
+kable(resDF, format = "latex", caption = 'Predefined parameters for load', row.names=FALSE)
+```
+
 
 ## Spectrum
 ```{r insert.spectrum}
