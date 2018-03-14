@@ -317,8 +317,21 @@ rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
 
 ## Scans
 ```{r insert.scans}
+insertScan<-paste("INSERT INTO scan",
+"  (SpectrumID, ",
+"  num, ",
+"  rt, ",
+"  tic) ",
+"VALUES (?, ?, ?, ?);")
+getScanID<-'SELECT ID FROM scan where spectrumid=? and num=?'
+df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
 for(sp in spectra){
-  md
+  md<-metaData(sp)
+  rs<-dbSendStatement(conn,insertScan,
+                      spectrumID$id,
+                      md$number,
+                      md$retentionTime,totalIonCurrent(sp))
+  spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 }
 ```
 
