@@ -366,15 +366,22 @@ system.time(res<-sapply(spectra,writeDT,specID=spectrumID$id,fname=sigFname))
 
 ```{r load.signal.file}
 system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_signal  FROM ',"'",sigFname,"'",';"'))
+system2('wc', sigFname,stdout=TRUE)->wc
+wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
 system(paste0('gzip ',sigFname))
 ```
 
 ```{r populate.signal.table}
+before<-dbGetQuery(conn,'select count(*) as num from signal;')
 rs<-dbSendStatement(conn,
                         paste('INSERT INTO signal(mz,scan,intensity)',
                               '(select mz,s.id as scan, intensity ',
                               'from tmp_signal t, scan s ',
                               'where s.spectrumid=t.spec and s.num=t.num);'))
+after<-dbGetQuery(conn,'select count(*) as num from signal;')
+if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
+  rs<-dbSendStatement(conn,'delete from tmp_signal;')
+}
 ```
 
 
