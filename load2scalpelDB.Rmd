@@ -209,6 +209,9 @@ if(!(exists('dtPath')&
      exists('cdf.file'))){
   stop('not all obligatory parameters are provided\n')
 }
+if(!exists('halfWindowSize')){
+  halfWindowSize<-3 # best suited for centroided data
+}
 ncMD<- ncatt_get(nc_open(cdf.file),0)
 experimentData<-ncMD$experiment_date_time_stamp
 fileData<-ncMD$netcdf_file_date_time_stamp
@@ -392,7 +395,23 @@ rs<-dbSendStatement(conn,'CREATE INDEX "signal_scan" ON "ms"."signal" ("scan");'
     dbClearResult(rs)
 
 ```
+## Peaks
 
+Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC. 
+```{r prepare.peaks}
+imTIC<-which.max(tic)
+plot(spectra[[imTIC]])
+origSpectra<-spectra
+spectra <- calibrateIntensity(spectra, method="TIC")
+calibrSpectra<-spectra
+spectra <- alignSpectra(spectra,reference = spectra[[imTIC]],tolerance = 2e-4)
+alSpectra<-spectra
+peaks2 <- detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
+                       method="SuperSmoother")
+```
+
+
+## Features
 
 # Appendix {.tabset}
 ## Functions
