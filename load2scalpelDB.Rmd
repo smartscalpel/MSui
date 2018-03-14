@@ -337,43 +337,56 @@ for(sp in spectra){
 
 ## Signal
 
-### Disable referential constraints
-```{r drop.reads.constraints}
-rs<-dbSendStatement(conn,'ALTER TABLE reads DROP CONSTRAINT reads_read_id_unique;')
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
-rs<-dbSendStatement(conn,'ALTER TABLE reads DROP CONSTRAINT readunq;')
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
-rs<-dbSendStatement(conn,'ALTER TABLE reads DROP CONSTRAINT FKreads_mg_id;')
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
+Таблица *Signal* содержит сырые данные, как они получены из исходного файла.
 
+### Disable referential constraints and indices
+```
+{r drop.reads.constraints}
+rs<-dbSendStatement(conn,'alter table signal drop CONSTRAINT "signal_scanFK";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'drop INDEX "signal_mz";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'drop INDEX "signal_scan";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
 ```
 
-### Load data
-```{r read.sdata}
-sdata<-load.sdata.from.file(path = prPath)
-s<-sdata[[1]]
-
+```{r prepare.signal.file}
+sigFname<-normalizePath('./tmp_signal.tsv')
+system.time(res<-sapply(spectra,writeDT,specID=spectrumID$id,fname=sigFname))
 ```
 
-### Check missing 
+```{r load.signal.file}
+system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_signal  FROM ',"'",sigFname,"'",';"'))
+system(paste0('gzip ',sigFname))
+```
+
+```{r populate.signal.table}
+rs<-dbSendStatement(conn,
+                        paste('INSERT INTO signal(mz,scan,intensity)',
+                              '(select mz,s.id as scan, intensity ',
+                              'from tmp_signal t, scan s ',
+                              'where s.spectrumid=t.spec and s.num=t.num);'))
+```
+
 
 ### Enable referential constraints
-```{r add.reads.constraints}
-rs<-dbSendStatement(conn,'ALTER TABLE reads ADD CONSTRAINT reads_read_id_unique UNIQUE ("read_id", "md5sum");')
+```
+{r add.reads.constraints}
+rs<-dbSendStatement(conn,'ALTER TABLE "ms"."signal" ADD CONSTRAINT "signal_scanFK" FOREIGN KEY ("scan") REFERENCES "ms"."scan" ("id");')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
     dbClearResult(rs)
-rs<-dbSendStatement(conn,'ALTER TABLE reads ADD CONSTRAINT readunq  UNIQUE ("read_id", "md5sum");')
+rs<-dbSendStatement(conn,'CREATE INDEX "signal_mz" ON "ms"."signal" ("mz");')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
     dbClearResult(rs)
-rs<-dbSendStatement(conn,'ALTER TABLE reads ADD CONSTRAINT FKreads_mg_id FOREIGN KEY (mg_id) REFERENCES asar.metagenome (ID);')
+rs<-dbSendStatement(conn,'CREATE INDEX "signal_scan" ON "ms"."signal" ("scan");')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
     dbClearResult(rs)
