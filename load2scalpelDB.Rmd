@@ -139,6 +139,31 @@ interpolateSpectra<-function(sp,step){
   return(spOut)
 }
 
+prepareDF<-function(sp,specID){
+  md<-metaData(sp)
+  resDF<-data.frame(spec=specID,
+                    num=md$number,
+                    rt=md$retentionTime,
+                    tic=totalIonCurrent(sp),
+                    mz=sp@mass,
+                    intensity=sp@intensity)
+  return(resDF)
+}
+writeDT<-function(sp,specID,fname){
+  md<-metaData(sp)
+  #cat('Writing scan',md$number,md$retentionTime,'\n')
+  resDF<-data.table(spec=specID,
+                    num=md$number,
+                    mz=sp@mass,
+                    intensity=sp@intensity)
+  if(file.exists(fname)){
+  	app=TRUE
+  }else{
+  	app=FALSE
+  }
+  fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
+}
+
 ```
 
 ```
