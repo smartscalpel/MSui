@@ -101,55 +101,8 @@ panderOptions("table.split.table", 160)
 ```{r functions, include=FALSE}
 ## Custom functions used in the analysis should go into this chunk.
 ## They will be listed in their own section of the appendix.
-roundScan<-function(i){
-  scan <- as.data.table(getScan(xraw, sel$scanidx[i], sel$mzrange))
-  sc1<-scan[,.(intensity=median(intensity)),by=.(mz=round(mz,0))]
-  m<-matrix(rep(0,2000),nrow = 1)
-  m[1,sc1[mz<=200]$mz]<-sc1[mz<=200]$intensity
-  return(m)
-}
 
-parseScan<-function(i){
-scan <- as.data.table(getScan(xraw, sel$scanidx[i], sel$mzrange))
-p<-data.frame(id=as.integer(-1),
-mz=scan$mz,
-mz1=round(scan$mz,0),
-mz100=round(scan$mz,2),
-rt=xraw@scantime[i],
-scan=i,
-intensity=scan$intensity,
-spectrid=as.integer(-1),
-reltic=-1e-6)
-tot<-sum(p$intensity)
-p$reltic<-p$intensity/tot
-return(p)
-}
-
-interpolateSpectra<-function(sp,step){
-  step<-round(step,abs(log10(step))+2)
-  xout<-seq(from=min(sp@mass),to=max(sp@mass),by=step)
-  yout<-approx(sp@mass,sp@intensity,xout)
-  md<-metaData(sp)
-  md$interpStep=step
-  sptmp<-createMassSpectrum(mass=yout$x,intensity = yout$y)
-  noise <- estimateNoise(sptmp)
-  #spBL <- removeBaseline(sp, method="SNIP",iterations=100)
-  idx<-(yout$y-noise[,2])>0
-  spOut<-createMassSpectrum(mass=yout$x[idx],intensity = yout$y[idx],metaData = md)
-  return(spOut)
-}
-
-prepareDF<-function(sp,specID){
-  md<-metaData(sp)
-  resDF<-data.frame(spec=specID,
-                    num=md$number,
-                    rt=md$retentionTime,
-                    tic=totalIonCurrent(sp),
-                    mz=sp@mass,
-                    intensity=sp@intensity)
-  return(resDF)
-}
-writeDT<-function(sp,specID,fname){
+writeDTsignal<-function(sp,specID,fname){
   md<-metaData(sp)
   #cat('Writing scan',md$number,md$retentionTime,'\n')
   resDF<-data.table(spec=specID,
@@ -164,10 +117,25 @@ writeDT<-function(sp,specID,fname){
   fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
 }
 
-```
+writeDTpeak<-function(p,specID,tic,fname){
+  md<-metaData(sp)
+  #cat('Writing scan',md$number,md$retentionTime,'\n')
+  resDF<-data.table(spec=specID,
+                    num=md$number,
+                    mz=p@mass,
+                    intensity=tic[md$number]*p@intensity,
+                    norm2tic=p@intensity,snr=p@snr)
+  if(file.exists(fname)){
+  	app=TRUE
+  }else{
+  	app=FALSE
+  }
+  fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
+}
 
 ```
-{r}
+
+```{r oblig.par}
 dbname = "msinvent"
 usr='msinvent'
 pwd='msinvent'
@@ -361,7 +329,7 @@ rs<-dbSendStatement(conn,'drop INDEX "signal_scan";')
 
 ```{r prepare.signal.file}
 sigFname<-normalizePath('./tmp_signal.tsv')
-system.time(res<-sapply(spectra,writeDT,specID=spectrumID$id,fname=sigFname))
+system.time(res<-sapply(spectra,writeDTsignal,specID=spectrumID$id,fname=sigFname))
 ```
 
 ```{r load.signal.file}
@@ -404,7 +372,7 @@ rs<-dbSendStatement(conn,'CREATE INDEX "signal_scan" ON "ms"."signal" ("scan");'
 ```
 ## Peaks
 
-Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC. 
+Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC, пики группируются с отностительной точностью 2e-5 и исключаются пики, встречающиеся менее чем в 25% сканов. 
 ```{r prepare.peaks}
 imTIC<-which.max(tic)
 plot(spectra[[imTIC]])
@@ -413,10 +381,81 @@ spectra <- calibrateIntensity(spectra, method="TIC")
 calibrSpectra<-spectra
 spectra <- alignSpectra(spectra,reference = spectra[[imTIC]],tolerance = 2e-4)
 alSpectra<-spectra
-peaks2 <- detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
+peaks <- detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
                        method="SuperSmoother")
+peaks2 <- binPeaks(peaks,method = 'strict',tolerance = 2e-5)
+fpeaks2 <- filterPeaks(peaks2, minFrequency=0.25)
+featureMatrix2 <- intensityMatrix(fpeaks2, spectra)
+
 ```
 
+### Disable referential constraints and indices
+```
+{r drop.peak.constraints}
+rs<-dbSendStatement(conn,'alter table peak drop CONSTRAINT "peak_featureFK";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'alter table peak drop CONSTRAINT "peak_scanFK";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'drop INDEX "peak_mz";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'drop INDEX "peak_scan";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+```
+```{r prepare.peak.file}
+peakFname<-normalizePath('./tmp_peak.tsv')
+system.time(res<-sapply(fpeaks2,writeDTpeak,specID=spectrumID$id,tic=tic,fname=peakFname))
+```
+
+```{r load.signal.file}
+system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_peak  FROM ',"'",peakFname,"'",';"'))
+system2('wc', peakFname,stdout=TRUE)->wc
+wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
+system(paste0('gzip ',peakFname))
+```
+
+```{r populate.signal.table}
+before<-dbGetQuery(conn,'select count(*) as num from peak;')
+rs<-dbSendStatement(conn,
+                        paste('INSERT INTO peak(mz,scan,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)',
+                              '(select mz,s.id as scan, intensity, norm2tic, sqrt(norm2tic) as sqrtnorm2tic,',
+                              ' srqt(intensity) as sqrtintensity, snr',
+                              'from tmp_peak t, scan s ',
+                              'where s.spectrumid=t.spec and s.num=t.num);'))
+after<-dbGetQuery(conn,'select count(*) as num from peak;')
+if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
+  rs<-dbSendStatement(conn,'delete from tmp_peak;')
+}
+```
+
+### Enable referential constraints
+```
+{r add.peak.constraints}
+rs<-dbSendStatement(conn,'ALTER TABLE "ms"."peak" ADD CONSTRAINT "peak_featureFK" FOREIGN KEY ("feature") REFERENCES "ms"."features" ("id");')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'ALTER TABLE "ms"."peak" ADD CONSTRAINT "peak_scanFK" FOREIGN KEY ("scan") REFERENCES "ms"."scan" ("id");')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'CREATE INDEX "peak_mz" ON "ms"."peak" ("mz");')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'CREATE INDEX "peak_scan" ON "ms"."peak" ("scan");')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+
+```
 
 ## Features
 
