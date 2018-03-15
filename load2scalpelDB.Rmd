@@ -145,7 +145,7 @@ writeDTsignal<-function(sp,specID,fname){
 }
 
 writeDTpeak<-function(p,specID,tic,fname){
-  md<-metaData(sp)
+  md<-metaData(p)
   #cat('Writing scan',md$number,md$retentionTime,'\n')
   resDF<-data.table(spec=specID,
                     num=md$number,
@@ -250,6 +250,8 @@ conn <- dbConnect(MonetDB.R::MonetDB(),
                   dbname = dbname,
                   user=usr,password=pwd)
 spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
+#proceedFile<-(dim(spectrumID)[1]==0)
+proceedFile<-TRUE
 devices<-dbReadTable(conn,'device')
 idxDev<-which(devices$id==devID)
 solvents<-dbReadTable(conn,'solvent')
@@ -264,7 +266,9 @@ smplID<-1 #SampleID
 sample<-dbGetQuery(conn,getSample,smplID)
 stID<-1 #SampleTumorID
 stpID<-1 #SampleTumorPatientID
-note<-paste('exDT:',experimentData,'\nfileDT:',fileData,'\norigFile:',origFilePath,'\ncomment:',comment)
+note<-paste('exDT:',experimentData,'\nfileDT:',
+            fileData,'\norigFile:',
+            origFilePath,'\ncomment:',comment)
 parName<-c('Sample','Device','Ion source','Resolution','Mode','Solvent')
 resDF<-cbind(data.frame(Parameter=parName),
              rbind(sample,
@@ -281,14 +285,17 @@ resDF<-cbind(data.frame(Parameter=parName),
 
 
 The data loaded with the following properties:
-```{r prop.table}
+```{r prop.table, eval=proceedFile}
 kable(resDF, format = "latex", caption = 'Predefined parameters for load', row.names=FALSE)
 ```
-
+```{r already.loaded,eval=!proceedFile}
+cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
+```
+ 
 
 ## Spectrum
 ```
-{r insert.spectrum}
+{r insert.spectrum, eval=proceedFile}
 rs<-dbSendStatement(conn,insertSpectrum,stID,stpID,smplID,resID,solID,devID,basename(cdf.file),isID,nMode)
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
@@ -302,7 +309,7 @@ rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
 ## Scans
 
 ```
-{r insert.scans}
+{r insert.scans, eval=proceedFile}
 df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
 for(sp in spectra){
   md<-metaData(sp)
@@ -335,26 +342,31 @@ rs<-dbSendStatement(conn,'drop INDEX "signal_scan";')
     dbClearResult(rs)
 ```
 
-```{r prepare.signal.file}
-sigFname<-normalizePath('./tmp_signal.tsv')
+```{r prepare.signal.file, eval=proceedFile}
+sigFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_signal.tsv'))
 system.time(res<-sapply(spectra,writeDTsignal,specID=spectrumID$id,fname=sigFname))
 ```
 
-```{r load.signal.file}
-system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_signal  FROM ',"'",sigFname,"'",';"'))
+```{r load.signal.file, eval=proceedFile}
+system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_signal  FROM ',"'",sigFname,"'",';"'),intern = TRUE)->mcOut
+mcOut
 system2('wc', sigFname,stdout=TRUE)->wc
+wc
 wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
+wcn
 system(paste0('gzip ',sigFname))
 ```
 
-```{r populate.signal.table}
+```{r populate.signal.table, eval=proceedFile}
 before<-dbGetQuery(conn,'select count(*) as num from signal;')
+before
 rs<-dbSendStatement(conn,
                         paste('INSERT INTO signal(mz,scan,intensity)',
                               '(select mz,s.id as scan, intensity ',
                               'from tmp_signal t, scan s ',
                               'where s.spectrumid=t.spec and s.num=t.num);'))
 after<-dbGetQuery(conn,'select count(*) as num from signal;')
+after
 if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
   rs<-dbSendStatement(conn,'delete from tmp_signal;')
 }
@@ -381,7 +393,7 @@ rs<-dbSendStatement(conn,'CREATE INDEX "signal_scan" ON "ms"."signal" ("scan");'
 ## Peaks
 
 Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC, пики группируются с отностительной точностью 2e-5 и исключаются пики, встречающиеся менее чем в 25% сканов. 
-```{r prepare.peaks}
+```{r prepare.peaks, cache=TRUE, eval=proceedFile}
 imTIC<-which.max(tic)
 plot(spectra[[imTIC]])
 origSpectra<-spectra
@@ -417,20 +429,24 @@ rs<-dbSendStatement(conn,'drop INDEX "peak_scan";')
     dbGetRowsAffected(rs)
     dbClearResult(rs)
 ```
-```{r prepare.peak.file}
-peakFname<-normalizePath('./tmp_peak.tsv')
+```{r prepare.peak.file, eval=proceedFile}
+peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
 system.time(res<-sapply(fpeaks2,writeDTpeak,specID=spectrumID$id,tic=tic,fname=peakFname))
 ```
 
-```{r load.peak.file}
-system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_peak  FROM ',"'",peakFname,"'",';"'))
+```{r load.peak.file, eval=proceedFile}
+system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_peak  FROM ',"'",peakFname,"'",';"'),intern = TRUE)->mcOut
+mcOut
 system2('wc', peakFname,stdout=TRUE)->wc
+wc
 wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
+wcn
 system(paste0('gzip ',peakFname))
 ```
 
-```{r populate.peak.table}
+```{r populate.peak.table, eval=proceedFile}
 before<-dbGetQuery(conn,'select count(*) as num from peak;')
+before
 rs<-dbSendStatement(conn,
                         paste('INSERT INTO peak(mz,scan,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)',
                               '(select mz,s.id as scan, intensity, norm2tic, sqrt(norm2tic) as sqrtnorm2tic,',
@@ -438,6 +454,7 @@ rs<-dbSendStatement(conn,
                               'from tmp_peak t, scan s ',
                               'where s.spectrumid=t.spec and s.num=t.num);'))
 after<-dbGetQuery(conn,'select count(*) as num from peak;')
+after
 if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
   rs<-dbSendStatement(conn,'delete from tmp_peak;')
 }
