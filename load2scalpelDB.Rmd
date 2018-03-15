@@ -190,10 +190,10 @@ Before running the code a number of variables should be setted for appropriate d
 Для работы необходим параметр `cdf.file`, который содержит полный путь к обрабатываемому файлу. В базу будут загружено содержимое файла `cdf.file`
 
 ```{r check.values}
-if(!(exists('dtPath')&
-     exists('dbname')&
+if(!(exists('dbname')&
      exists('usr')&
      exists('pwd')&
+#     exists('dtPath')&
      exists('devID')&
      exists('solID')&
      exists('isID')&
