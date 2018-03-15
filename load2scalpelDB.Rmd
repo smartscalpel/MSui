@@ -402,7 +402,8 @@ spectra <- alignSpectra(spectra,reference = spectra[[imTIC]],tolerance = 2e-4)
 alSpectra<-spectra
 peaks <- detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
                        method="SuperSmoother")
-peaks2 <- binPeaks(peaks,method = 'strict',tolerance = 2e-5)
+idx<-which(sapply(peaks,length)>10)
+peaks2 <- binPeaks(peaks[idx],method = 'strict',tolerance = 2e-5)
 fpeaks2 <- filterPeaks(peaks2, minFrequency=0.25)
 featureMatrix2 <- intensityMatrix(fpeaks2, spectra)
 
