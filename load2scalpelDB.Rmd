@@ -306,7 +306,6 @@ for(sp in spectra){
                       spectrumID$id,
                       md$number,
                       md$retentionTime,totalIonCurrent(sp))
-  spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 }
 ```
 
@@ -317,6 +316,7 @@ for(sp in spectra){
 ### Disable referential constraints and indices
 ```
 {r drop.reads.constraints}
+  spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 rs<-dbSendStatement(conn,'alter table signal drop CONSTRAINT "signal_scanFK";')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
