@@ -249,6 +249,7 @@ abline(h = qth)
 conn <- dbConnect(MonetDB.R::MonetDB(), 
                   dbname = dbname,
                   user=usr,password=pwd)
+spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 devices<-dbReadTable(conn,'device')
 idxDev<-which(devices$id==devID)
 solvents<-dbReadTable(conn,'solvent')
