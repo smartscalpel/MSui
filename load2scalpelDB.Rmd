@@ -449,8 +449,8 @@ before<-dbGetQuery(conn,'select count(*) as num from peak;')
 before
 rs<-dbSendStatement(conn,
                         paste('INSERT INTO peak(mz,scan,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)',
-                              '(select mz,s.id as scan, intensity, norm2tic, sqrt(norm2tic) as sqrtnorm2tic,',
-                              ' srqt(intensity) as sqrtintensity, snr',
+                              '(select mz,s.id as scan, intensity, norm2tic, SQRT(norm2tic) as sqrtnorm2tic,',
+                              ' SQRT(intensity) as sqrtintensity, snr',
                               'from tmp_peak t, scan s ',
                               'where s.spectrumid=t.spec and s.num=t.num);'))
 after<-dbGetQuery(conn,'select count(*) as num from peak;')
