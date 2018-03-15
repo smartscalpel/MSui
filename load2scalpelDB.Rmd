@@ -418,14 +418,14 @@ peakFname<-normalizePath('./tmp_peak.tsv')
 system.time(res<-sapply(fpeaks2,writeDTpeak,specID=spectrumID$id,tic=tic,fname=peakFname))
 ```
 
-```{r load.signal.file}
+```{r load.peak.file}
 system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_peak  FROM ',"'",peakFname,"'",';"'))
 system2('wc', peakFname,stdout=TRUE)->wc
 wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
 system(paste0('gzip ',peakFname))
 ```
 
-```{r populate.signal.table}
+```{r populate.peak.table}
 before<-dbGetQuery(conn,'select count(*) as num from peak;')
 rs<-dbSendStatement(conn,
                         paste('INSERT INTO peak(mz,scan,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)',
