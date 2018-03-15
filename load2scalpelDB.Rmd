@@ -161,6 +161,7 @@ Before running the code a number of variables should be setted for appropriate d
  
 
 Для работы необходим параметр `cdf.file`, который содержит полный путь к обрабатываемому файлу. В базу будут загружено содержимое файла `cdf.file`
+
 ```{r check.values}
 if(!(exists('dtPath')&
      exists('dbname')&
@@ -259,7 +260,8 @@ kable(resDF, format = "latex", caption = 'Predefined parameters for load', row.n
 
 
 ## Spectrum
-```{r insert.spectrum}
+```
+{r insert.spectrum}
 insertComment<-paste('insert into comment(dt,comment,author) values (now(),?,?)')
 getCommentID<-'SELECT ID FROM comment where comment=?'
 insertCommentRef<-paste('insert into spectrum_comment(spectrumid,commentid) values (?,?)')
@@ -287,7 +289,9 @@ rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
 ```
 
 ## Scans
-```{r insert.scans}
+
+```
+{r insert.scans}
 insertScan<-paste("INSERT INTO scan",
 "  (SpectrumID, ",
 "  num, ",
