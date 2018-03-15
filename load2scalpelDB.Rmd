@@ -162,7 +162,8 @@ writeDTpeak<-function(p,specID,tic,fname){
 
 ```
 
-```{r oblig.par}
+```
+{r oblig.par}
 dbname = "msinvent"
 usr='msinvent'
 pwd='msinvent'
@@ -250,8 +251,8 @@ conn <- dbConnect(MonetDB.R::MonetDB(),
                   dbname = dbname,
                   user=usr,password=pwd)
 spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
-#proceedFile<-(dim(spectrumID)[1]==0)
-proceedFile<-TRUE
+proceedFile<-(dim(spectrumID)[1]==0)
+#proceedFile<-TRUE
 devices<-dbReadTable(conn,'device')
 idxDev<-which(devices$id==devID)
 solvents<-dbReadTable(conn,'solvent')
@@ -286,7 +287,7 @@ resDF<-cbind(data.frame(Parameter=parName),
 
 The data loaded with the following properties:
 ```{r prop.table, eval=proceedFile}
-kable(resDF, format = "latex", caption = 'Predefined parameters for load', row.names=FALSE)
+kable(resDF, format = "latex", caption = 'Predefined parameters for load', row.names=FALSE, booktabs=TRUE)
 ```
 ```{r already.loaded,eval=!proceedFile}
 cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
@@ -294,8 +295,7 @@ cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
  
 
 ## Spectrum
-```
-{r insert.spectrum, eval=proceedFile}
+```{r insert.spectrum, eval=proceedFile}
 rs<-dbSendStatement(conn,insertSpectrum,stID,stpID,smplID,resID,solID,devID,basename(cdf.file),isID,nMode)
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
@@ -308,8 +308,7 @@ rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
 
 ## Scans
 
-```
-{r insert.scans, eval=proceedFile}
+```{r insert.scans, eval=proceedFile}
 df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
 for(sp in spectra){
   md<-metaData(sp)
@@ -317,8 +316,8 @@ for(sp in spectra){
                       spectrumID$id,
                       md$number,
                       md$retentionTime,totalIonCurrent(sp))
-  spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 }
+#spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 ```
 
 ## Signal
