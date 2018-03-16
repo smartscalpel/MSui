@@ -216,6 +216,17 @@ origFilePath<-ncMD$source_file_reference
 comment<-ncMD$administrative_comments
 ```
 
+# Connect to the database
+
+```{r db.connect}
+conn <- dbConnect(MonetDB.R::MonetDB(), 
+                  dbname = dbname,
+                  user=usr,password=pwd)
+spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
+proceedFile<-(dim(spectrumID)[1]==0)
+#proceedFile<-TRUE
+
+```
 
 # Загрузка данных с помощью MALDIquant
 
@@ -223,7 +234,7 @@ comment<-ncMD$administrative_comments
 
 `r cdf.file`
 
-```{r load.cdf,cache=TRUE}
+```{r load.cdf,cache=TRUE, eval=proceedFile}
 spectra<-import(cdf.file,verbose=TRUE)
 if(any(sapply(spectra, MALDIquant::isEmpty))){
   spectra<-spectra[!sapply(spectra, MALDIquant::isEmpty)]
@@ -246,13 +257,7 @@ abline(h = qth)
 ```
 
 # Load data to DB
-```{r db.connect}
-conn <- dbConnect(MonetDB.R::MonetDB(), 
-                  dbname = dbname,
-                  user=usr,password=pwd)
-spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
-proceedFile<-(dim(spectrumID)[1]==0)
-#proceedFile<-TRUE
+```{r db.fetch, eval=proceedFile}
 devices<-dbReadTable(conn,'device')
 idxDev<-which(devices$id==devID)
 solvents<-dbReadTable(conn,'solvent')
