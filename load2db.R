@@ -34,7 +34,9 @@ for(f in fl){
   }
   if(!file.exists(sub('Rmd','pdf',rmd.fname))){
     cdf.file<-normalizePath(paste0(path,f))
-    rmarkdown::render(rmd.fname,'pdf_document')
+    system(paste0('cd ./',shQuote(dir.name)))
+    try(rmarkdown::render(rmd.name,'pdf_document'),FALSE,outFile=sub('Rmd$','try.out',rmd.name))
+    system('cd ../')
   }
 }
 
