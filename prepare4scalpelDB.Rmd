@@ -100,6 +100,37 @@ panderOptions("table.split.table", 160)
 ## Custom functions used in the analysis should go into this chunk.
 ## They will be listed in their own section of the appendix.
 
+##==================== Functions ====================##
+writeDTsignal<-function(sp,specID,fname){
+  md<-metaData(sp)
+  #cat('Writing scan',md$number,md$retentionTime,'\n')
+  resDF<-data.table(spec=specID,
+                    num=md$number,
+                    mz=sp@mass,
+                    intensity=sp@intensity)
+  if(file.exists(fname)){
+  	app=TRUE
+  }else{
+  	app=FALSE
+  }
+  fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
+}
+
+writeDTpeak<-function(p,specID,tic,fname){
+  md<-metaData(p)
+  #cat('Writing scan',md$number,md$retentionTime,'\n')
+  resDF<-data.table(spec=specID,
+                    num=md$number,
+                    mz=p@mass,
+                    intensity=tic[md$number]*p@intensity,
+                    norm2tic=p@intensity,snr=p@snr)
+  if(file.exists(fname)){
+  	app=TRUE
+  }else{
+  	app=FALSE
+  }
+  fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
+}
 
 ```
 
