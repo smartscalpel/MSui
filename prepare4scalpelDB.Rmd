@@ -118,6 +118,7 @@ writeDTsignal<-function(sp,specID,fname){
 
 writeDTpeak<-function(p,specID,tic,fname){
   md<-metaData(p)
+  if(length(p)>0){
   #cat('Writing scan',md$number,md$retentionTime,'\n')
   resDF<-data.table(spec=specID,
                     num=md$number,
@@ -130,6 +131,7 @@ writeDTpeak<-function(p,specID,tic,fname){
   	app=FALSE
   }
   fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
+  }
 }
 
 ```
@@ -137,7 +139,8 @@ writeDTpeak<-function(p,specID,tic,fname){
 ```
 {r oblig.par}
 dtPath = '/Volumes/AS_WD_HFS/Scalpel/DBData/'
-cdf.file='/Users/lptolik/Yandex.Disk.localized/BD_cdf/1_02_495_MetCl_2_FT100k.cdf'
+cdf.file<-"/Volumes/AS_WD_HFS/Scalpel/BD_cdf/0_00_1178-15_FT100k.cdf"
+#  '/Users/lptolik/Yandex.Disk.localized/BD_cdf/1_02_495_MetCl_2_FT100k.cdf'
 devID<-1 #Device
 solID<-6 #Solvent
 isID<-1 # ionsource
@@ -173,6 +176,9 @@ if(!(exists('devID')&
 }
 if(!exists('halfWindowSize')){
   halfWindowSize<-3 # best suited for centroided data
+}
+if(!exists('tolerance')){
+  tolerance = 2e-4 
 }
 ncMD<- ncatt_get(nc_open(cdf.file),0)
 experimentData<-ncMD$experiment_date_time_stamp
@@ -238,13 +244,13 @@ spectra <- calibrateIntensity(spectra, method="TIC")
 calibrSpectra<-spectra
 peaks0<-detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
                        method="SuperSmoother")
-spectra <- alignSpectra(spectra,reference = spectra[[imTIC]], halfWindowSize = halfWindowSize,tolerance = 2e-4)
+spectra <- alignSpectra(spectra,reference = spectra[[imTIC]], halfWindowSize = halfWindowSize,tolerance = tolerance)
 alSpectra<-spectra
 peaks <- detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
                        method="SuperSmoother")
 idx<-which(sapply(peaks,length)>10)
-peaks2 <- binPeaks(peaks[idx],method = 'strict',tolerance = 2e-5)
-fpeaks2 <- filterPeaks(peaks2, minFrequency=0.25)
+peaks2 <- binPeaks(peaks[idx],method = 'strict',tolerance = tolerance)
+fpeaks2 <- filterPeaks(peaks2, minNumber = 10)
 featureMatrix2 <- intensityMatrix(fpeaks2, spectra)
 
 ```
