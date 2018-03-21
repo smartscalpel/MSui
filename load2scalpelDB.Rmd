@@ -194,7 +194,8 @@ Before running the code a number of variables should be setted for appropriate d
 if(!(exists('dbname')&
      exists('usr')&
      exists('pwd')&
-#     exists('dtPath')&
+     exists('dtPath')&
+     exists('cdf.file')& #CDF file not needed any more it was processed by prepare4db, but it should be loaded into database
      exists('devID')&
      exists('solID')&
      exists('isID')&
@@ -202,8 +203,7 @@ if(!(exists('dbname')&
      exists('smplID')&
      exists('stID')&
      exists('stpID')&
-     exists('nMode')&
-     exists('cdf.file'))){
+     exists('nMode'))){
   stop('not all obligatory parameters are provided\n')
 }
 if(!exists('halfWindowSize')){
@@ -315,6 +315,7 @@ rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
 
 ```{r insert.scans, eval=proceedFile}
 df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
+system.time(
 for(sp in spectra){
   md<-metaData(sp)
   rs<-dbSendStatement(conn,insertScan,
@@ -322,6 +323,7 @@ for(sp in spectra){
                       md$number,
                       md$retentionTime,totalIonCurrent(sp))
 }
+)
 #spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 ```
 
@@ -346,12 +348,12 @@ rs<-dbSendStatement(conn,'drop INDEX "signal_scan";')
     dbClearResult(rs)
 ```
 
-```{r prepare.signal.file, eval=proceedFile}
+```{r prepare.signal.file, eval=FALSE}
 sigFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_signal.tsv'))
 system.time(res<-sapply(spectra,writeDTsignal,specID=spectrumID$id,fname=sigFname))
 ```
 
-```{r load.signal.file, eval=proceedFile}
+```{r load.signal.file, eval=FALSE}
 system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_signal  FROM ',"'",sigFname,"'",';"'),intern = TRUE)->mcOut
 mcOut
 system2('wc', sigFname,stdout=TRUE)->wc
@@ -361,7 +363,7 @@ wcn
 system(paste0('gzip ',sigFname))
 ```
 
-```{r populate.signal.table, eval=proceedFile}
+```{r populate.signal.table, eval=FALSE}
 before<-dbGetQuery(conn,'select count(*) as num from signal;')
 before
 rs<-dbSendStatement(conn,
