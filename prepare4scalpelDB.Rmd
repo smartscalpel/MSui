@@ -224,7 +224,7 @@ abline(h = qth)
 
 ```{r prepare.signal.file, eval=proceedFile}
 sigFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_signal.tsv'))
-system.time(res<-sapply(spectra,writeDTsignal,specID=spectrumID$id,fname=sigFname))
+system.time(res<-sapply(spectra,writeDTsignal,specID=basename(cdf.file),fname=sigFname))
 ```
 
 ## Peaks
@@ -249,7 +249,7 @@ featureMatrix2 <- intensityMatrix(fpeaks2, spectra)
 
 ```{r prepare.peak.file, eval=proceedFile}
 peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
-system.time(res<-sapply(fpeaks2,writeDTpeak,specID=spectrumID$id,tic=tic,fname=peakFname))
+system.time(res<-sapply(fpeaks2,writeDTpeak,specID=basename(cdf.file),tic=tic,fname=peakFname))
 ```
 
 # Save data
