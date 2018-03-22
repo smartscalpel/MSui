@@ -216,6 +216,7 @@ if(!exists('halfWindowSize')){
 load(file = 'spectra.RData')
 tic<-sapply(origSpectra,totalIonCurrent)
 imTIC<-which.max(tic)
+qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
 ```
 
 ```{r plot.palmitate}
