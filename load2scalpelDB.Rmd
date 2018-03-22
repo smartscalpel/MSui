@@ -216,6 +216,20 @@ if(!exists('halfWindowSize')){
 load(file = 'spectra.RData')
 ```
 
+```{r plot.palmitate}
+palmMZ<-255.24
+palmID<-which((spectra[[imTIC]]@mass<=(palmMZ+1))&(spectra[[imTIC]]@mass>=(palmMZ-1)))
+plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+palmMZ,ylim=range(spectra[[imTIC]]@intensity[palmID]))
+```
+```{r plot.stearate}
+stearMZ<-283.27
+stearID<-which((spectra[[imTIC]]@mass<=(stearMZ+1))&(spectra[[imTIC]]@mass>=(stearMZ-1)))
+plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+stearMZ,ylim=range(spectra[[imTIC]]@intensity[stearID]))
+```
+```{r plot.max}
+which.max(spectra[[imTIC]]@intensity)->imTICmax
+plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+spectra[[imTIC]]@mass[imTICmax])
+```
 
 # Connect to the database
 
@@ -236,22 +250,6 @@ proceedFile<-(dim(spectrumID)[1]==0)
 `r cdf.file`
 
 ```{r load.cdf,cache=TRUE, eval=proceedFile}
-spectra<-import(cdf.file,verbose=TRUE)
-if(any(sapply(spectra, MALDIquant::isEmpty))){
-  spectra<-spectra[!sapply(spectra, MALDIquant::isEmpty)]
-}
-mzWidth<-sapply(spectra, function(.x)diff(range(.x@mass)))
-if(any(mzWidth<0.2*max(mzWidth))){
-  spectra<-spectra[mzWidth>=0.2*max(mzWidth)]
-}
-#hist(sapply(spectra, length))
-tic<-sapply(spectra,totalIonCurrent)
-eic300<-sapply(trim(spectra,range = c(0,350)),totalIonCurrent)
-eic1000<-sapply(trim(spectra,range = c(400,1000)),totalIonCurrent)
-time<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
-qtic<-quantile(tic,probs = seq(0, 1, 0.1),names = TRUE)
-qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
-#plot(xraw@tic,tic)
 plot(tic)
 abline(h = qth)
 #spectra <- trim(spectra,range = mzrange)
