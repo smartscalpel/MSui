@@ -439,7 +439,8 @@ rs<-dbSendStatement(conn,'drop INDEX "peak_scan";')
     dbClearResult(rs)
 ```
 ```{r prepare.peak.file, eval=proceedFile}
-peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv.gz'))
+peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
+system(paste0('gunzip ',peakFname,'.gz'))
 peakFname
 ```
 
@@ -450,6 +451,7 @@ system2('wc', peakFname,stdout=TRUE)->wc
 wc
 wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
 wcn
+system(paste0('gzip ',peakFname))
 ```
 
 ```{r populate.peak.table, eval=proceedFile}
