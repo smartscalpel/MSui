@@ -217,6 +217,10 @@ load(file = 'spectra.RData')
 tic<-sapply(origSpectra,totalIonCurrent)
 imTIC<-which.max(tic)
 qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
+experimentData<-ncMD$experiment_date_time_stamp
+fileData<-ncMD$netcdf_file_date_time_stamp
+origFilePath<-ncMD$source_file_reference
+comment<-ncMD$administrative_comments
 ```
 
 ```{r plot.palmitate}
