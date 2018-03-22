@@ -441,7 +441,7 @@ rs<-dbSendStatement(conn,'drop INDEX "peak_scan";')
 ```
 ```{r prepare.peak.file, eval=proceedFile}
 peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
-system(paste0('gunzip ',peakFname,'.gz'))
+#system(paste0('gunzip ',peakFname,'.gz'))
 peakFname
 ```
 
