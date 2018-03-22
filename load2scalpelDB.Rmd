@@ -255,6 +255,7 @@ proceedFile<-(dim(spectrumID)[1]==0)
 Текущее значение параметра `cdf.file`:
 
 `r cdf.file`
+`r proceedFile`
 
 ```{r load.cdf,cache=TRUE, eval=proceedFile}
 plot(tic)
@@ -322,7 +323,7 @@ rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
 ```{r insert.scans, eval=proceedFile}
 df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
 system.time(
-for(sp in spectra){
+for(sp in origSpectra){
   md<-metaData(sp)
   rs<-dbSendStatement(conn,insertScan,
                       spectrumID$id,
