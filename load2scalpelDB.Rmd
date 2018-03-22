@@ -347,12 +347,8 @@ rs<-dbSendStatement(conn,'drop INDEX "signal_scan";')
     dbClearResult(rs)
 ```
 
-```{r prepare.signal.file, eval=FALSE}
-sigFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_signal.tsv'))
-system.time(res<-sapply(spectra,writeDTsignal,specID=spectrumID$id,fname=sigFname))
-```
-
 ```{r load.signal.file, eval=FALSE}
+sigFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_signal.tsv'))
 system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_signal  FROM ',"'",sigFname,"'",';"'),intern = TRUE)->mcOut
 mcOut
 system2('wc', sigFname,stdout=TRUE)->wc
@@ -435,9 +431,9 @@ rs<-dbSendStatement(conn,'drop INDEX "peak_scan";')
     dbGetRowsAffected(rs)
     dbClearResult(rs)
 ```
-```{r prepare.peak.file, eval=FALSE}
-peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
-system.time(res<-sapply(fpeaks2,writeDTpeak,specID=spectrumID$id,tic=tic,fname=peakFname))
+```{r prepare.peak.file, eval=proceedFile}
+peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv.gz'))
+peakFname
 ```
 
 ```{r load.peak.file, eval=proceedFile}
@@ -447,7 +443,6 @@ system2('wc', peakFname,stdout=TRUE)->wc
 wc
 wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
 wcn
-system(paste0('gzip ',peakFname))
 ```
 
 ```{r populate.peak.table, eval=proceedFile}
