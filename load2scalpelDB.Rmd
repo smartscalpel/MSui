@@ -214,6 +214,8 @@ if(!exists('halfWindowSize')){
 # Load prepared data 
 ```{r load.data.from.rdat}
 load(file = 'spectra.RData')
+tic<-sapply(origSpectra,totalIonCurrent)
+imTIC<-which.max(tic)
 ```
 
 ```{r plot.palmitate}
