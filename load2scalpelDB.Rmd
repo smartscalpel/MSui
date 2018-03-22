@@ -209,12 +209,13 @@ if(!(exists('dbname')&
 if(!exists('halfWindowSize')){
   halfWindowSize<-3 # best suited for centroided data
 }
-ncMD<- ncatt_get(nc_open(cdf.file),0)
-experimentData<-ncMD$experiment_date_time_stamp
-fileData<-ncMD$netcdf_file_date_time_stamp
-origFilePath<-ncMD$source_file_reference
-comment<-ncMD$administrative_comments
 ```
+
+# Load prepared data 
+```{r load.data.from.rdat}
+load(file = 'spectra.RData')
+```
+
 
 # Connect to the database
 
@@ -399,7 +400,7 @@ rs<-dbSendStatement(conn,'CREATE INDEX "signal_scan" ON "ms"."signal" ("scan");'
 ## Peaks
 
 Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC, пики группируются с отностительной точностью 2e-5 и исключаются пики, встречающиеся менее чем в 25% сканов. 
-```{r prepare.peaks, cache=TRUE, eval=proceedFile}
+```{r prepare.peaks, cache=TRUE, eval=FALSE}
 imTIC<-which.max(tic)
 plot(spectra[[imTIC]])
 origSpectra<-spectra
@@ -436,7 +437,7 @@ rs<-dbSendStatement(conn,'drop INDEX "peak_scan";')
     dbGetRowsAffected(rs)
     dbClearResult(rs)
 ```
-```{r prepare.peak.file, eval=proceedFile}
+```{r prepare.peak.file, eval=FALSE}
 peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
 system.time(res<-sapply(fpeaks2,writeDTpeak,specID=spectrumID$id,tic=tic,fname=peakFname))
 ```
@@ -458,8 +459,8 @@ rs<-dbSendStatement(conn,
                         paste('INSERT INTO peak(mz,scan,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)',
                               '(select mz,s.id as scan, intensity, norm2tic, SQRT(norm2tic) as sqrtnorm2tic,',
                               ' SQRT(intensity) as sqrtintensity, snr',
-                              'from tmp_peak t, scan s ',
-                              'where s.spectrumid=t.spec and s.num=t.num);'))
+                              'from tmp_peak t, scan s, spectrum p ',
+                              'where s.spectrumid=p.id and p.filename=t.spec and s.num=t.num);'))
 after<-dbGetQuery(conn,'select count(*) as num from peak;')
 after
 if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
@@ -490,6 +491,19 @@ rs<-dbSendStatement(conn,'CREATE INDEX "peak_scan" ON "ms"."peak" ("scan");')
 ```
 
 ## Features
+
+# Save data
+```{r prepare.fname}
+res.fname<-paste0(dtPath,spectrumID$id,'.peaks.RData')
+cdf.fname<-paste0(dtPath,spectrumID$id,'.cdf')
+```
+
+Loaded spectra saved in `res.fname` and original CDF file saved in `cdf.fname`
+
+```{r save.data}
+save(spectra,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,file = res.fname)
+file.copy(cdf.file,cdf.fname)
+```
 
 # Appendix {.tabset}
 ## Functions
