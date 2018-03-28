@@ -445,6 +445,15 @@ peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_
 peakFname
 ```
 
+```{r check.tmppeak.table, eval=proceedFile}
+beforeTMP<-dbGetQuery(conn,'select count(*) as num from tmp_peak;')
+if(beforeTMP$num>0){
+  rs<-dbSendStatement(conn,'delete from tmp_peak;')
+}
+```
+
+There was `r beforeTMP$num` rows in the `tmp_peak` table after last insert. THey are all deleted.
+
 ```{r load.peak.file, eval=proceedFile}
 system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_peak  FROM ',"'",peakFname,"'",';"'),intern = TRUE)->mcOut
 mcOut
