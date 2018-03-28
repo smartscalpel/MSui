@@ -226,12 +226,16 @@ comment<-ncMD$administrative_comments
 ```{r plot.palmitate}
 palmMZ<-255.24
 palmID<-which((spectra[[imTIC]]@mass<=(palmMZ+1))&(spectra[[imTIC]]@mass>=(palmMZ-1)))
+if(length(palmID)>3){
 plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+palmMZ,ylim=range(spectra[[imTIC]]@intensity[palmID]))
+}
 ```
 ```{r plot.stearate}
 stearMZ<-283.27
 stearID<-which((spectra[[imTIC]]@mass<=(stearMZ+1))&(spectra[[imTIC]]@mass>=(stearMZ-1)))
-plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+stearMZ,ylim=range(spectra[[imTIC]]@intensity[stearID]))
+if(length(stearID)>3){
+  plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+stearMZ,ylim=range(spectra[[imTIC]]@intensity[stearID]))
+}
 ```
 ```{r plot.max}
 which.max(spectra[[imTIC]]@intensity)->imTICmax
@@ -363,7 +367,7 @@ system2('wc', sigFname,stdout=TRUE)->wc
 wc
 wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
 wcn
-system(paste0('gzip ',sigFname))
+#system(paste0('gzip ',sigFname))
 ```
 
 ```{r populate.signal.table, eval=FALSE}
@@ -461,7 +465,7 @@ system2('wc', peakFname,stdout=TRUE)->wc
 wc
 wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
 wcn
-system(paste0('gzip ',peakFname))
+#system(paste0('gzip ',peakFname))
 ```
 
 ```{r populate.peak.table, eval=proceedFile}
