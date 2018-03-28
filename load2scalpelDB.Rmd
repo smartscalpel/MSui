@@ -501,7 +501,7 @@ res.fname<-paste0(dtPath,spectrumID$id,'.peaks.RData')
 cdf.fname<-paste0(dtPath,spectrumID$id,'.cdf')
 ```
 
-Loaded spectra saved in `res.fname` and original CDF file saved in `cdf.fname`
+Loaded spectra saved in `r res.fname` and original CDF file saved in `r cdf.fname`
 
 ```{r save.data}
 save(spectra,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,file = res.fname)
