@@ -20,6 +20,10 @@ tolerance = 2e-4
 library(xMSannotator)
 library(WGCNA)
 data(adduct_table)
+adduct_weights<-data.frame(Adduct=as.character(adduct_table$Adduct[adduct_table$Mode=='negative'&
+                                                                     adduct_table$Type!='TFA']),
+                           Weight=abs(adduct_table$adductMass[adduct_table$Mode=='negative'&
+                                                              adduct_table$Type!='TFA']))
 fl<-dir(path = dtPath,pattern = '*.RData')
 for(f in fl){
   cat(f,'\n')
@@ -42,9 +46,8 @@ load(paste0(dtPath,f))
   system(paste0('mkdir -p /var/workspaceR/scalpelData/annot/HMDB/',f,'/'))
   resHMDB<-multilevelannotation(datA,num_nodes = 5,
                             outloc = paste0('/var/workspaceR/scalpelData/annot/HMDB/',f),
-                            queryadductlist = adduct_table$Adduct[
-                              adduct_table$Mode=='negative'&
-                                adduct_table$Type!='TFA'],
+                            queryadductlist = adduct_weights$Adduct,
+                            adduct_weights=adduct_weights,
                             mode = 'neg',
                             db_name = "HMDB",
                             filter.by = "M-H",
