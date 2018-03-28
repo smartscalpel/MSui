@@ -480,6 +480,7 @@ if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
 }
 ```
 
+Database load `r after$num-before$num` rows into the peak table. The TSV file contains `r wcn[1]` rows. Content of the `tmp_peak` table was `r if((after$num>before$num) & (after$num-before$num==wcn[1])) c("NOT")` cleaned
 ### Enable referential constraints
 ```
 {r add.peak.constraints}
