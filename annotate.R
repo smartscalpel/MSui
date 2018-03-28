@@ -22,9 +22,9 @@ library(WGCNA)
 data(adduct_table)
 fl<-dir(path = dtPath,pattern = '*.RData')
 for(f in fl){
-  if(
-    f!="100.peaks.RData"){
-    cat(f,'\n')
+  cat(f,'\n')
+  if(!fie.exists(paste0('/var/workspaceR/scalpelData/annot/HMDB/',f,'/image.RData'))){
+    cat('loading',f,'\n')
 load(paste0(dtPath,f))
   # cls<-floor(sapply(spectra,function(.x) metaData(.x)$retentionTime)/5)
   # avgSpectra<-averageMassSpectra(spectra,cls,method='median')
