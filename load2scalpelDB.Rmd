@@ -456,7 +456,7 @@ if(beforeTMP$num>0){
 }
 ```
 
-There was `r beforeTMP$num` rows in the `tmp_peak` table after last insert. THey are all deleted.
+There was `r if(exists('beforeTMP')){beforeTMP$num}else {0}` rows in the `tmp_peak` table after last insert. THey are all deleted.
 
 ```{r load.peak.file, eval=proceedFile}
 system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_peak  FROM ',"'",peakFname,"'",';"'),intern = TRUE)->mcOut
