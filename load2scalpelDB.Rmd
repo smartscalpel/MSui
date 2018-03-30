@@ -472,11 +472,13 @@ wcn
 before<-dbGetQuery(conn,'select count(*) as num from peak;')
 before
 rs<-dbSendStatement(conn,
-                        paste('INSERT INTO peak(mz,scan,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)',
-                              '(select mz,s.id as scan, intensity, norm2tic, SQRT(norm2tic) as sqrtnorm2tic,',
-                              ' SQRT(intensity) as sqrtintensity, snr',
-                              'from tmp_peak t, scan s, spectrum p ',
-                              'where s.spectrumid=p.id and p.filename=t.spec and s.num=t.num);'))
+                        paste('INSERT INTO peak(mz,scan,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr) ',
+'(select mz,s.id as scan, intensity, norm2tic, ',
+'        SQRT(norm2tic) as sqrtnorm2tic,  ',
+'        SQRT(intensity) as sqrtintensity, snr ',
+'from (select p.id from (select * from tmp_peak limit 1) t, ',
+'      spectrum p  where p.filename like t.spec) sp, ',
+'      tmp_peak t, scan s where s.spectrumid=sp.id and s.num=t.num );'))
 after<-dbGetQuery(conn,'select count(*) as num from peak;')
 after
 if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
