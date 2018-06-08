@@ -93,11 +93,17 @@ shinyServer(function(input, output) {
   output$solventTable<-renderRHandsontable({
     con<-getCon(con)
     DF<-dbReadTable(con,'solvent')
-    rhandsontable(DF, width = 600, height = 300,readOnly = TRUE)
+    rhandsontable(DF, width = 600, height = 300,readOnly = TRUE) %>%
+      hot_cols(colWidths = c(50,150,300)) %>%
+      hot_cols(fixedColumnsLeft = 1) %>%
+      hot_rows(fixedRowsTop = 1)
   })
   output$diagTable<-renderRHandsontable({
     con<-getCon(con)
     DF<-dbReadTable(con,'diagnosis')
-    rhandsontable(DF, width = 600,height = 600,readOnly = TRUE,search = TRUE)
+    rhandsontable(DF, width = 600,height = 600,readOnly = TRUE,search = TRUE) %>%
+      hot_cols(colWidths = c(50,150,300,50)) %>%
+      hot_cols(fixedColumnsLeft = 1) %>%
+      hot_rows(fixedRowsTop = 1)
   })
 })
