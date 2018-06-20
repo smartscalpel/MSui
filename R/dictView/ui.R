@@ -12,13 +12,15 @@ library(shiny)
 library(shiny)
 library(shinydashboard)
 library(rhandsontable)
+source("../modules/readOnly.R", local = TRUE)
 
 # Define UI for application that draws a histogram
 dashboardPage(
-  dashboardHeader(title = 'Data analysis'),
+  dashboardHeader(title = 'Dictionaries'),
   dashboardSidebar(width = 350,
                    sidebarMenu(
                     # menuItem("Load data",tabName = 'File'),
+                     textInput("searchField", "Search"),
                      menuItem("Solvent",tabName = 'Solvent'),
                      menuItem("Diagnosis",tabName = 'Diagnosis')#,
                      # menuItem("XIC plots",tabName = 'XIC'),
@@ -52,8 +54,8 @@ dashboardPage(
       #         fluidRow(column(width = 12,
       #                         DT::dataTableOutput("featuresRev",width = '80%')))
       # ),
-      tabItem('Solvent',rHandsontableOutput('solventTable',width = 600)),
-      tabItem('Diagnosis',rHandsontableOutput('diagTable',width = 600))#,
+      tabItem('Solvent',readOnlyUI("sol")),
+      tabItem('Diagnosis',readOnlyUI("diag"))#,
 #     tabItem('XIC',plotOutput("xicPlot", height = 800,dblclick = "xic_dblclick",
   #                              brush = brushOpts(id = "xic_brush",
   #                                                resetOnNew = TRUE))),

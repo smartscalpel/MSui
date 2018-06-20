@@ -10,22 +10,26 @@
 library(shiny)
 library(RColorBrewer)
 library(ggplot2)
-# library(MALDIquant)
-# library(MALDIquantForeign)
-# library(corrplot)
-#library(plyr)
 library(DBI)
 library(dplyr)
 library(dtplyr)
-library(stringr)
+library(tibble)
+library(pool)
+library(rlang)
 library(MonetDBLite)
+library(rhandsontable)
 library(rhandsontable)
 
 source('db.R')
-dbdir <- './dict'
-con <- prepareCon(dbdir)
+source("../modules/readOnly.R", local = TRUE)
 
 options(shiny.maxRequestSize=500*1024^2) 
+
+makeDiag<-function(){
+  lev<-pool %>% tbl('diagnosis') %>% collect
+  data.frame(name=factor(lev$name[1],levels = lev$name),
+             description="",ref=NA)
+}
 
 preparePeakList<-function(s,
                           transMetod="sqrt",
@@ -89,21 +93,6 @@ col <- rainbow(length(iterations))
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
-# Global identifier of the scan to play with
-  output$solventTable<-renderRHandsontable({
-    con<-getCon(con)
-    DF<-dbReadTable(con,'solvent')
-    rhandsontable(DF, width = 600, height = 300,readOnly = TRUE) %>%
-      hot_cols(colWidths = c(50,150,300)) %>%
-      hot_cols(fixedColumnsLeft = 1) %>%
-      hot_rows(fixedRowsTop = 1)
-  })
-  output$diagTable<-renderRHandsontable({
-    con<-getCon(con)
-    DF<-dbReadTable(con,'diagnosis')
-    rhandsontable(DF, width = 600,height = 600,readOnly = TRUE,search = TRUE) %>%
-      hot_cols(colWidths = c(50,150,300,50)) %>%
-      hot_cols(fixedColumnsLeft = 1) %>%
-      hot_rows(fixedRowsTop = 1)
-  })
+  callModule(readOnly, "sol", pool,tabName="solvent",colWidths=c(50,200,500))
+  callModule(readOnly, "diag", pool,tabName='diagnosis',colWidths=c(50,200,500,50))
 })
