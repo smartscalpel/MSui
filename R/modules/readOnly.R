@@ -55,7 +55,8 @@ readOnly <- function(input, output, session, pool, tabName,
     rhRes<-rhandsontable(res, width = width, height = height,search=TRUE,readOnly = TRUE) %>%
       hot_cols(colWidths = colWidths) %>%
       hot_cols(fixedColumnsLeft = 1) %>%
-      hot_rows(fixedRowsTop = 1)
+      hot_rows(fixedRowsTop = 1)%>%
+      hot_cols(columnSorting = TRUE)
     return(rhRes)
 
   })

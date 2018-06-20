@@ -1,4 +1,5 @@
-editableUI <- function(id) {
+editableUI <- function(id,
+                       width=800,height=600) {
   ns <- NS(id)
   cat('editableUI',id,'\n')
   cat('editableUI',class(ns("res")),'\n')
@@ -6,14 +7,17 @@ editableUI <- function(id) {
     actionButton(ns("create"), "Create entry", class = "pull-left btn-info"),
     actionButton(ns("save"), "Save table", class = "pull-right btn-info"),
     # tableOutput(ns("res"))
-    rHandsontableOutput(ns("res"),width = 600)
+    rHandsontableOutput(ns("res"),width = width, height = height)
     # rHandsontableOutput((rhandsontable(ns("res"), width = 600, height = 300,readOnly = TRUE) %>%
     #                        hot_cols(fixedColumnsLeft = 1) %>%
     #                        hot_rows(fixedRowsTop = 1)),width = 600)
   )
 }
 
-editable <- function(input, output, session, pool, tabName,makeEmptyRow,updateTable,colWidths = c(50,150,300)) {
+editable <- function(input, output, session, pool, tabName,makeEmptyRow,
+                     updateTable,
+                     colWidths = c(50,150,300),
+                     width=800,height=600) {
 
   # observeEvent(tbls(), {
   #   updateSelectInput(session, "tableName", choices = tbls())
@@ -84,10 +88,11 @@ editable <- function(input, output, session, pool, tabName,makeEmptyRow,updateTa
     }
     cat('editable output$res',dim(values$resDT),'\n')
     cat('editable output$res',class(values$resDT),'\n')
-    values$rhRes<-rhandsontable(values$resDT, width = 600, height = 300,readOnly = FALSE) %>%
+    values$rhRes<-rhandsontable(values$resDT, width = width, height = height,readOnly = FALSE) %>%
       hot_cols(colWidths = colWidths) %>%
       hot_cols(fixedColumnsLeft = 1) %>%
-      hot_rows(fixedRowsTop = 1)
+      hot_rows(fixedRowsTop = 1)%>%
+      hot_cols(columnSorting = TRUE)
     return(values$rhRes)
 
   })
