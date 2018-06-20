@@ -19,64 +19,22 @@ dashboardPage(
   dashboardHeader(title = 'Dictionaries'),
   dashboardSidebar(width = 350,
                    sidebarMenu(
-                    # menuItem("Load data",tabName = 'File'),
                      textInput("searchField", "Search"),
+                     menuItem("Diagnosis",tabName = 'Diagnosis'),
+                     menuItem("Tissue type",tabName = 'Ttype'),
+                     menuItem("Device",tabName = 'Device'),
                      menuItem("Solvent",tabName = 'Solvent'),
-                     menuItem("Diagnosis",tabName = 'Diagnosis')#,
-                     # menuItem("XIC plots",tabName = 'XIC'),
-                     # menuItem("Baseline",tabName = 'baseline'),
-                     # menuItem("SNR",tabName = 'snr'),
-                     # fileInput('inFile', 'Choose CDF File'),
-                     # menuItem('Selectors',
-                     # sliderInput("sID",'Scan',min=1,max=2000,value = 1),
-                     # checkboxInput("scale", label = "Scale spectra", value = TRUE),
-                     # checkboxInput("corBL", label = "Correct baseline", value = TRUE),
-                     # checkboxInput("norm", label = "Normalize spectra", value = TRUE)),
-                     # menuItem('Fragments',
-                     #          textInput('fragName',label = 'Fragment name',value = ''),
-                     #          textInput('patID',label = 'Patient ID',value = ''),
-                     #          textInput('fragType',label = 'Fragment type',value = 'good'),
-                     #          textInput('fragRes',label = 'Fragment resolution',value = 'high'),
-                     #          textInput('diag',label = 'Diagnosis',value = 'health'),
-                     #          verbatimTextOutput("textFrag"),
-                     #          actionButton('addFrag','Add fragment'),
-                     #          textInput('outFile',label = 'File name',value = 'dataset'),
-                     #          downloadButton('saveBtn','Save dataset')),
-                     # menuItem('Analysis',
-                     #          menuSubItem("Corrplot",tabName = 'corplot')
-                     # )
-                     )),
+                     menuItem("Ion source",tabName = 'Isource'),
+                     menuItem("Resolution",tabName = 'Resolution')#,
+                   )),
   dashboardBody(
     tabItems(
-      # tabItem('File',
-      #         fluidRow(column(width = 12,
-      #                         fileInput('inFile', 'Choose CDF File'))),
-      #         fluidRow(column(width = 12,
-      #                         DT::dataTableOutput("featuresRev",width = '80%')))
-      # ),
+      tabItem('Diagnosis',readOnlyUI("diag")),
+      tabItem('Ttype',readOnlyUI("ttype")),
+      tabItem('Device',readOnlyUI("dev")),
       tabItem('Solvent',readOnlyUI("sol")),
-      tabItem('Diagnosis',readOnlyUI("diag"))#,
-#     tabItem('XIC',plotOutput("xicPlot", height = 800,dblclick = "xic_dblclick",
-  #                              brush = brushOpts(id = "xic_brush",
-  #                                                resetOnNew = TRUE))),
-  #     tabItem("baseline",plotOutput("blPlot", height = 800)),
-  #     tabItem("snr",plotOutput("snrPlot", height = 800)),
-  #     tabItem("corplot",
-  #             fluidRow(column(
-  #               width = 12,
-  #               tabPanel("Metadata", tableOutput("metadata"))
-  #             )),
-  #             fluidRow(column(
-  #               width = 12,
-  #               tabPanel("Black List", 
-  #                        textInput('blackList',label = 'Black List',value = ''),
-  #                        actionButton("update" ,"Update View", icon("refresh"),
-  #                                     class = "btn btn-primary"))
-  #             )),
-  #             fluidRow(column(
-  #               width = 12,
-  #               class = "well",plotOutput("corrPlot", height = 800))
-  #             ))
+      tabItem('Isource',readOnlyUI("isource")),
+      tabItem('Resolution',readOnlyUI("res"))#,
     )
    ),
   title = "Dashboard example"
