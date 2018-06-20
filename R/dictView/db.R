@@ -7,6 +7,17 @@ pool <- dbPool(MonetDBLite::MonetDB(),
                user='msinvent',password='msinvent')
 
 
+makeDiag<-function(){
+  lev<-pool %>% tbl('diagnosis') %>% collect
+  data.frame(id=-1,name="",
+             description="",ref=NA)
+}
+
+checkDiag<-function(df){TRUE}
+updateDiag<-function(con,name,olddata,newdata){
+  cat(name,'\n',pander(head(olddata),caption = "old"),'\n=====\n',pander(head(newdata),caption = "new"),'\n====\n')
+}
+
 sqlTICall<-paste0('select rt,sum(intensity) as tic,spectrid ',
                   'from peak ',
                   'where rt<= 600 ',

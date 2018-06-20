@@ -15,10 +15,10 @@ editableUI <- function(id,
 }
 
 getTableDef<-function(con,tabName){
-  as_data_frame(con %>% tbl(tabName))
+  as.data.frame(con %>% tbl(tabName),stringsAsFactors=FALSE)
 }
 editable <- function(input, output, session, pool, tabName,makeEmptyRow,
-                     updateTable,getTable=getTableDef,
+                     updateTable,getTable=getTableDef, 
                      colWidths = c(50,150,300),
                      width=800,height=600) {
   
@@ -101,12 +101,12 @@ editable <- function(input, output, session, pool, tabName,makeEmptyRow,
     }
     cat('editable output$res',dim(values$resDT),'\n')
     cat('editable output$res',class(values$resDT),'\n')
-    values$rhRes<-rhandsontable(values$resDT, width = width, height = height,readOnly = FALSE) %>%
+    values$rhRes<-rhandsontable(values$resDT, width = width, height = height,search=TRUE,readOnly = FALSE) %>%
       hot_col("id", readOnly = TRUE)%>%
       hot_col(1:dim(values$resDT)[2], strict=FALSE,allowInvalid=TRUE) %>%
       hot_cols(colWidths = colWidths) %>%
       hot_cols(fixedColumnsLeft = 1) %>%
-      hot_rows(fixedRowsTop = 1)%>%
+#      hot_rows(fixedRowsTop = 1)%>%
       hot_cols(columnSorting = TRUE)
     return(values$rhRes)
     

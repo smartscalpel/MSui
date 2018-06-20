@@ -22,16 +22,23 @@ library(rhandsontable)
 
 source('db.R')
 source("../modules/readOnly.R", local = TRUE)
+source("../modules/editable.R", local = TRUE)
 
 options(shiny.maxRequestSize=500*1024^2) 
 
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
-  callModule(readOnly, "res", pool,tabName="resolution",colWidths=c(50,200,500))
-  callModule(readOnly, "isource", pool,tabName="ionsource",colWidths=c(50,200,500))
-  callModule(readOnly, "sol", pool,tabName="solvent",colWidths=c(50,200,500))
-  callModule(readOnly, "dev", pool,tabName="device",colWidths=c(50,200,300,500))
-  callModule(readOnly, "ttype", pool,tabName="tissuetype",colWidths=c(50,200,500))
-  callModule(readOnly, "diag", pool,tabName='diagnosis',colWidths=c(50,200,500,50))
+  callModule(editable, "res", pool,tabName="resolution",colWidths=c(50,200,500),
+             makeEmptyRow=makeDiag,updateTable=updateDiag)
+  callModule(editable, "isource", pool,tabName="ionsource",colWidths=c(50,200,500),
+             makeEmptyRow=makeDiag,updateTable=updateDiag)
+  callModule(editable, "sol", pool,tabName="solvent",colWidths=c(50,200,500),
+             makeEmptyRow=makeDiag,updateTable=updateDiag)
+  callModule(editable, "dev", pool,tabName="device",colWidths=c(50,200,300,500),
+             makeEmptyRow=makeDiag,updateTable=updateDiag)
+  callModule(editable, "ttype", pool,tabName="tissuetype",colWidths=c(50,200,500),
+             makeEmptyRow=makeDiag,updateTable=updateDiag)
+  callModule(editable, "diag", pool,tabName='diagnosis',colWidths=c(50,200,500,50),
+             makeEmptyRow=makeDiag,updateTable=updateDiag)
 })
