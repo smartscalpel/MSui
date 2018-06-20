@@ -1,31 +1,11 @@
-getCon<-function(con){
-  if(dbIsValid(con)){
-    return(con)
-  }else{
-    res<-try(dbRollback(conn = con),silent = TRUE)
-    if(class(res)=='try-error'){
-      return(prepareCon)
-    }else{
-      if(dbIsValid(con)){
-        return(con)
-      }else{
-        return(prepareCon)
-      }
-    }
-  }
-  
-}
+library(pool)
+library(rlang)
+library(MonetDBLite)
 
-prepareCon<-function(dbdir){
-  con <- dbConnect(MonetDBLite::MonetDBLite(), dbdir)
-  if(dbIsValid(con)){
-    cat(paste(dbGetInfo(con),collapse = '\n'))
-  }else{
-    stop('DB is not connected')
-  }
-  dbBegin(con)
-  return(con)
-}
+pool <- dbPool(MonetDBLite::MonetDB(),
+               dbname = 'msinvent',
+               user='msinvent',password='msinvent')
+
 
 sqlTICall<-paste0('select rt,sum(intensity) as tic,spectrid ',
                   'from peak ',

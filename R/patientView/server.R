@@ -18,17 +18,19 @@ library(pool)
 library(rlang)
 library(MonetDBLite)
 library(rhandsontable)
-library(rhandsontable)
 
 source('db.R')
 source("../modules/readOnly.R", local = TRUE)
+source("../modules/editable.R", local = TRUE)
 
 options(shiny.maxRequestSize=500*1024^2) 
 
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
-  callModule(readOnly, "tissue", pool,tabName="patisue",colWidths=c(80,50,50,50,100,500,150,50,50,100),width=1200)
+  callModule(editable, "tissue", pool,tabName="patisue",getTable=getTissueTable,
+             makeEmptyRow=makeNewTissue,updateTable=updateTissue,
+             colWidths=c(50,80,50,50,50,100,500,200,50,50,100),width=1300)
   # callModule(readOnly, "isource", pool,tabName="ionsource",colWidths=c(50,200,500))
   # callModule(readOnly, "sol", pool,tabName="solvent",colWidths=c(50,200,500))
   # callModule(readOnly, "dev", pool,tabName="device",colWidths=c(50,200,300,500))

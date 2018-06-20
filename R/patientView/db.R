@@ -1,11 +1,36 @@
 library(pool)
 library(rlang)
+library(pander)
 library(MonetDBLite)
 
 pool <- dbPool(MonetDBLite::MonetDB(),
                dbname = 'msinvent',
                user='msinvent',password='msinvent')
 
+
+#### Tissue part #########
+
+getTissueTable<-function(con,tabName){
+  as_data_frame(con %>% tbl('patisue'))
+}
+
+makeNewTissue<-function(){
+  data.frame(id=-1,emsid="",yob=-1,
+             age=-1,sex="",label="",location="",
+             diagnosis="",grade="",coords="",dt=""
+    
+  )
+}
+
+
+updateTissue<-function(con,name,olddata,newdata){
+  cat(name,'\n',pander(head(olddata),caption = "old"),'\n=====\n',pander(head(newdata),caption = "new"),'\n====\n')
+  
+}
+
+insertTissue<-function(con,data){
+  
+}
 
 sqlTICall<-paste0('select rt,sum(intensity) as tic,spectrid ',
                   'from peak ',
@@ -78,3 +103,6 @@ getMZ<-function(con,spID,mzRange=c(0,5000),threshold=1e2){
   p[,rcomp:=rcomp(intensity,total=1e6),by=.(spectrid)]
   return(p)
 }
+
+# Views for patient
+#create view patisue as select t.id,emsid,yob,age,sex,label,location,d.name as diagnosis,grade,coords,dt from ms.Patient p join ms.Tissue t on p.id=t.patientid join ms.diagnosis d on t.diagnosis=d.id;

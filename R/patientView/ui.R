@@ -13,11 +13,12 @@ library(shiny)
 library(shinydashboard)
 library(rhandsontable)
 source("../modules/readOnly.R", local = TRUE)
+source("../modules/editable.R", local = TRUE)
 
 # Define UI for application that draws a histogram
 dashboardPage(
-  dashboardHeader(title = 'Dictionaries'),
-  dashboardSidebar(width = 350,
+  dashboardHeader(title = 'Patients'),
+  dashboardSidebar(width = 250,
                    sidebarMenu(
                      textInput("searchField", "Search"),
                      menuItem("Tissues",tabName = 'tissues')#,
@@ -29,7 +30,7 @@ dashboardPage(
                    )),
   dashboardBody(
     tabItems(
-      tabItem('tissues',readOnlyUI("tissue",width=1000))#,
+      tabItem('tissues',editableUI("tissue",width=1300))#,
       # tabItem('Ttype',readOnlyUI("ttype")),
       # tabItem('Device',readOnlyUI("dev")),
       # tabItem('Solvent',readOnlyUI("sol")),
