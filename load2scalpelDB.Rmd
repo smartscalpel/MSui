@@ -26,21 +26,21 @@ header-includes:
 ## load additional packages in this chunk
 library(pander)
 library(knitr)
-library('Matrix')
+#library('Matrix')
 library(ggplot2)
 library(data.table)
-library(plyr)
+#library(plyr)
 library(xtable)
-library(xcms)
-library("FactoMineR")
-library(cluster)
-library(dendextend)
-library(factoextra)
-library(corrplot)
+#library(xcms)
+#library("FactoMineR")
+#library(cluster)
+#library(dendextend)
+#library(factoextra)
+#library(corrplot)
 library(ncdf4)
-library("PerformanceAnalytics")
-library("pvclust")
-library("sda")
+#library("PerformanceAnalytics")
+#library("pvclust")
+#library("sda")
 library(RColorBrewer)
 library(MALDIquant)
 library(MALDIquantForeign)
@@ -101,130 +101,8 @@ panderOptions("table.split.table", 160)
 ```{r functions, include=FALSE}
 ## Custom functions used in the analysis should go into this chunk.
 ## They will be listed in their own section of the appendix.
-roundScan<-function(i){
-  scan <- as.data.table(getScan(xraw, sel$scanidx[i], sel$mzrange))
-  sc1<-scan[,.(intensity=median(intensity)),by=.(mz=round(mz,0))]
-  m<-matrix(rep(0,2000),nrow = 1)
-  m[1,sc1[mz<=200]$mz]<-sc1[mz<=200]$intensity
-  return(m)
-}
 
-parseScan<-function(i){
-scan <- as.data.table(getScan(xraw, sel$scanidx[i], sel$mzrange))
-p<-data.frame(id=as.integer(-1),
-mz=scan$mz,
-mz1=round(scan$mz,0),
-mz100=round(scan$mz,2),
-rt=xraw@scantime[i],
-scan=i,
-intensity=scan$intensity,
-spectrid=as.integer(-1),
-reltic=-1e-6)
-tot<-sum(p$intensity)
-p$reltic<-p$intensity/tot
-return(p)
-}
-
-interpolateSpectra<-function(sp,step){
-  step<-round(step,abs(log10(step))+2)
-  xout<-seq(from=min(sp@mass),to=max(sp@mass),by=step)
-  yout<-approx(sp@mass,sp@intensity,xout)
-  md<-metaData(sp)
-  md$interpStep=step
-  sptmp<-createMassSpectrum(mass=yout$x,intensity = yout$y)
-  noise <- estimateNoise(sptmp)
-  #spBL <- removeBaseline(sp, method="SNIP",iterations=100)
-  idx<-(yout$y-noise[,2])>0
-  spOut<-createMassSpectrum(mass=yout$x[idx],intensity = yout$y[idx],metaData = md)
-  return(spOut)
-}
-
-```
-
-```
-{r}
-dbname = "msinvent"
-usr='msinvent'
-pwd='msinvent'
-dtPath = '/Users/lptolik/Yandex.Disk.localized/BD_cdf'
-cdf.file=paste0(dtPath,'/1_02_495_MetCl_2_FT100k.cdf')
-```
-
-# Read data
-Before running the code a number of variables should be setted for appropriate data loading:
- 
- 1. the path to the data folder *dtPath* 
-  3. the name of the database *dbname*
- 4. user/password for teh database: *usr* and *pwd*
- 
-
-Для работы необходим параметр `cdf.file`, который содержит полный путь к обрабатываемому файлу. В базу будут загружено содержимое файла `cdf.file`
-```{r check.values}
-if(!(exists('dtPath')&
-     exists('dbname')&
-     exists('usr')&
-     exists('pwd')&
-     exists('cdf.file'))){
-  stop('not all obligatory parameters are provided\n')
-}
-ncMD<- ncatt_get(nc_open(cdf.file),0)
-experimentData<-ncMD$experiment_date_time_stamp
-fileData<-ncMD$netcdf_file_date_time_stamp
-origFilePath<-ncMD$source_file_reference
-comment<-ncMD$administrative_comments
-```
-
-
-# Загрузка данных с помощью MALDIquant
-
-Текущее значение параметра `cdf.file`:
-
-`r cdf.file`
-
-```{r load.cdf,cache=TRUE}
-spectra<-import(cdf.file,verbose=TRUE)
-if(any(sapply(spectra, MALDIquant::isEmpty))){
-  spectra<-spectra[!sapply(spectra, MALDIquant::isEmpty)]
-}
-mzWidth<-sapply(spectra, function(.x)diff(range(.x@mass)))
-if(any(mzWidth<0.2*max(mzWidth))){
-  spectra<-spectra[mzWidth>=0.2*max(mzWidth)]
-}
-#hist(sapply(spectra, length))
-tic<-sapply(spectra,totalIonCurrent)
-eic300<-sapply(trim(spectra,range = c(0,350)),totalIonCurrent)
-eic1000<-sapply(trim(spectra,range = c(400,1000)),totalIonCurrent)
-time<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
-qtic<-quantile(tic,probs = seq(0, 1, 0.1),names = TRUE)
-qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
-#plot(xraw@tic,tic)
-plot(tic)
-abline(h = qth)
-#spectra <- trim(spectra,range = mzrange)
-```
-
-# Load data to DB
-```{r db.connect}
-conn <- dbConnect(MonetDB.R::MonetDB(), 
-                  dbname = dbname,
-                  user=usr,password=pwd)
-devices<-dbReadTable(conn,'device')
-devID<-1 #Device
-solvents<-dbReadTable(conn,'solvent')
-solID<-6 #Solvent
-ionSources<-dbReadTable(conn,'ionsource')
-isID<-1 # ionsource
-resolutions<-dbReadTable(conn,'resolution')
-resID<-1 #ResolutionID
-smplID<-1 #SampleID
-stID<-1 #SampleTumorID
-stpID<-1 #SampleTumorPatientID
-nMode<-1 #Negative mode
-note<-paste('exDT:',experimentData,'\nfileDT:',fileData,'\norigFile:',origFilePath,'\ncomment:',comment)
-```
-
-## Spectrum
-```{r insert.spectrum}
+##==================== SQL queries ====================##
 insertComment<-paste('insert into comment(dt,comment,author) values (now(),?,?)')
 getCommentID<-'SELECT ID FROM comment where comment=?'
 insertCommentRef<-paste('insert into spectrum_comment(spectrumid,commentid) values (?,?)')
@@ -241,6 +119,199 @@ insertSpectrum<-paste("INSERT INTO spectrum ",
  "  mode) ",
  "VALUES (?,?,?,?,?,?,now(),?,?,?);")
 getSpecID<-'SELECT ID FROM spectrum where filename=?'
+getSample<-'select s.id,s.label as name, \'tissue: "\'||t.label||\'"; patient: "\'|| p.emsid||\'"\' as description from smpl s,tissue t, patient p where s.id=? and t.id=s.tumorid and s.tumorpatientid=p.id;'
+insertScan<-paste("INSERT INTO scan",
+"  (SpectrumID, ",
+"  num, ",
+"  rt, ",
+"  tic) ",
+"VALUES (?, ?, ?, ?);")
+getScanID<-'SELECT ID FROM scan where spectrumid=? and num=?'
+
+##==================== Functions ====================##
+writeDTsignal<-function(sp,specID,fname){
+  md<-metaData(sp)
+  #cat('Writing scan',md$number,md$retentionTime,'\n')
+  resDF<-data.table(spec=specID,
+                    num=md$number,
+                    mz=sp@mass,
+                    intensity=sp@intensity)
+  if(file.exists(fname)){
+  	app=TRUE
+  }else{
+  	app=FALSE
+  }
+  fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
+}
+
+writeDTpeak<-function(p,specID,tic,fname){
+  md<-metaData(p)
+  #cat('Writing scan',md$number,md$retentionTime,'\n')
+  resDF<-data.table(spec=specID,
+                    num=md$number,
+                    mz=p@mass,
+                    intensity=tic[md$number]*p@intensity,
+                    norm2tic=p@intensity,snr=p@snr)
+  if(file.exists(fname)){
+  	app=TRUE
+  }else{
+  	app=FALSE
+  }
+  fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
+}
+
+```
+
+```
+{r oblig.par}
+dbname = "msinvent"
+usr='msinvent'
+pwd='msinvent'
+dtPath = '/Volumes/AS_WD_HFS/Scalpel/DBData/'
+cdf.file='/Users/lptolik/Yandex.Disk.localized/BD_cdf/1_02_495_MetCl_2_FT100k.cdf'
+devID<-1 #Device
+solID<-6 #Solvent
+isID<-1 # ionsource
+resID<-1 #ResolutionID
+smplID<-1 #SampleID
+stID<-1 #SampleTumorID
+stpID<-1 #SampleTumorPatientID
+nMode<-1 #Negative mode
+```
+
+# Read data
+Before running the code a number of variables should be setted for appropriate data loading:
+ 
+ 1. the path to the folder where data will be moved after upload *dtPath* 
+ 2. the references to device *devID*, solvent *solID*, ion source *isID*, resolution *resID*, mode *nMode*
+ 3. the name of the database *dbname*
+ 4. user/password for teh database: *usr* and *pwd*
+ 
+
+Для работы необходим параметр `cdf.file`, который содержит полный путь к обрабатываемому файлу. В базу будут загружено содержимое файла `cdf.file`
+
+```{r check.values}
+if(!(exists('dbname')&
+     exists('usr')&
+     exists('pwd')&
+     exists('dtPath')&
+     exists('cdf.file')& #CDF file not needed any more it was processed by prepare4db, but it should be loaded into database
+     exists('devID')&
+     exists('solID')&
+     exists('isID')&
+     exists('resID')&
+     exists('smplID')&
+     exists('stID')&
+     exists('stpID')&
+     exists('nMode'))){
+  stop('not all obligatory parameters are provided\n')
+}
+if(!exists('halfWindowSize')){
+  halfWindowSize<-3 # best suited for centroided data
+}
+```
+
+# Load prepared data 
+```{r load.data.from.rdat}
+load(file = 'spectra.RData')
+tic<-sapply(origSpectra,totalIonCurrent)
+imTIC<-which.max(tic)
+qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
+experimentData<-ncMD$experiment_date_time_stamp
+fileData<-ncMD$netcdf_file_date_time_stamp
+origFilePath<-ncMD$source_file_reference
+comment<-ncMD$administrative_comments
+```
+
+```{r plot.palmitate}
+palmMZ<-255.24
+palmID<-which((spectra[[imTIC]]@mass<=(palmMZ+1))&(spectra[[imTIC]]@mass>=(palmMZ-1)))
+if(length(palmID)>3){
+plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+palmMZ,ylim=range(spectra[[imTIC]]@intensity[palmID]))
+}
+```
+```{r plot.stearate}
+stearMZ<-283.27
+stearID<-which((spectra[[imTIC]]@mass<=(stearMZ+1))&(spectra[[imTIC]]@mass>=(stearMZ-1)))
+if(length(stearID)>3){
+  plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+stearMZ,ylim=range(spectra[[imTIC]]@intensity[stearID]))
+}
+```
+```{r plot.max}
+which.max(spectra[[imTIC]]@intensity)->imTICmax
+plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+spectra[[imTIC]]@mass[imTICmax])
+```
+
+# Connect to the database
+
+```{r db.connect}
+conn <- dbConnect(MonetDB.R::MonetDB(), 
+                  dbname = dbname,
+                  user=usr,password=pwd)
+spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
+proceedFile<-(dim(spectrumID)[1]==0)
+#proceedFile<-TRUE
+
+```
+
+# Загрузка данных с помощью MALDIquant
+
+Текущее значение параметра `cdf.file`:
+
+`r cdf.file`
+`r proceedFile`
+
+```{r load.cdf,cache=TRUE, eval=proceedFile}
+plot(tic)
+abline(h = qth)
+#spectra <- trim(spectra,range = mzrange)
+```
+
+# Load data to DB
+```{r db.fetch, eval=proceedFile}
+devices<-dbReadTable(conn,'device')
+idxDev<-which(devices$id==devID)
+solvents<-dbReadTable(conn,'solvent')
+idxSol<-which(solvents$id==solID)
+ionSources<-dbReadTable(conn,'ionsource')
+idxIS<-which(ionSources$id==isID)
+resolutions<-dbReadTable(conn,'resolution')
+idxRes<-which(resolutions$id==resID)
+modes<-dbReadTable(conn,'mode')
+idxMode<-which(modes$id==nMode)
+smplID<-1 #SampleID
+sample<-dbGetQuery(conn,getSample,smplID)
+stID<-1 #SampleTumorID
+stpID<-1 #SampleTumorPatientID
+note<-paste('exDT:',experimentData,'\nfileDT:',
+            fileData,'\norigFile:',
+            origFilePath,'\ncomment:',comment)
+parName<-c('Sample','Device','Ion source','Resolution','Mode','Solvent')
+resDF<-cbind(data.frame(Parameter=parName),
+             rbind(sample,
+                   devices[idxDev,c(1,2,4)],
+                   ionSources[idxIS,],
+                   resolutions[idxRes,],
+                   modes[idxMode,],
+                   data.frame(id=solvents$id[idxSol],
+                              name=solvents$name[idxSol],
+                              description=solvents$composition[idxSol])
+                   )
+             )
+```
+
+
+The data loaded with the following properties:
+```{r prop.table, eval=proceedFile}
+kable(resDF, format = "latex", caption = 'Predefined parameters for load', row.names=FALSE, booktabs=TRUE)
+```
+```{r already.loaded,eval=!proceedFile}
+cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
+```
+ 
+
+## Spectrum
+```{r insert.spectrum, eval=proceedFile}
 rs<-dbSendStatement(conn,insertSpectrum,stID,stpID,smplID,resID,solID,devID,basename(cdf.file),isID,nMode)
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
@@ -252,57 +323,207 @@ rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
 ```
 
 ## Scans
-```{r insert.scans}
-for(sp in spectra){
-  md
+
+```{r insert.scans, eval=proceedFile}
+df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
+system.time(
+for(sp in origSpectra){
+  md<-metaData(sp)
+  rs<-dbSendStatement(conn,insertScan,
+                      spectrumID$id,
+                      md$number,
+                      md$retentionTime,totalIonCurrent(sp))
 }
+)
+#spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 ```
 
 ## Signal
 
-### Disable referential constraints
-```{r drop.reads.constraints}
-rs<-dbSendStatement(conn,'ALTER TABLE reads DROP CONSTRAINT reads_read_id_unique;')
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
-rs<-dbSendStatement(conn,'ALTER TABLE reads DROP CONSTRAINT readunq;')
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
-rs<-dbSendStatement(conn,'ALTER TABLE reads DROP CONSTRAINT FKreads_mg_id;')
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
+Таблица *Signal* содержит сырые данные, как они получены из исходного файла.
 
+### Disable referential constraints and indices
+```
+{r drop.reads.constraints}
+rs<-dbSendStatement(conn,'alter table signal drop CONSTRAINT "signal_scanFK";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'drop INDEX "signal_mz";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'drop INDEX "signal_scan";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
 ```
 
-### Load data
-```{r read.sdata}
-sdata<-load.sdata.from.file(path = prPath)
-s<-sdata[[1]]
-
+```{r load.signal.file, eval=FALSE}
+sigFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_signal.tsv'))
+system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_signal  FROM ',"'",sigFname,"'",';"'),intern = TRUE)->mcOut
+mcOut
+system2('wc', sigFname,stdout=TRUE)->wc
+wc
+wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
+wcn
+#system(paste0('gzip ',sigFname))
 ```
 
-### Check missing 
+```{r populate.signal.table, eval=FALSE}
+before<-dbGetQuery(conn,'select count(*) as num from signal;')
+before
+rs<-dbSendStatement(conn,
+                        paste('INSERT INTO signal(mz,scan,intensity)',
+                              '(select mz,s.id as scan, intensity ',
+                              'from tmp_signal t, scan s ',
+                              'where s.spectrumid=t.spec and s.num=t.num);'))
+after<-dbGetQuery(conn,'select count(*) as num from signal;')
+after
+if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
+  rs<-dbSendStatement(conn,'delete from tmp_signal;')
+}
+```
+
 
 ### Enable referential constraints
-```{r add.reads.constraints}
-rs<-dbSendStatement(conn,'ALTER TABLE reads ADD CONSTRAINT reads_read_id_unique UNIQUE ("read_id", "md5sum");')
+```
+{r add.reads.constraints}
+rs<-dbSendStatement(conn,'ALTER TABLE "ms"."signal" ADD CONSTRAINT "signal_scanFK" FOREIGN KEY ("scan") REFERENCES "ms"."scan" ("id");')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
     dbClearResult(rs)
-rs<-dbSendStatement(conn,'ALTER TABLE reads ADD CONSTRAINT readunq  UNIQUE ("read_id", "md5sum");')
+rs<-dbSendStatement(conn,'CREATE INDEX "signal_mz" ON "ms"."signal" ("mz");')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
     dbClearResult(rs)
-rs<-dbSendStatement(conn,'ALTER TABLE reads ADD CONSTRAINT FKreads_mg_id FOREIGN KEY (mg_id) REFERENCES asar.metagenome (ID);')
+rs<-dbSendStatement(conn,'CREATE INDEX "signal_scan" ON "ms"."signal" ("scan");')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+
+```
+## Peaks
+
+Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC, пики группируются с отностительной точностью 2e-5 и исключаются пики, встречающиеся менее чем в 25% сканов. 
+```{r prepare.peaks, cache=TRUE, eval=FALSE}
+imTIC<-which.max(tic)
+plot(spectra[[imTIC]])
+origSpectra<-spectra
+spectra <- calibrateIntensity(spectra, method="TIC")
+calibrSpectra<-spectra
+spectra <- alignSpectra(spectra,reference = spectra[[imTIC]],tolerance = 2e-4)
+alSpectra<-spectra
+peaks <- detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
+                       method="SuperSmoother")
+idx<-which(sapply(peaks,length)>10)
+peaks2 <- binPeaks(peaks[idx],method = 'strict',tolerance = 2e-5)
+fpeaks2 <- filterPeaks(peaks2, minFrequency=0.25)
+featureMatrix2 <- intensityMatrix(fpeaks2, spectra)
+
+```
+
+### Disable referential constraints and indices
+```
+{r drop.peak.constraints}
+rs<-dbSendStatement(conn,'alter table peak drop CONSTRAINT "peak_featureFK";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'alter table peak drop CONSTRAINT "peak_scanFK";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'drop INDEX "peak_mz";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'drop INDEX "peak_scan";')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+```
+```{r prepare.peak.file, eval=proceedFile}
+peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
+#system(paste0('gunzip ',peakFname,'.gz'))
+peakFname
+```
+
+```{r check.tmppeak.table, eval=proceedFile}
+beforeTMP<-dbGetQuery(conn,'select count(*) as num from tmp_peak;')
+if(beforeTMP$num>0){
+  rs<-dbSendStatement(conn,'delete from tmp_peak;')
+}
+```
+
+There was `r if(exists('beforeTMP')){beforeTMP$num}else {0}` rows in the `tmp_peak` table after last insert. THey are all deleted.
+
+```{r load.peak.file, eval=proceedFile}
+system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_peak  FROM ',"'",peakFname,"'",';"'),intern = TRUE)->mcOut
+mcOut
+system2('wc', peakFname,stdout=TRUE)->wc
+wc
+wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
+wcn
+#system(paste0('gzip ',peakFname))
+```
+
+```{r populate.peak.table, eval=proceedFile}
+before<-dbGetQuery(conn,'select count(*) as num from peak;')
+before
+rs<-dbSendStatement(conn,
+                        paste('INSERT INTO peak(mz,scan,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr) ',
+'(select mz,s.id as scan, intensity, norm2tic, ',
+'        SQRT(norm2tic) as sqrtnorm2tic,  ',
+'        SQRT(intensity) as sqrtintensity, snr ',
+'from (select p.id from (select * from tmp_peak limit 1) t, ',
+'      spectrum p  where p.filename like t.spec) sp, ',
+'      tmp_peak t, scan s where s.spectrumid=sp.id and s.num=t.num );'))
+after<-dbGetQuery(conn,'select count(*) as num from peak;')
+after
+if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
+  rs<-dbSendStatement(conn,'delete from tmp_peak;')
+}
+```
+
+Database load `r after$num-before$num` rows into the peak table. The TSV file contains `r wcn[1]` rows. Content of the `tmp_peak` table was `r if((after$num>before$num) & (after$num-before$num==wcn[1])) c("NOT")` cleaned.
+
+### Enable referential constraints
+```
+{r add.peak.constraints}
+rs<-dbSendStatement(conn,'ALTER TABLE "ms"."peak" ADD CONSTRAINT "peak_featureFK" FOREIGN KEY ("feature") REFERENCES "ms"."features" ("id");')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'ALTER TABLE "ms"."peak" ADD CONSTRAINT "peak_scanFK" FOREIGN KEY ("scan") REFERENCES "ms"."scan" ("id");')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'CREATE INDEX "peak_mz" ON "ms"."peak" ("mz");')
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+rs<-dbSendStatement(conn,'CREATE INDEX "peak_scan" ON "ms"."peak" ("scan");')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
     dbClearResult(rs)
 
 ```
 
+## Features
+
+# Save data
+```{r prepare.fname}
+res.fname<-paste0(dtPath,spectrumID$id,'.peaks.RData')
+cdf.fname<-paste0(dtPath,spectrumID$id,'.cdf')
+```
+
+Loaded spectra saved in `r res.fname` and original CDF file saved in `r cdf.fname`
+
+```{r save.data}
+save(spectra,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,file = res.fname)
+file.copy(cdf.file,cdf.fname)
+```
 
 # Appendix {.tabset}
 ## Functions
