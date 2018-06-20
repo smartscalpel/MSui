@@ -1,17 +1,19 @@
-readOnlyUI <- function(id) {
+readOnlyUI <- function(id,
+                       width=800,height=600) {
   ns <- NS(id)
   cat('readOnlyUI',id,'\n')
   cat('readOnlyUI',class(ns("res")),'\n')
   tagList(
     # tableOutput(ns("res"))
-    rHandsontableOutput(ns("res"),width = 800)
+    rHandsontableOutput(ns("res"),width = width,height=height)
     # rHandsontableOutput((rhandsontable(ns("res"), width = 600, height = 300,readOnly = TRUE) %>%
     #                        hot_cols(fixedColumnsLeft = 1) %>%
     #                        hot_rows(fixedRowsTop = 1)),width = 600)
   )
 }
 
-readOnly <- function(input, output, session, pool, tabName,colWidths = c(50,150,300)) {
+readOnly <- function(input, output, session, pool, tabName,
+                     colWidths = c(50,150,300),width=800,height=600) {
 
   # observeEvent(tbls(), {
   #   updateSelectInput(session, "tableName", choices = tbls())
@@ -50,7 +52,7 @@ readOnly <- function(input, output, session, pool, tabName,colWidths = c(50,150,
     res<-as_data_frame(pool %>% tbl(tabName))
     cat('output$res',dim(res),'\n')
     cat('output$res',class(res),'\n')
-    rhRes<-rhandsontable(res, width = 800, height = 600,search=TRUE,readOnly = TRUE) %>%
+    rhRes<-rhandsontable(res, width = width, height = height,search=TRUE,readOnly = TRUE) %>%
       hot_cols(colWidths = colWidths) %>%
       hot_cols(fixedColumnsLeft = 1) %>%
       hot_rows(fixedRowsTop = 1)
