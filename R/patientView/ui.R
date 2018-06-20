@@ -21,6 +21,7 @@ dashboardPage(
   dashboardSidebar(width = 250,
                    sidebarMenu(
                      textInput("searchField", "Search"),
+                     menuItem("Patients",tabName = 'patients'),
                      menuItem("Tissues",tabName = 'tissues')#,
                      # menuItem("Tissue type",tabName = 'Ttype'),
                      # menuItem("Device",tabName = 'Device'),
@@ -30,6 +31,7 @@ dashboardPage(
                    )),
   dashboardBody(
     tabItems(
+      tabItem('patients',editableUI("patients",width=1300)),
       tabItem('tissues',editableUI("tissue",width=1300))#,
       # tabItem('Ttype',readOnlyUI("ttype")),
       # tabItem('Device',readOnlyUI("dev")),

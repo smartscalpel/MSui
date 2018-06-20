@@ -31,6 +31,9 @@ shinyServer(function(input, output) {
   callModule(editable, "tissue", pool,tabName="patisue",getTable=getTissueTable,
              makeEmptyRow=makeNewTissue,updateTable=updateTissue,
              colWidths=c(50,80,50,50,50,100,500,200,50,50,100),width=1300)
+  callModule(editable, "patients", pool,tabName="patient",getTable=getPatientTable,
+             makeEmptyRow=makeNewPatient,updateTable=updatePatient,
+             colWidths=c(50,80,50,50,50),width=1300)
   # callModule(readOnly, "isource", pool,tabName="ionsource",colWidths=c(50,200,500))
   # callModule(readOnly, "sol", pool,tabName="solvent",colWidths=c(50,200,500))
   # callModule(readOnly, "dev", pool,tabName="device",colWidths=c(50,200,300,500))

@@ -18,12 +18,28 @@ makeNewTissue<-function(){
   data.frame(id=-1,emsid="",yob=-1,
              age=-1,sex="",label="",location="",
              diagnosis="",grade="",coords="",dt=""
-    
+             
   )
 }
 
-
 updateTissue<-function(con,name,olddata,newdata){
+  cat(name,'\n',pander(head(olddata),caption = "old"),'\n=====\n',pander(head(newdata),caption = "new"),'\n====\n')
+  
+}
+
+#### Patient part #########
+
+getPatientTable<-function(con,tabName){
+  as_data_frame(con %>% tbl('patient'))
+}
+
+makeNewPatient<-function(){
+  data.frame(id=-1,emsid="",yob=-1,
+             age=-1,sex="")
+}
+
+
+updatePatient<-function(con,name,olddata,newdata){
   cat(name,'\n',pander(head(olddata),caption = "old"),'\n=====\n',pander(head(newdata),caption = "new"),'\n====\n')
   
 }
