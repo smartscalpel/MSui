@@ -235,7 +235,7 @@ save(spectra,ncMD,devID,solID,isID,resID,smplID,stID,stpID,rangeID,nMode,cdf.fil
 ```{r plot.palmitate}
 palmMZ<-255.24
 palmID<-which((spectra[[imTIC]]@mass<=(palmMZ+1))&(spectra[[imTIC]]@mass>=(palmMZ-1)))
-plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+palmMZ,ylim=range(spectra[[imTIC]]@intensity[palmID]))
+plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+palmMZ)
 ```
 ```{r plot.stearate}
 stearMZ<-283.27
