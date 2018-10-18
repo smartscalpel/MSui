@@ -180,7 +180,11 @@ if(!(exists('devID')&
   stop('not all obligatory parameters are provided\n')
 }
 if(!exists('halfWindowSize')){
+  if(resID==1){
   halfWindowSize<-3 # best suited for centroided data
+}else{
+  halfWindowSize<-5
+}
 }
 if(!exists('tolerance')){
   tolerance = 2e-4 
@@ -220,10 +224,29 @@ abline(h = qth)
 #spectra <- trim(spectra,range = mzrange)
 ```
 
+```{r save.sig}
+save(spectra,ncMD,devID,solID,isID,resID,smplID,stID,stpID,rangeID,nMode,cdf.file,cdf.fname,file = 'spectra.RData')
+
+```
+
 
 ## Signal
 
-Таблица *Signal* содержит сырые данные, как они получены из исходного файла.
+```{r plot.palmitate}
+palmMZ<-255.24
+palmID<-which((spectra[[imTIC]]@mass<=(palmMZ+1))&(spectra[[imTIC]]@mass>=(palmMZ-1)))
+plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+palmMZ,ylim=range(spectra[[imTIC]]@intensity[palmID]))
+```
+```{r plot.stearate}
+stearMZ<-283.27
+stearID<-which((spectra[[imTIC]]@mass<=(stearMZ+1))&(spectra[[imTIC]]@mass>=(stearMZ-1)))
+plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+stearMZ,ylim=range(spectra[[imTIC]]@intensity[stearID]))
+```
+```{r plot.max}
+which.max(spectra[[imTIC]]@intensity)->imTICmax
+plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+spectra[[imTIC]]@mass[imTICmax])
+```
+
 
 
 ```
@@ -246,24 +269,6 @@ peaks0<-detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
 spectra <- alignSpectra(spectra,reference = spectra[[imTIC]], halfWindowSize = halfWindowSize,tolerance = tolerance)
 alSpectra<-spectra
 
-```
-
-```
-{r plot.palmitate}
-palmMZ<-255.24
-palmID<-which((spectra[[imTIC]]@mass<=(palmMZ+1))&(spectra[[imTIC]]@mass>=(palmMZ-1)))
-plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+palmMZ,ylim=range(spectra[[imTIC]]@intensity[palmID]))
-```
-```
-{r plot.stearate}
-stearMZ<-283.27
-stearID<-which((spectra[[imTIC]]@mass<=(stearMZ+1))&(spectra[[imTIC]]@mass>=(stearMZ-1)))
-plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+stearMZ,ylim=range(spectra[[imTIC]]@intensity[stearID]))
-```
-```
-{r plot.max}
-which.max(spectra[[imTIC]]@intensity)->imTICmax
-plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+spectra[[imTIC]]@mass[imTICmax])
 ```
 
 ```{r prepare.peaks, cache=TRUE}
