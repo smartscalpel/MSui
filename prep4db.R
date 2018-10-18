@@ -26,7 +26,7 @@ for(mf in mfl){
   mdt<-read.xlsx(paste0(path,mf))
   idx2Load<-which(mdt$type=='signal'&!is.na(mdt$status)&mdt$status=='good')
   mdt<-mdt[idx2Load,]
-  for(i in dim(mdt)[1]){
+  for(i in 1:dim(mdt)[1]){
     f<-paste0(wdir,'/cdf/',mdt$num[i],'.cdf')
     pIdx<-match(mdt$protocol[i],protocol$id)
     devID<-protocol$devID[pIdx] #Device
