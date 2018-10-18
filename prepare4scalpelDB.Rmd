@@ -234,17 +234,19 @@ save(spectra,ncMD,devID,solID,isID,resID,smplID,stID,stpID,rangeID,nMode,cdf.fil
 
 ## Signal
 
-```
-{r plot.palmitate}
+```{r plot.palmitate}
 palmMZ<-255.24
 palmID<-which((spectra[[imTIC]]@mass<=(palmMZ+1))&(spectra[[imTIC]]@mass>=(palmMZ-1)))
+if(length(palmID)>10){
 plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+palmMZ)
+}
 ```
-```
-{r plot.stearate}
+```{r plot.stearate}
 stearMZ<-283.27
 stearID<-which((spectra[[imTIC]]@mass<=(stearMZ+1))&(spectra[[imTIC]]@mass>=(stearMZ-1)))
+if(length(stearID)>10){
 plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+stearMZ,ylim=range(spectra[[imTIC]]@intensity[stearID]))
+}
 ```
 ```{r plot.max}
 which.max(spectra[[imTIC]]@intensity)->imTICmax
