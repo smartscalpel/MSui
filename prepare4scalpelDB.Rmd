@@ -222,6 +222,8 @@ qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
 plot(tic)
 abline(h = qth)
 #spectra <- trim(spectra,range = mzrange)
+imTIC<-which.max(tic)
+plot(spectra[[imTIC]])
 ```
 
 ```{r save.sig}
@@ -259,8 +261,6 @@ system.time(res<-sapply(spectra,writeDTsignal,specID=basename(cdf.file),fname=si
 
 Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC, пики группируются с отностительной точностью 2e-5 и исключаются пики, встречающиеся менее чем в 25% сканов. 
 ```{r align.spectra}
-imTIC<-which.max(tic)
-plot(spectra[[imTIC]])
 origSpectra<-spectra
 spectra <- calibrateIntensity(spectra, method="TIC")
 calibrSpectra<-spectra
