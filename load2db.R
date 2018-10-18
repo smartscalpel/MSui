@@ -21,7 +21,7 @@ for(f in fl){
   rmd.fname<-paste0(tmpPath,'/',rmd.name)
   pdf.fname<-sub('.Rmd$','.pdf',rmd.fname)
   cat('fname',rmd.fname,'\npdf',pdf.fname,'\n')
-  file.copy('../load2scalpelDB.Rmd',rmd.fname)
+  file.copy('./load2scalpelDB.Rmd',rmd.fname)
   rmd.fname<-normalizePath(rmd.fname)
   if(!file.exists(sub('Rmd','pdf',rmd.fname))){
     cdf.file<-normalizePath(paste0(path,f))
