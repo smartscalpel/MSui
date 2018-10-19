@@ -324,7 +324,9 @@ cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
 
 ## Spectrum
 ```{r insert.spectrum, eval=proceedFile}
-rs<-dbSendStatement(conn,insertSpectrum,
+spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
+if(dim(spectrumID)[1]==0){
+  rs<-dbSendStatement(conn,insertSpectrum,
                     patient$id, #patient
                     tissue$id, #tumor
                     sample$id,# samlpe
@@ -343,6 +345,7 @@ spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 rs<-dbSendStatement(conn,insertComment,note,'autoloader')
 commentID<-dbGetQuery(conn,getCommentID,note)
 rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
+}
 ```
 
 ## Scans
