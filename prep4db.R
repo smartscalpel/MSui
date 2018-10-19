@@ -1,11 +1,11 @@
 #!/usr/bin/Rscript
 if(!require(openxlsx)){stop('Library "openxlsx" is missing.\n')}
 ############ Predefined parameters
-dbname = "msinvent"
-usr='msinvent'
-pwd='msinvent'
-tmpPath = '/Volumes/AS_WD_HFS/Scalpel/Burdenko/' #'/var/workspaceR/scalpelData/data/'
-protocol<-data.frame(id=2,devID=4,solID=10,isID=5)
+# dbname = "msinvent"
+# usr='msinvent'
+# pwd='msinvent'
+# tmpPath = '/Volumes/AS_WD_HFS/Scalpel/Burdenko/' #'/var/workspaceR/scalpelData/data/'
+# protocol<-data.frame(id=2,devID=4,solID=10,isID=5)
 # Protocol #2 for Burdenko data
 # devID<-4 #Device
 # solID<-10 #Solvent
@@ -16,8 +16,9 @@ stID<-1 #SampleTumorID
 stpID<-1 #SampleTumorPatientID
 nMode<-1 #Negative mode
 rangeID<-1 #MZrange
-path<- '/Volumes/AS_Backup/Scalpel/Burdenko/'
+# path<- '/Volumes/AS_Backup/Scalpel/Burdenko/'
 #########################################
+source('./path.R')
 
 mfl<-dir(path=path,pattern='^(M|m)eta.*.xlsx',recursive = TRUE)
 wd<-getwd()

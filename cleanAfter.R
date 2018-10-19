@@ -3,17 +3,18 @@ if(!require(openxlsx)){stop('Library "openxlsx" is missing.\n')}
 if(!require(DBI)){stop('Library "DBI" is missing.\n')}
 if(!require(MonetDB.R)){stop('Library "MonetDB.R" is missing.\n')}
 ############ Predefined parameters
-dbname = "msinvent"
-usr='msinvent'
-pwd='msinvent'
-tmpPath = '/var/workspaceR/dataloading/Burdenko/' #'/var/workspaceR/scalpelData/data/'
-archPath = '/var/workspaceR/scalpelData/archive/Burdenko/'
-path<- '/var/samba/share/Burdenko/'
+#dbname = "msinvent"
+# usr='msinvent'
+# pwd='msinvent'
+# tmpPath = '/var/workspaceR/dataloading/Burdenko/' #'/var/workspaceR/scalpelData/data/'
+# archPath = '/var/workspaceR/scalpelData/archive/Burdenko/'
+# path<- '/var/samba/share/Burdenko/'
+#########################################
+source('./path.R')
 getSpec<-paste('select s.id from spectrum s join patient p on s.sampletumorpatientid=p.id ',
                'join tissue t on s.sampletumorid=t.id',
                'join smpl l on s.sampleid=l.id',
                'where p.emsid=? and t.label=? and l.label=?')
-#########################################
 
 mfl<-dir(path=path,pattern='^(M|m)eta.*.xlsx',recursive = TRUE)
 wd<-getwd()

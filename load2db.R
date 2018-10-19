@@ -1,14 +1,15 @@
 #!/usr/bin/Rscript
 
 ############ Predefined parameters
-dbname = "msinvent"
-usr='msinvent'
-pwd='msinvent'
-dtPath = '/Volumes/AS_WD_HFS/Scalpel/DBData/' #'/var/workspaceR/scalpelData/data/'
-tmpPath = '/Volumes/AS_WD_HFS/Scalpel/Burdenko/' #'/var/workspaceR/scalpelData/data/'
-archPath = '/var/workspaceR/scalpelData/archive/Burdenko/'
-path<-'/Volumes/AS_WD_HFS/Scalpel/DBData/'
+# dbname = "msinvent"
+# usr='msinvent'
+# pwd='msinvent'
+# dtPath = '/Volumes/AS_WD_HFS/Scalpel/DBData/' #'/var/workspaceR/scalpelData/data/'
+# tmpPath = '/Volumes/AS_WD_HFS/Scalpel/Burdenko/' #'/var/workspaceR/scalpelData/data/'
+# archPath = '/var/workspaceR/scalpelData/archive/Burdenko/'
+# path<-'/Volumes/AS_WD_HFS/Scalpel/DBData/'
 #########################################
+source('./path.R')
 
 fl<-dir(path=tmpPath,pattern='.*tmp_peak.tsv$',recursive=TRUE)
 wd<-getwd()
