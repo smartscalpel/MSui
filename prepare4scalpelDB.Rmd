@@ -222,6 +222,8 @@ qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
 #plot(xraw@tic,tic)
 plot(tic)
 abline(h = qth)
+spectra <-spectra[tic>qth]
+tic<-sapply(spectra,totalIonCurrent)
 #spectra <- trim(spectra,range = mzrange)
 imTIC<-which.max(tic)
 plot(spectra[[imTIC]])
