@@ -523,9 +523,11 @@ after
 if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
   rs<-dbSendStatement(conn,'delete from tmp_peak;')
 }
+abDF<-data.frame(tsv=wcn[1],before=before$num,after=after$num,diff=(after$num-before$num))
+kable(abDF, format = "latex", caption = 'Predefined parameters for load', row.names=FALSE, booktabs=TRUE)
 ```
 
-Database load `r after$num-before$num` rows into the peak table. The TSV file contains `r wcn[1]` rows. Content of the `tmp_peak` table was `r if((after$num>before$num) & (after$num-before$num==wcn[1])) c("NOT")` cleaned.
+Database load r after$num-before$num rows into the peak table. The TSV file contains r wcn[1] rows. Content of the `tmp_peak` table was `r if((after$num>before$num) & (after$num-before$num==wcn[1])) c("NOT")` cleaned.
 
 ### Enable referential constraints
 ```
