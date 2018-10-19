@@ -278,7 +278,7 @@ note<-paste('exDT:',experimentData,'\nfileDT:',
             origFilePath,'\ncomment:',comment)
 ```
 
-```{r prepare.sample}
+```{r prepare.sample, eval=proceedFile}
 patient<-dbGetQuery(conn,getPatient,stpID)
 if(dim(patient)[1]==0){
   rs<-dbSendStatement(conn,insertPatient,stpID)
@@ -327,7 +327,7 @@ cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
 rs<-dbSendStatement(conn,insertSpectrum,
                     patient$id, #patient
                     tissue$id, #tumor
-                    sample$idx,# samlpe
+                    sample$id,# samlpe
                     resID,# resolution
                     solID,# solution
                     devID,# device
