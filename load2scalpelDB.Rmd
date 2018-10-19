@@ -344,7 +344,7 @@ if(dim(spectrumID)[1]==0){
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
     dbClearResult(rs)
-spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
+spectrumID<-dbGetQuery(conn,getSpecID,cdf.fname)
 rs<-dbSendStatement(conn,insertComment,note,'autoloader')
 commentID<-dbGetQuery(conn,getCommentID,note)
 rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
