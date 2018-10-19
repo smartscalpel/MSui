@@ -26,6 +26,7 @@ for(mf in mfl){
   idx2Load<-which(mdt$type=='signal'&!is.na(mdt$status)&mdt$status=='good')
   mdt<-mdt[idx2Load,]
   if(dim(mdt)[1]>0){
+    sub(path,tmpPath,wdir)->tdir
     tsvl<-dir(tdir,'*.tsv',recursive=TRUE)
     rmdl<-dir(tdir,'prep.Rmd',recursive=TRUE)
     if(length(tsvl)==length(rmdl)){
@@ -44,7 +45,7 @@ for(mf in mfl){
       }
     }else{
       idx<-match(dirname(rmdl),dirname(tsvl))
-      cat('not loaded: \n',paste0(tmpPath,dirname(rmdl[is.na(idx)]),collapse = '\n'),'\n')
+      cat('not loaded: \n',paste0(tdir,dirname(rmdl[is.na(idx)]),collapse = '\n'),'\n')
     }
   }else{
     adir<-dirname(sub(path,archPath,wdir))
