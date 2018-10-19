@@ -149,13 +149,15 @@ writeDTsignal<-function(sp,specID,fname){
   fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
 }
 
-writeDTpeak<-function(p,specID,tic,fname){
+writeDTpeak<-function(id,specID,tic,peak,fname){
+  p<-peak[[id]]
   md<-metaData(p)
+  if(length(p)>0){
   #cat('Writing scan',md$number,md$retentionTime,'\n')
   resDF<-data.table(spec=specID,
                     num=md$number,
                     mz=p@mass,
-                    intensity=tic[md$number]*p@intensity,
+                    intensity=tic[id]*p@intensity,
                     norm2tic=p@intensity,snr=p@snr)
   if(file.exists(fname)){
   	app=TRUE
@@ -163,6 +165,7 @@ writeDTpeak<-function(p,specID,tic,fname){
   	app=FALSE
   }
   fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
+  }
 }
 
 ```
@@ -324,7 +327,7 @@ cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
 
 ## Spectrum
 ```{r insert.spectrum, eval=proceedFile}
-spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
+spectrumID<-dbGetQuery(conn,getSpecID,cdf.fname)
 if(dim(spectrumID)[1]==0){
   rs<-dbSendStatement(conn,insertSpectrum,
                     patient$id, #patient
@@ -469,6 +472,7 @@ rs<-dbSendStatement(conn,'drop INDEX "peak_scan";')
     dbGetRowsAffected(rs)
     dbClearResult(rs)
 ```
+
 ```{r prepare.peak.file, eval=proceedFile}
 peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
 #system(paste0('gunzip ',peakFname,'.gz'))
@@ -483,6 +487,15 @@ if(beforeTMP$num>0){
 ```
 
 There was `r if(exists('beforeTMP')){beforeTMP$num}else {0}` rows in the `tmp_peak` table after last insert. THey are all deleted.
+
+```{r preprocess.peak.file, eval=proceedFile}
+tmp_peak<-fread(peakFname)
+names(tmp_peak)<-c('spec','num','mz','intensity','norm2tic','snr')
+if(any(is.na(tmp_peak$intensity))){
+  system(paste0('rm -rf ',peakFname))
+system.time(res<-sapply(c(1:length(fpeaks2)),writeDTpeak,specID=cdf.fname,tic=tic,peak=fpeaks2,fname=peakFname))
+}
+```
 
 ```{r load.peak.file, eval=proceedFile}
 system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_peak  FROM ',"'",peakFname,"'",';"'),intern = TRUE)->mcOut

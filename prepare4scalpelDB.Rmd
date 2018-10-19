@@ -116,14 +116,15 @@ writeDTsignal<-function(sp,specID,fname){
   fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
 }
 
-writeDTpeak<-function(p,specID,tic,fname){
+writeDTpeak<-function(id,specID,tic,peak,fname){
+  p<-peak[[id]]
   md<-metaData(p)
   if(length(p)>0){
   #cat('Writing scan',md$number,md$retentionTime,'\n')
   resDF<-data.table(spec=specID,
                     num=md$number,
                     mz=p@mass,
-                    intensity=tic[md$number]*p@intensity,
+                    intensity=tic[id]*p@intensity,
                     norm2tic=p@intensity,snr=p@snr)
   if(file.exists(fname)){
   	app=TRUE
@@ -287,7 +288,7 @@ featureMatrix2 <- intensityMatrix(fpeaks2, spectra)
 
 ```{r prepare.peak.file}
 peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
-system.time(res<-sapply(fpeaks2,writeDTpeak,specID=cdf.fname,tic=tic,fname=peakFname))
+system.time(res<-sapply(c(1:length(fpeaks2)),writeDTpeak,specID=cdf.fname,tic=tic,peak=fpeaks2,fname=peakFname))
 ```
 
 # Save data
