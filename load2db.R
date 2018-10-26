@@ -1,41 +1,28 @@
 #!/usr/bin/Rscript
 
 ############ Predefined parameters
-dbname = "msinvent"
-usr='msinvent'
-pwd='msinvent'
-dtPath = '/Volumes/AS_WD_HFS/Scalpel/DBData/'
-devID<-1 #Device
-solID<-6 #Solvent
-isID<-1 # ionsource
-resID<-1 #ResolutionID
-smplID<-1 #SampleID
-stID<-1 #SampleTumorID
-stpID<-1 #SampleTumorPatientID
-nMode<-1 #Negative mode
-path<-'/var/samba/share/Scalpel/BD_cdf/'
+# dbname = "msinvent"
+# usr='msinvent'
+# pwd='msinvent'
+# dtPath = '/Volumes/AS_WD_HFS/Scalpel/DBData/' #'/var/workspaceR/scalpelData/data/'
+# tmpPath = '/Volumes/AS_WD_HFS/Scalpel/Burdenko/' #'/var/workspaceR/scalpelData/data/'
+# archPath = '/var/workspaceR/scalpelData/archive/Burdenko/'
+# path<-'/Volumes/AS_WD_HFS/Scalpel/DBData/'
 #########################################
+source('./path.R')
 
-fl<-dir(path=path,pattern='*.cdf$',recursive=TRUE)
+fl<-dir(path=tmpPath,pattern='.*tmp_peak.tsv$',recursive=TRUE)
 wd<-getwd()
 for(f in fl){
 #  ls()->L
 #  rm(list=L[!L%in%c('fl','f','rmd.name')])
-  dir.name<-sub('.cdf','',basename(f))
-  dir.name<-gsub("(\"|'|\\(|\\)|\\[|\\]| |\t)",'_',dir.name)
-  rmd.name<-paste0(dir.name,'.Rmd')
-  pdf.name<-paste0(dir.name,'.prep.pdf')
-  system(paste0('mkdir -p ./',shQuote(dir.name)))
-  cat('cdf:',f,'\ndir:',dir.name,'\nrmd:',rmd.name,'\n')
-  rmd.fname<-paste0('./',dir.name,'/',rmd.name)
-  pdf.fname<-paste0('./',dir.name,'/',pdf.name)
-  cat('fname',rmd.fname,'\npdf',pdf.fname)
-  if(file.exists(pdf.fname)&!file.exists(rmd.fname)){
-    file.copy('../load2scalpelDB.Rmd',rmd.fname)
-    if(FALSE){#file.exists(rmd.name)){
-      rmarkdown::render(rmd.fname,'pdf_document')
-    }
-  }
+  dir.name<-sub('tmp_peak.tsv','',f)
+  rmd.name<-paste0(dir.name,'load.Rmd')
+  cat('peaks:',f,'\ndir:',dir.name,'\nrmd:',rmd.name,'\n')
+  rmd.fname<-paste0(tmpPath,'/',rmd.name)
+  pdf.fname<-sub('.Rmd$','.pdf',rmd.fname)
+  cat('fname',rmd.fname,'\npdf',pdf.fname,'\n')
+  file.copy('./load2scalpelDB.Rmd',rmd.fname)
   rmd.fname<-normalizePath(rmd.fname)
   if(!file.exists(sub('Rmd','pdf',rmd.fname))){
     cdf.file<-normalizePath(paste0(path,f))
