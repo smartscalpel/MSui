@@ -1,5 +1,7 @@
 # You need to be sure, that patient table exists.
 
+
+
 tissuesCheckEmsId <- function(pool, emsIdValue) {
         
         # The following sequence of operations never touches the database,
@@ -15,7 +17,6 @@ tissuesCheckEmsId <- function(pool, emsIdValue) {
         
         if (dim(dataFromDB)[1] == 1) {
                 return(list(TRUE, dataFromDB))
-                print(dataFromDB)
         } else {
                 return(list(FALSE, NULL))
         }
@@ -56,28 +57,24 @@ tissuesSaveEntry <- function(pool) {
 
 
 
-tissuesAddNewPatient <- function(pool) {
-        function(emsid) {
+tissuesAddNewPatient <- function(pool, emsid) {
                 
-                df <- base::data.frame(NA, emsid, -1, NA, NA)
-                x <- c("id", "emsid", "yob", "sex", "age")
-                base::colnames(df) <- x
-                
-                conn <- pool::poolCheckout(pool)
-                
-                dbSendQuery(
-                        conn,
-                        paste(
-                                "INSERT INTO patient (emsid, yob) VALUES ('",
-                                emsid,
-                                "', -1);",
-                                sep = ""
-                        )
+        df <- base::data.frame(NA, emsid, -1, NA, NA)
+        x <- c("id", "emsid", "yob", "sex", "age")
+        base::colnames(df) <- x
+        
+        conn <- pool::poolCheckout(pool)
+        
+        dbSendQuery(
+                conn,
+                paste(
+                        "INSERT INTO patient (emsid, yob) VALUES ('",
+                        emsid,
+                        "', -1);",
+                        sep = ""
                 )
-                
-                pool::poolReturn(conn)
-                
-                return(TRUE)
-        }
+        )
+        
+        pool::poolReturn(conn)
 }
 

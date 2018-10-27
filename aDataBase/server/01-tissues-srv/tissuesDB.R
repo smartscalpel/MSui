@@ -21,7 +21,7 @@ tissuesLoadDataFromDB <- function(pool,
         dataFromDB <- dplyr::tbl(pool, "patisue")
         
         if (fridgeSelector[[1]]() != "all") {
-                
+                # TODO: add filter
         }
         
         if (sexSelector[[1]]() != "all") {

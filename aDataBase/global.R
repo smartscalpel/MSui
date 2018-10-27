@@ -33,12 +33,18 @@
 # 1. If an external library is used (maybe exept for shiny and base), it is suggested to
 #    explicitly specify the library. For example:
 #
-#            MonetDBLite::MonetDB()
+#               MonetDBLite::MonetDB()
 #
 #    Generally, this agreement allows to improve readability of the source code.
+#
 # 2. Another suggestion regards to variable names. The first part of variable name
-#    should repeat  
-
+#    should repeat the name of the tabItem. For example, if name of the tabItem is
+#    'tissues', then the name of the corresponding variable may be:
+#
+#               tissuesAction
+#
+#    This suggestion allows to organize global namespace in more efficient way
+#
 
 
 library(shiny)
@@ -49,6 +55,7 @@ library(MonetDBLite)
 library(pool)
 library(dplyr)
 library(magrittr)
+library(shinyBS)
 
 
 
@@ -74,7 +81,6 @@ source("./modules/table/dtTable.R")
 
 # AddEntry modules
 source("./modules/addentry/tissuesAddEntry.R")
-source("./modules/addentry/tissuesAddPatient.R")
 
 
 

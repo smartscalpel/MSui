@@ -1,6 +1,6 @@
 # Show Screensaver with inputText instead of table
 # if error is occured
-generateHtmlScreenSaver <- function(inputText) {
+generateHtmlScreensaver <- function(inputText) {
         shiny::renderUI({
                 shiny::fluidRow(
                         shiny::column(

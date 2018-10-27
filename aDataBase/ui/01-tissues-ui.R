@@ -14,6 +14,7 @@ shinydashboard::tabItem(
                                         
                                         # Show Screensaver, editable on readonly table depending on
                                         # tissuesError and editableTable reactive values
+                                        
                                         shiny::conditionalPanel(
                                                 "output.tissuesError == true",
                                                 shiny::uiOutput("tissuesScreensaver")
@@ -26,7 +27,7 @@ shinydashboard::tabItem(
 
                                         shiny::conditionalPanel(
                                                 "output.tissuesError == false && output.editableTable == true",
-                                                tissueEditableUI(id = "tissuesEditable")
+                                                editableUI(id = "tissuesEditable")
                                         )
                                 )
                         )
@@ -37,7 +38,10 @@ shinydashboard::tabItem(
                                 width = 12,
                                 title = "Filters",
                                 
-                                shiny::checkboxInput(inputId = "tissuesEditableSelector", "Editable table"),
+                                shiny::checkboxInput(
+                                        inputId = "tissuesEditableTableSelector",
+                                        label = "Editable table"
+                                ),
                                 
                                 # Avaliability in fridge
                                 fridgeSelectorUI(id = "tissuesFridgeSelector"),

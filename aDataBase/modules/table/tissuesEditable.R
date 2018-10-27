@@ -1,14 +1,15 @@
-# We create separate modules for each editable table since it makes the code slightly readable and
-# there are many specific stuff for each data table
-
 # Module UI function
-tissueEditableUI <- function(id) {
+editableUI <- function(id) {
         ns <- NS(id)
         
         tagList(
                 div(
                         align = "center",
-                        actionButton(ns("save"), "Save table", icon = icon("save"))
+                        actionButton(
+                                inputId = ns("save"),
+                                label = "Save table",
+                                icon = icon("save")
+                        )
                 ),
                 br(),
                 DT::dataTableOutput(outputId = ns("table"))
@@ -19,31 +20,29 @@ tissueEditableUI <- function(id) {
 
 
 # Module server function
-tissueEditable <- function(input, output, session, dataFromDB, checkEditTable, modalUI) {
+editable <- function(input, output, session, dataFromDB, checkEditTable) {
         proxy <- DT::dataTableProxy('table')
-        
-        # Store ids of updates rows
-        updatedRows <- c()
         
         output$table <- renderDT(
                 dtTable(dataFromDB = dataFromDB, editable = TRUE)
         )
         
         observeEvent(input$table_cell_edit, {
-                print(updatedRows)
                 info = input$table_cell_edit
                 # str(info)
                 i = info$row
                 j = info$col + 1
                 v = info$value
                 
-                checkResult <- checkEditTable(dataFromDB = dataFromDB, j = j, newValue = v)
+                checkEditTableResult <- checkEditTable(
+                        dataFromDB = dataFromDB,
+                        j = j,
+                        newValue = v
+                )
                 
-                if (checkResult[[1]]) {
+                if (checkEditTableResult[[1]]) {
                         dataFromDB[i, j] <<- DT::coerceValue(v, dataFromDB[i, j])
                         replaceData(proxy, dataFromDB, resetPaging = FALSE, rownames = FALSE)
-                        updatedRows <- c(updatedRows, dataFromDB[i, 1])
-                        print(updatedRows)
                 } else {
                         showModal(
                                 modalDialog(
@@ -51,7 +50,7 @@ tissueEditable <- function(input, output, session, dataFromDB, checkEditTable, m
                                                 tags$b(
                                                         paste(
                                                                 "Error! Invalid input:",
-                                                                checkResult[[2]]
+                                                                checkEditTableResult[[2]]
                                                         ),
                                                         style = "color: red;"
                                                 )
