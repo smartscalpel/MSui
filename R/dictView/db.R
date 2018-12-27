@@ -2,7 +2,7 @@ library(pool)
 library(rlang)
 library(MonetDBLite)
 
-pool <- dbPool(MonetDBLite::MonetDB(),
+pool <- dbPool(MonetDBLite::MonetDB.R(),
                dbname = 'msinvent',
                user='msinvent',password='msinvent')
 
