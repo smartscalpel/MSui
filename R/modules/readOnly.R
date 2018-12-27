@@ -19,7 +19,9 @@ readOnly <- function(input, output, session, pool, tabName,
   #   updateSelectInput(session, "tableName", choices = tbls())
   # })
   #
-
+  
+  autoInvalidate <- reactiveTimer(20000)
+  
   observe({
     req(tabName)
     req(tabName %in% db_list_tables(pool))
@@ -45,7 +47,7 @@ readOnly <- function(input, output, session, pool, tabName,
   output$res <- renderRHandsontable({
  #   reqColInTable(input$tableName, input$filter)
     cat('output$res: tblExsists',tabName,(tabName %in% db_list_tables(pool)),'\n')
-
+    autoInvalidate()
     # filterVar <- sym(input$filter)
     # vals <- input$vals
 
