@@ -29,7 +29,7 @@ options(shiny.maxRequestSize=500*1024^2)
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
-  callModule(editable, "files", pool,tabName="files",colWidths=c(50,200,500),
+  callModule(editable, "files", pool,tabName="files",colWidths=c(50,80,80,500,100,50,50,80,100,80),width=1300,
              makeEmptyRow=makeDiag,updateTable=updateDiag)
   callModule(editable, "res", pool,tabName="resolution",colWidths=c(50,200,500),
              makeEmptyRow=makeDiag,updateTable=updateDiag)
