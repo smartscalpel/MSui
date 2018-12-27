@@ -20,6 +20,7 @@ dashboardPage(
   dashboardSidebar(width = 350,
                    sidebarMenu(
                      textInput("searchField", "Search"),
+                     menuItem("Files",tabName = 'Files'),
                      menuItem("Diagnosis",tabName = 'Diagnosis'),
                      menuItem("Tissue type",tabName = 'Ttype'),
                      menuItem("Device",tabName = 'Device'),
@@ -29,6 +30,7 @@ dashboardPage(
                    )),
   dashboardBody(
     tabItems(
+      tabItem('Files',readOnlyUI("files")),
       tabItem('Diagnosis',readOnlyUI("diag")),
       tabItem('Ttype',readOnlyUI("ttype")),
       tabItem('Device',readOnlyUI("dev")),
