@@ -8,14 +8,18 @@
 #
 
 
+
+#
 # Structure of the project:
 # 
 # 
 # ./www/
 # 
 # 
-# ./modules/addentry
-#           selector
+# ./modules/01-tissues
+#           02-tissues-add
+#           03-patients
+#           04-patients-add
 #           table
 # 
 # 
@@ -25,62 +29,72 @@
 # ./server/01-tissues-srv
 #          02-tissues-add-srv
 #          03-patient-srv
+#          04-patients-add-srv
+#
 
 
 
+#
 # The following code style is accepted:
 # 
 # 1. If an external library is used (maybe exept for shiny and base), it is suggested to
 #    explicitly specify the library. For example:
 #
-#               MonetDBLite::MonetDB()
+#            MonetDBLite::MonetDB()
 #
 #    Generally, this agreement allows to improve readability of the source code.
-#
 # 2. Another suggestion regards to variable names. The first part of variable name
-#    should repeat the name of the tabItem. For example, if name of the tabItem is
-#    'tissues', then the name of the corresponding variable may be:
-#
-#               tissuesAction
-#
-#    This suggestion allows to organize global namespace in more efficient way
+#    should repeat section name
 #
 
 
-library(shiny)
-library(shinydashboard)
-library(shinyjs)
-library(DT)
-library(MonetDBLite)
-library(pool)
-library(dplyr)
-library(magrittr)
-library(shinyBS)
+
+# Required libraries
+suppressMessages(library(shiny))
+suppressMessages(library(shinydashboard))
+suppressMessages(library(shinyjs))
+suppressMessages(library(DT))
+suppressMessages(library(MonetDBLite))
+suppressMessages(library(DBI))
+suppressMessages(library(pool))
+suppressMessages(library(dplyr))
+suppressMessages(library(magrittr))
+suppressMessages(library(V8))
 
 
 
-# Selector modules
-source("./modules/selector/fridge-selector.R")
-source("./modules/selector/id-selector.R")
-source("./modules/selector/sex-selector.R")
-source("./modules/selector/age-range-selector.R")
-source("./modules/selector/age-single-selector.R")
-source("./modules/selector/diagnosis-multiple-selector.R")
-source("./modules/selector/diagnosis-single-selector.R")
-source("./modules/selector/time-selector.R")
-source("./modules/selector/time-single-selector.R")
-source("./modules/selector/grade-single-selector.R")
+# 01-tissues section: selector modules
+source("./modules/01-tissues/selector/tissues-fridge-selector.R")
+source("./modules/01-tissues/selector/tissues-id-selector.R")
+source("./modules/01-tissues/selector/tissues-sex-selector.R")
+source("./modules/01-tissues/selector/tissues-age-selector.R")
+source("./modules/01-tissues/selector/tissues-diagnosis-selector.R")
+source("./modules/01-tissues/selector/tissues-time-selector.R")
 
+# 02-tissues-add section: selector modules
+source("./modules/02-tissues-add/selector/tissues-add-age-selector.R")
+source("./modules/02-tissues-add/selector/tissues-add-diagnosis-selector.R")
+source("./modules/02-tissues-add/selector/tissues-add-grade-selector.R")
+source("./modules/02-tissues-add/selector/tissues-add-time-selector.R")
+
+# 02-tissues-add section: other (used by both ui and server)
+source("./modules/02-tissues-add/tissuesAddCreateTissue.R")
+source("./modules/02-tissues-add/tissuesAddCreatePatient.R")
+
+# 03-patients section: selector modules
+source("./modules/03-patients/selector/patients-age-selector.R")
+source("./modules/03-patients/selector/patients-sex-selector.R")
+source("./modules/03-patients/selector/patients-yob-selector.R")
+
+# 04-patients-add section: selector modules
+source("./modules/04-patients-add/selector/patients-add-sex-selector.R")
+source("./modules/04-patients-add/selector/patients-add-yob-selector.R")
+source("./modules/04-patients-add/selector/patients-add-age-selector.R")
 
 # Table modules
-source("./modules/table/tissuesEditable.R")
+source("./modules/table/editable.R")
 source("./modules/table/readOnly.R")
 source("./modules/table/dtTable.R")
-
-
-
-# AddEntry modules
-source("./modules/addentry/tissuesAddEntry.R")
 
 
 

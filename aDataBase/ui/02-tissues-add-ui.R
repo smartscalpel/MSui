@@ -1,39 +1,11 @@
 shinydashboard::tabItem(
         tabName = "tissuesadd",
-        shinyBS::bsModal(
-                id = "tissuesAddPatientModal",
-                title = h4("Create a new patient"),
-                trigger = "tissuesAddPatientModalCreate",
-                div(
-                        "The following patient will be added in table. If you want
-                        to specify special information about patient, you should
-                        add it via anouther tab."
-                ),
-                br(),
-                DT::dataTableOutput(outputId = "tissuesAddTmpPatientTable"),
-                br(),
-                div(
-                        "If you want to save table, just press Save. Otherwwise,
-                        press Close."
-                ),
-                div(
-                        align = "right",
-                        actionButton(
-                                inputId = "tissuesAddPatientModalSave",
-                                label = "Save",
-                                icon = icon("save")
-                        )
-                )
-        ),
-        
-        
-        
         shiny::fluidRow(
                 shiny::column(
-                        width = 4
+                        width = 3
                 ),
                 shiny::column(
-                        width = 5,
+                        width = 6,
                         
                         box(
                                 width = 12,
@@ -42,9 +14,11 @@ shinydashboard::tabItem(
                                         align = "center",
                                         h2("ScalpelDB: Add Tissue")
                                 ),
+                                
                                 br(),
                                 
                                 h4("Check EmsId"),
+                                
                                 br(),
                                 
                                 div(
@@ -52,16 +26,17 @@ shinydashboard::tabItem(
                                         If a patient with given emsid exists, you need just fill the gaps below.
                                         Otherwise, we will ofer to create a new patient."
                                 ),
+                                
                                 br(),
                                 
                                 shiny::textInput(
-                                        inputId = "tissuesAddEmsId",
+                                        inputId = "tissueAddEmsId",
                                         label = "EmsId",
                                         width = "50%"
                                 ),
                                 
                                 shiny::actionButton(
-                                        inputId = "tissuesAddSearch",
+                                        inputId = "tissueAddSearch",
                                         label = "Serach",
                                         icon = icon("search")
                                 ),
@@ -72,19 +47,12 @@ shinydashboard::tabItem(
                                         shiny::htmlOutput(outputId = "tissuesAddMessgae")
                                 ),
                                 shiny::conditionalPanel(
-                                        "output.tissuesAddPatient == true",
-                                        br(),
-                                        shiny::actionButton(
-                                                inputId = "tissuesAddPatientModalCreate",
-                                                label = "Create"
-                                        )
+                                        "output.tissuesAddFind == true",
+                                        tissuesAddCreateTissueUI(id = "tissuesAddCreateTissue", diagnosisDictionary = diagnosisDictionary)
                                 ),
                                 shiny::conditionalPanel(
-                                        "output.tissuesAddFind == true",
-                                        tissuesAddEntryUI(
-                                                id = "tissuesAddEntry",
-                                                diagnosisDictionary = diagnosisDictionary
-                                        )
+                                        "output.tissuesAddAdd == true",
+                                        tissuesAddCreatePatientUI(id = "tissuesAddCreatePatient")
                                 )
                         )
                 ),

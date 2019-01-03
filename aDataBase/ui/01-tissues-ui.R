@@ -13,20 +13,19 @@ shinydashboard::tabItem(
                                         ),
                                         
                                         # Show Screensaver, editable on readonly table depending on
-                                        # tissuesError and editableTable reactive values
-                                        
+                                        # tissuesError and tissuesEditableTable reactive values
                                         shiny::conditionalPanel(
                                                 "output.tissuesError == true",
                                                 shiny::uiOutput("tissuesScreensaver")
                                         ),
 
                                         shiny::conditionalPanel(
-                                                "output.tissuesError == false && output.editableTable == false",
+                                                "output.tissuesError == false && output.tissuesEditableTable == false",
                                                 readOnlyUI(id = "tissuesReadOnly")
                                         ),
 
                                         shiny::conditionalPanel(
-                                                "output.tissuesError == false && output.editableTable == true",
+                                                "output.tissuesError == false && output.tissuesEditableTable == true",
                                                 editableUI(id = "tissuesEditable")
                                         )
                                 )
@@ -38,28 +37,25 @@ shinydashboard::tabItem(
                                 width = 12,
                                 title = "Filters",
                                 
-                                shiny::checkboxInput(
-                                        inputId = "tissuesEditableTableSelector",
-                                        label = "Editable table"
-                                ),
+                                shiny::checkboxInput(inputId = "tissuesEditableSelector", "Editable table"),
                                 
                                 # Avaliability in fridge
-                                fridgeSelectorUI(id = "tissuesFridgeSelector"),
+                                tissuesFridgeSelectorUI(id = "tissuesFridgeSelector"),
                                 
                                 # Select Sex
-                                sexSelectorUI(id = "tissuesSexSelector"),
+                                tissuesSexSelectorUI(id = "tissuesSexSelector"),
                                 
                                 # Select Age
-                                ageRangeSelectorUI(id = "tissuesAgeRangeSelector"),
+                                tissuesAgeSelectorUI(id = "tissuesAgeSelector"),
                                 
                                 # Select Diagnosis
-                                diagnosisMultipleSelectorUI(
-                                        id = "tissuesDiagnosisMultipleSelector",
+                                tissuesDiagnosisSelectorUI(
+                                        id = "tissuesDiagnosisSelector",
                                         diagnosisDictionary$name
                                 ),
                                 
                                 # Select Time
-                                timeSelectorUI(id  = "tissuesTimeSelector"),
+                                tissuesTimeSelectorUI(id  = "tissuesTimeSelector"),
                                 
                                 shiny::actionButton(inputId = "tissuesSelect", label = "Select"),
                                 

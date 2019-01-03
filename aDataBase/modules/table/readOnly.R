@@ -10,10 +10,15 @@ readOnlyUI <- function(id) {
 
 
 # Module server function
-readOnly <- function(input, output, session, dataFromDB) {
+readOnly <- function(input, output, session, dtTable, dataFromDB, hideColumns) {
         
         output$table <- DT::renderDataTable(
-                dtTable(dataFromDB = dataFromDB, editable = FALSE)
+                dtTable(
+                        dataFromDB = dataFromDB,
+                        editable = FALSE,
+                        hideColumns = hideColumns,
+                        height = "68vh"
+                )
         )
         
 }

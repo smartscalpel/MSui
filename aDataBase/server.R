@@ -14,10 +14,13 @@ source("./global.R")
 # Server function
 server <- function(input, output, session) {
         
-        source("./server/generateHtmlScreensaver.R", local = TRUE)
+        source("./server/generateHtmlScreenSaver.R", local = TRUE)
         source("./server/generateErrorMessage.R",    local = TRUE)
+        source("./server/dataModal.R",               local = TRUE)
         
-        source("./server/01-tissues-srv/01-tissues-srv.R",         local = TRUE)
-        source("./server/02-tissues-add-srv/02-tissues-add-srv.R", local = TRUE)
+        source("./server/01-tissues-srv/01-tissues-srv.R",           local = TRUE)
+        source("./server/02-tissues-add-srv/02-tissues-add-srv.R",   local = TRUE)
+        source("./server/03-patients-srv/03-patients-srv.R",         local = TRUE)
+        source("./server/04-patients-add-srv/04-patients-add-srv.R", local = TRUE)
         
 }

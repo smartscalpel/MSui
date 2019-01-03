@@ -1,85 +1,81 @@
-source("./server/01-tissues-srv/tissuesCheckSelectorInput.R", local = TRUE)
-source("./server/01-tissues-srv/tissuesDB.R",                 local = TRUE)
-source("./server/01-tissues-srv/tissuesCheckEditTable.R",     local = TRUE)
+source("./server/01-tissues-srv/tissuesCheckInput.R",     local = TRUE)
+source("./server/01-tissues-srv/tissuesSaveUpdated.R",    local = TRUE)
+source("./server/01-tissues-srv/tissuesLoadDataFromDB.R", local = TRUE)
+source("./server/01-tissues-srv/tissuesCheckEditTable.R", local = TRUE)
 
 
 
-# processing UI
-tissuesFridgeSelector            <- shiny::callModule(fridgeSelector,            "tissuesFridgeSelector")
-tissuesSexSelector               <- shiny::callModule(sexSelector,               "tissuesSexSelector")
-tissuesAgeRangeSelector          <- shiny::callModule(ageRangeSelector,          "tissuesAgeRangeSelector")
-tissuesDiagnosisMultipleSelector <- shiny::callModule(diagnosisMultipleSelector, "tissuesDiagnosisMultipleSelector")
-tissuesTimeSelector              <- shiny::callModule(timeSelector,              "tissuesTimeSelector")
+tissuesFridgeSelector    <- shiny::callModule(tissuesFridgeSelector,    "tissuesFridgeSelector")
+tissuesSexSelector       <- shiny::callModule(tissuesSexSelector,       "tissuesSexSelector")
+tissuesAgeSelector       <- shiny::callModule(tissuesAgeSelector,       "tissuesAgeSelector")
+tissuesDiagnosisSelector <- shiny::callModule(tissuesDiagnosisSelector, "tissuesDiagnosisSelector")
+tissuesTimeSelector      <- shiny::callModule(tissuesTimeSelector,      "tissuesTimeSelector")
 
 
+tissueValues <- reactiveValues()
+tissueValues$tissuesError         <- TRUE
+tissueValues$tissuesEditableTable <- FALSE
 
-# These reactive values are needed to control ConditionalPanels in UI
-tissuesValues <- reactiveValues()
-tissuesValues$tissuesError  <- TRUE
-tissuesValues$editableTable <- FALSE
+output$tissuesScreensaver <- generateHtmlScreenSaver(inputText = "Set up Filters and press Select!")
 
-output$tissuesError <- reactive({
-        return(tissuesValues$tissuesError)
-})
-output$editableTable <- reactive({
-        return(tissuesValues$editableTable)
-})
-outputOptions(output, "tissuesError",  suspendWhenHidden = FALSE)
-outputOptions(output, "editableTable", suspendWhenHidden = FALSE)
-
-
-
-# Screensaver, that is shown at the very beginning
-output$tissuesScreensaver <- generateHtmlScreensaver(inputText = "Set up Filters and press Select!")
-
-
-
-# Trying to Select table...
 shiny::observeEvent(input$tissuesSelect, {
         
-        tissuesCheckSelectorInputRes <- tissuesCheckSelectorInput(
-                diagnosisMultipleSelector = tissuesDiagnosisMultipleSelector,
+        tissuesCheckOutput <- tissuesCheckInput(
+                diagnosisSelector = tissuesDiagnosisSelector,
                 timeSelector = tissuesTimeSelector
         )
         
-        if (tissuesCheckSelectorInputRes[[1]]) {
-                tissuesValues$tissuesError <- FALSE
+        if (tissuesCheckOutput[[1]]) {
+                tissueValues$tissuesError <- FALSE
                 
                 # Load data from database
                 tissuesDataFromDB <- tissuesLoadDataFromDB(
-                        pool = pool,
+                        pool,
                         fridgeSelector = tissuesFridgeSelector,
                         sexSelector = tissuesSexSelector,
-                        ageRangeSelector = tissuesAgeRangeSelector,
-                        diagnosisMultipleSelector = tissuesDiagnosisMultipleSelector,
+                        ageSelector = tissuesAgeSelector,
+                        diagnosisSelector = tissuesDiagnosisSelector,
                         timeSelector = tissuesTimeSelector
                 )
 
-                if (input$tissuesEditableTableSelector) {
-                        tissuesValues$editableTable <- TRUE
-                        
+                if (input$tissuesEditableSelector) {
+                        tissueValues$tissuesEditableTable <- TRUE
                         # return editable table
                         shiny::callModule(
                                 editable,
                                 id = "tissuesEditable",
+                                dtTable = dtTable,
                                 dataFromDB = tissuesDataFromDB,
-                                checkEditTable = tissuesCheckEditTable(diagnosisDictionary = diagnosisDictionary)
+                                hideColumns = c(0, 1),
+                                checkEditTable = tissuesCheckEditTable,
+                                saveUpdated = tissuesSaveUpdated(pool = pool),
+                                dataModal = dataModal
                         )
                 }
-                if (! input$tissuesEditableTableSelector) {
-                        tissuesValues$editableTable <- FALSE
-                        
+                if (! input$tissuesEditableSelector) {
+                        tissueValues$tissuesEditableTable <- FALSE
                         # return noneditable table
                         shiny::callModule(
                                 readOnly,
+                                dtTable = dtTable,
                                 id = "tissuesReadOnly",
-                                dataFromDB = tissuesDataFromDB
+                                dataFromDB = tissuesDataFromDB,
+                                hideColumns = c(0, 1)
                         )
                 }
         } else {
-                tissuesValues$tissuesError <- TRUE
+                tissueValues$tissuesError <- TRUE
 
-                output$tissuesScreensaver  <- generateHtmlScreensaver(inputText = "Oops, something went wrong!")
-                output$tissuesErrorMessage <- generateErrorMessage(errorText = tissuesCheckSelectorInputRes[[2]])
+                output$tissuesScreensaver  <- generateHtmlScreenSaver(inputText = "Oops, something went wrong!")
+                output$tissuesErrorMessage <- generateErrorMessage(errorText = tissuesCheckOutput[[2]])
         }
 })
+
+output$tissuesError <- reactive({
+        return(tissueValues$tissuesError)
+})
+output$tissuesEditableTable <- reactive({
+        return(tissueValues$tissuesEditableTable)
+})
+outputOptions(output, "tissuesError",         suspendWhenHidden = FALSE)
+outputOptions(output, "tissuesEditableTable", suspendWhenHidden = FALSE)

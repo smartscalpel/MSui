@@ -1,4 +1,4 @@
-dtTable <- function(dataFromDB, editable) {
+dtTable <- function(dataFromDB, editable, hideColumns, height) {
         DT::datatable(
                 data = dataFromDB,
                 rownames = FALSE,
@@ -13,15 +13,21 @@ dtTable <- function(dataFromDB, editable) {
                 ),
                 
                 options = list(
-                        columnDefs = list(list(
-                                targets = c(0:(length(colnames(dataFromDB)) - 1)),
-                                render = JS(
-                                        "function(data, type, row, meta) {",
-                                                "return type === 'display' && !!data && data.length >= 15 ?",
-                                                "'<span title=\"' + data + '\">' + data.substr(0, 14) + '..</span>' : data;",
-                                        "}"
+                        columnDefs = list(
+                                list(
+                                        targets = c(0:(length(colnames(dataFromDB)) - 1)),
+                                        render = JS(
+                                                "function(data, type, row, meta) {",
+                                                        "return type === 'display' && !!data && data.length >= 15 ?",
+                                                        "'<span title=\"' + data + '\">' + data.substr(0, 14) + '..</span>' : data;",
+                                                "}"
+                                        )
+                                ),
+                                list(
+                                        visible = FALSE,
+                                        targets = hideColumns
                                 )
-                        )),
+                        ),
                         
                         # Bottons
                         dom = 'Bfrtip',
@@ -40,7 +46,7 @@ dtTable <- function(dataFromDB, editable) {
                         scrollX = TRUE,
                         scrollCollapse = TRUE,
                         paging = FALSE,
-                        scrollY = "61vh"
+                        scrollY = height
                 ),
                 
                 selection = "none",
