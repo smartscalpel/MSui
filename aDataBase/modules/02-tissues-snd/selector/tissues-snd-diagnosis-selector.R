@@ -1,5 +1,5 @@
 # Module UI function
-tissuesAddDiagnosisSelectorUI <- function(id, diagnosisDictionary) {
+tissuesSndDiagnosisSelectorUI <- function(id, diagnosisDictionary) {
         ns <- NS(id)
         
         tagList(
@@ -26,7 +26,7 @@ tissuesAddDiagnosisSelectorUI <- function(id, diagnosisDictionary) {
 
 
 # Module server function
-tissuesAddDiagnosisSelector <- function(input, output, session) {
+tissuesSndDiagnosisSelector <- function(input, output, session) {
         
         shiny::observeEvent(input$radio, {
                 ns <- session$ns

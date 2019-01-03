@@ -1,5 +1,5 @@
 # Module UI function
-patientsAddAgeSelectorUI <- function(id) {
+tissuesSndAgeSelectorUI <- function(id) {
         ns <- NS(id)
         
         tagList(
@@ -7,20 +7,18 @@ patientsAddAgeSelectorUI <- function(id) {
                         inputId = ns("radio"),
                         label = "Age",
                         choices = c("Null"  = "null", 
-                                    "Value" = "value"),
-                        inline = TRUE,
-                        selected = "null"
+                                    "Range" = "range"),
+                        inline = TRUE
                 ),
                 
                 shinyjs::useShinyjs(),
                 shiny::sliderInput(
-                        inputId = ns("agevalue"),
+                        inputId = ns("agerange"),
                         label = NULL,
                         min = 0,
                         max = 100,
                         step = 1,
-                        value = c(40),
-                        width = "50%"
+                        value = c(30)
                 )
         )
 }
@@ -28,21 +26,21 @@ patientsAddAgeSelectorUI <- function(id) {
 
 
 # Module server function
-patientsAddAgeSelector <- function(input, output, session) {
+tissuesSndAgeSelector <- function(input, output, session) {
         
         shiny::observeEvent(input$radio, {
                 ns <- session$ns
                 
                 if (input$radio == "null") {
-                        shinyjs::disable("agevalue")
+                        shinyjs::disable("agerange")
                 }
                 
-                if (input$radio == "value") {
-                        shinyjs::enable("agevalue")
+                if (input$radio == "range") {
+                        shinyjs::enable("agerange")
                 }
                 
         })
         
         return(list(reactive({input$radio}), 
-                    reactive({input$agevalue})))
+                    reactive({input$agerange})))
 }

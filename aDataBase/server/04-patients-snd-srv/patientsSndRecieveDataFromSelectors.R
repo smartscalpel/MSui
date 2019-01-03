@@ -1,4 +1,4 @@
-patientsAddRecieveDataFromSelectors <- function(emsId, yob, sex, age) {
+patientsSndRecieveDataFromSelectors <- function(emsId, yob, sex, age) {
         
         patientData <- c("null", "null", "null", "null")
         names(patientData) <- c("emsid", "yob", "sex", "age")

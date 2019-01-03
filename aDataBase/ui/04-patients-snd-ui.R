@@ -1,5 +1,5 @@
 shinydashboard::tabItem(
-        tabName = "patientsadd",
+        tabName = "patientsSnd",
         shiny::fluidRow(
                 shiny::column(
                         width = 3
@@ -25,24 +25,24 @@ shinydashboard::tabItem(
                                 
                                 # EmsId
                                 shiny::textInput(
-                                        inputId = "patientsAddEmsId",
+                                        inputId = "patientsSndEmsId",
                                         label = "EmsId (required)",
                                         width = "50%"
                                 ),
                                 
                                 # Select Sex
-                                patientsAddSexSelectorUI(id = "patientsAddSexSelector"),
+                                patientsSndSexSelectorUI(id = "patientsSndSexSelector"),
                                 
                                 # Select Year of Birth
-                                patientsAddYobSelectorUI(id = "patientsAddYobSelector"),
+                                patientsSndYobSelectorUI(id = "patientsSndYobSelector"),
                                 
                                 # Select Age
-                                patientsAddAgeSelectorUI(id = "patientsAddAgeSelector"),
+                                patientsSndAgeSelectorUI(id = "patientsSndAgeSelector"),
                                 
                                 div(
                                         align = "right",
                                         actionButton(
-                                                inputId = "patientsAddSave",
+                                                inputId = "patientsSndSave",
                                                 label = "Save",
                                                 icon = icon("save")
                                         )

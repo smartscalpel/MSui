@@ -22,9 +22,9 @@ header <- shinydashboard::dashboardHeader(
 sidebar <- shinydashboard::dashboardSidebar(
         shinydashboard::sidebarMenu(
                 menuItem("Tissues",     tabName = "tissues",     icon = icon("flask")),
-                menuItem("Add Tissue",  tabName = "tissuesadd",  icon = icon("plus-square")),
+                menuItem("Add Tissue",  tabName = "tissuesSnd",  icon = icon("plus-square")),
                 menuItem("Patients",    tabName = "patients",    icon = icon("address-card")),
-                menuItem("Add Patient", tabName = "patientsadd", icon = icon("plus-square")),
+                menuItem("Add Patient", tabName = "patientsSnd", icon = icon("plus-square")),
                 menuItem("Help",        tabName = "help",        icon = icon("question-circle"))
         )
 )
@@ -44,9 +44,9 @@ body <- shinydashboard::dashboardBody(
         
         shinydashboard::tabItems(
                 source(file = "./ui/01-tissues-ui.R",      local = TRUE)$value,
-                source(file = "./ui/02-tissues-add-ui.R",  local = TRUE)$value,
+                source(file = "./ui/02-tissues-snd-ui.R",  local = TRUE)$value,
                 source(file = "./ui/03-patients-ui.R",     local = TRUE)$value,
-                source(file = "./ui/04-patients-add-ui.R", local = TRUE)$value,
+                source(file = "./ui/04-patients-snd-ui.R", local = TRUE)$value,
                 source(file = "./ui/05-help-ui.R",         local = TRUE)$value
         )
 )

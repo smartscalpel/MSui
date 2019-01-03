@@ -10,9 +10,9 @@ patientsAgeSelector <- shiny::callModule(patientsAgeSelector, "patientsAgeSelect
 patientsYobSelector <- shiny::callModule(patientsYobSelector, "patientsYobSelector")
 
 
-patientsValues <- reactiveValues()
-patientsValues$patientsError         <- TRUE
-patientsValues$patientsEditableTable <- FALSE
+patientsReactiveValues <- reactiveValues()
+patientsReactiveValues$error         <- TRUE
+patientsReactiveValues$editableTable <- FALSE
 
 output$patientsScreensaver <- generateHtmlScreenSaver(inputText = "Set up Filters and press Select!")
 
@@ -21,7 +21,7 @@ shiny::observeEvent(input$patientsSelect, {
         patientsCheckInputRes <- patientsCheckInput()
         
         if (patientsCheckInputRes[[1]]) {
-                patientsValues$patientsError <- FALSE
+                patientsReactiveValues$error <- FALSE
                 
                 # Load data from database
                 patientsDataFromDB <- patientsLoadDataFromDB(
@@ -32,7 +32,7 @@ shiny::observeEvent(input$patientsSelect, {
                 )
                 
                 if (input$patientsEditableSelector) {
-                        patientsValues$patientsEditableTable <- TRUE
+                        patientsReactiveValues$editableTable <- TRUE
                         # return editable table
                         shiny::callModule(
                                 editable,
@@ -46,7 +46,7 @@ shiny::observeEvent(input$patientsSelect, {
                         )
                 }
                 if (! input$patientsEditableSelector) {
-                        patientsValues$editableTable <- FALSE
+                        patientsReactiveValues$editableTable <- FALSE
                         # return noneditable table
                         shiny::callModule(
                                 readOnly,
@@ -57,7 +57,7 @@ shiny::observeEvent(input$patientsSelect, {
                         )
                 }
         } else {
-                patientsValues$patientsError <- TRUE
+                patientsReactiveValues$error <- TRUE
                 
                 output$patientsScreensaver  <- generateHtmlScreenSaver(inputText = "Oops, something went wrong!")
                 output$patientsErrorMessage <- generateErrorMessage(errorText = patientsCheckInputRes[[2]])
@@ -65,10 +65,10 @@ shiny::observeEvent(input$patientsSelect, {
 })
 
 output$patientsError <- reactive({
-        return(patientsValues$patientsError)
+        return(patientsReactiveValues$error)
 })
 output$patientsEditableTable <- reactive({
-        return(patientsValues$patientsEditableTable)
+        return(patientsReactiveValues$editableTable)
 })
 outputOptions(output, "patientsError",         suspendWhenHidden = FALSE)
 outputOptions(output, "patientsEditableTable", suspendWhenHidden = FALSE)

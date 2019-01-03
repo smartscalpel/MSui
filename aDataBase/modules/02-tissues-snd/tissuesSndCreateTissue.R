@@ -1,5 +1,5 @@
 # Module UI function
-tissuesAddCreateTissueUI <- function(id, diagnosisDictionary) {
+tissuesSndCreateTissueUI <- function(id, diagnosisDictionary) {
         ns <- NS(id)
         
         tagList(
@@ -27,17 +27,17 @@ tissuesAddCreateTissueUI <- function(id, diagnosisDictionary) {
                         label = "Location",
                         width = "50%"
                 ),
-                tissuesAddDiagnosisSelectorUI(
+                tissuesSndDiagnosisSelectorUI(
                         ns("diagnosis"),
                         diagnosisDictionary = diagnosisDictionary$name
                 ),
-                tissuesAddGradeSelectorUI(ns("grade")),
+                tissuesSndGradeSelectorUI(ns("grade")),
                 textInput(
                         inputId = ns("coords"),
                         label = "Coords",
                         width = "50%"
                 ),
-                tissuesAddTimeSelectorUI(ns("time")),
+                tissuesSndTimeSelectorUI(ns("time")),
                 br(),
                 div(
                         align = "right",
@@ -57,20 +57,20 @@ tissuesAddCreateTissueUI <- function(id, diagnosisDictionary) {
 
 
 # Module server function
-tissuesAddCreateTissue <- function(input, output, session, dataModal, patient, checkLabelUniqueness, saveTissue, recieveDataFromSelectors) {
+tissuesSndCreateTissue <- function(input, output, session, dataModal, patient, checkLabelUniqueness, saveTissue, recieveDataFromSelectors) {
         
         diagnosisSelector <- shiny::callModule(
-                module = tissuesAddDiagnosisSelector,
+                module = tissuesSndDiagnosisSelector,
                 id = "diagnosis"
         )
         
         gradeSelector <- shiny::callModule(
-                module = tissuesAddGradeSelector,
+                module = tissuesSndGradeSelector,
                 id = "grade"
         )
         
         timeSelector <- shiny::callModule(
-                module = tissuesAddTimeSelector,
+                module = tissuesSndTimeSelector,
                 id = "time"
         )
         

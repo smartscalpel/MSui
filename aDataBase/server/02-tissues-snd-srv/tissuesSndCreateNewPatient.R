@@ -1,7 +1,9 @@
-tissuesAddSaveTissue <- function(pool) {
-        function(tissueData) {
+tissuesSndCreateNewPatient <- function(pool) {
+        function(emsid) {
                 
-                print(tissueData)
+                df <- base::data.frame(NA, emsid, -1, NA, NA)
+                x <- c("id", "emsid", "yob", "sex", "age")
+                base::colnames(df) <- x
                 
                 conn <- pool::poolCheckout(pool)
                 
@@ -9,15 +11,15 @@ tissuesAddSaveTissue <- function(pool) {
                 dbSendQuery(
                         conn,
                         paste(
-                                "INSERT INTO tissue (label, patientid, location, diagnosis, grade, dt, coords) VALUES (",
-                                paste(tissueData, collapse = ", "),
-                                ");",
+                                "INSERT INTO patient (emsid, yob) VALUES ('",
+                                emsid,
+                                "', -1);",
                                 sep = ""
                         )
                 )
                 
                 pool::poolReturn(conn)
                 
-                return (TRUE)
+                return(TRUE)
         }
 }

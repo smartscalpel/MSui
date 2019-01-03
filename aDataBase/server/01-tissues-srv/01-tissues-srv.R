@@ -12,11 +12,14 @@ tissuesDiagnosisSelector <- shiny::callModule(tissuesDiagnosisSelector, "tissues
 tissuesTimeSelector      <- shiny::callModule(tissuesTimeSelector,      "tissuesTimeSelector")
 
 
-tissueValues <- reactiveValues()
-tissueValues$tissuesError         <- TRUE
-tissueValues$tissuesEditableTable <- FALSE
+
+tissueReactiveValues <- reactiveValues()
+tissueReactiveValues$error         <- TRUE
+tissueReactiveValues$editableTable <- FALSE
 
 output$tissuesScreensaver <- generateHtmlScreenSaver(inputText = "Set up Filters and press Select!")
+
+
 
 shiny::observeEvent(input$tissuesSelect, {
         
@@ -26,7 +29,7 @@ shiny::observeEvent(input$tissuesSelect, {
         )
         
         if (tissuesCheckOutput[[1]]) {
-                tissueValues$tissuesError <- FALSE
+                tissueReactiveValues$error <- FALSE
                 
                 # Load data from database
                 tissuesDataFromDB <- tissuesLoadDataFromDB(
@@ -39,7 +42,7 @@ shiny::observeEvent(input$tissuesSelect, {
                 )
 
                 if (input$tissuesEditableSelector) {
-                        tissueValues$tissuesEditableTable <- TRUE
+                        tissueReactiveValues$editableTable <- TRUE
                         # return editable table
                         shiny::callModule(
                                 editable,
@@ -53,7 +56,7 @@ shiny::observeEvent(input$tissuesSelect, {
                         )
                 }
                 if (! input$tissuesEditableSelector) {
-                        tissueValues$tissuesEditableTable <- FALSE
+                        tissueReactiveValues$editableTable <- FALSE
                         # return noneditable table
                         shiny::callModule(
                                 readOnly,
@@ -64,18 +67,20 @@ shiny::observeEvent(input$tissuesSelect, {
                         )
                 }
         } else {
-                tissueValues$tissuesError <- TRUE
+                tissueReactiveValues$error <- TRUE
 
                 output$tissuesScreensaver  <- generateHtmlScreenSaver(inputText = "Oops, something went wrong!")
                 output$tissuesErrorMessage <- generateErrorMessage(errorText = tissuesCheckOutput[[2]])
         }
 })
 
+
+
 output$tissuesError <- reactive({
-        return(tissueValues$tissuesError)
+        return(tissueReactiveValues$error)
 })
 output$tissuesEditableTable <- reactive({
-        return(tissueValues$tissuesEditableTable)
+        return(tissueReactiveValues$editableTable)
 })
 outputOptions(output, "tissuesError",         suspendWhenHidden = FALSE)
 outputOptions(output, "tissuesEditableTable", suspendWhenHidden = FALSE)

@@ -1,5 +1,5 @@
 shinydashboard::tabItem(
-        tabName = "tissuesadd",
+        tabName = "tissuesSnd",
         shiny::fluidRow(
                 shiny::column(
                         width = 3
@@ -30,29 +30,32 @@ shinydashboard::tabItem(
                                 br(),
                                 
                                 shiny::textInput(
-                                        inputId = "tissueAddEmsId",
+                                        inputId = "tissueSndEmsId",
                                         label = "EmsId",
                                         width = "50%"
                                 ),
                                 
                                 shiny::actionButton(
-                                        inputId = "tissueAddSearch",
+                                        inputId = "tissueSndSearch",
                                         label = "Serach",
                                         icon = icon("search")
                                 ),
                                 
                                 shiny::conditionalPanel(
-                                        "output.tissuesAddFind == false",
+                                        "output.tissuesSndFind == false",
                                         br(),
-                                        shiny::htmlOutput(outputId = "tissuesAddMessgae")
+                                        shiny::htmlOutput(outputId = "tissuesSndMessgae")
                                 ),
                                 shiny::conditionalPanel(
-                                        "output.tissuesAddFind == true",
-                                        tissuesAddCreateTissueUI(id = "tissuesAddCreateTissue", diagnosisDictionary = diagnosisDictionary)
+                                        "output.tissuesSndFind == true",
+                                        tissuesSndCreateTissueUI(
+                                                id = "tissuesSndCreateTissue",
+                                                diagnosisDictionary = diagnosisDictionary
+                                        )
                                 ),
                                 shiny::conditionalPanel(
-                                        "output.tissuesAddAdd == true",
-                                        tissuesAddCreatePatientUI(id = "tissuesAddCreatePatient")
+                                        "output.tissuesSndAdd == true",
+                                        tissuesSndCreatePatientUI(id = "tissuesSndCreatePatient")
                                 )
                         )
                 ),

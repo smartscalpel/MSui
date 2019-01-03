@@ -17,9 +17,9 @@
 # 
 # 
 # ./modules/01-tissues
-#           02-tissues-add
+#           02-tissues-snd
 #           03-patients
-#           04-patients-add
+#           04-patients-snd
 #           table
 # 
 # 
@@ -27,9 +27,9 @@
 # 
 # 
 # ./server/01-tissues-srv
-#          02-tissues-add-srv
-#          03-patient-srv
-#          04-patients-add-srv
+#          02-tissues-snd-srv
+#          03-patients-srv
+#          04-patients-snd-srv
 #
 
 
@@ -71,25 +71,25 @@ source("./modules/01-tissues/selector/tissues-age-selector.R")
 source("./modules/01-tissues/selector/tissues-diagnosis-selector.R")
 source("./modules/01-tissues/selector/tissues-time-selector.R")
 
-# 02-tissues-add section: selector modules
-source("./modules/02-tissues-add/selector/tissues-add-age-selector.R")
-source("./modules/02-tissues-add/selector/tissues-add-diagnosis-selector.R")
-source("./modules/02-tissues-add/selector/tissues-add-grade-selector.R")
-source("./modules/02-tissues-add/selector/tissues-add-time-selector.R")
+# 02-tissues-snd section: selector modules
+source("./modules/02-tissues-snd/selector/tissues-snd-age-selector.R")
+source("./modules/02-tissues-snd/selector/tissues-snd-diagnosis-selector.R")
+source("./modules/02-tissues-snd/selector/tissues-snd-grade-selector.R")
+source("./modules/02-tissues-snd/selector/tissues-snd-time-selector.R")
 
-# 02-tissues-add section: other (used by both ui and server)
-source("./modules/02-tissues-add/tissuesAddCreateTissue.R")
-source("./modules/02-tissues-add/tissuesAddCreatePatient.R")
+# 02-tissues-snd section: other (used by both ui and server)
+source("./modules/02-tissues-snd/tissuessndCreateTissue.R")
+source("./modules/02-tissues-snd/tissuessndCreatePatient.R")
 
 # 03-patients section: selector modules
 source("./modules/03-patients/selector/patients-age-selector.R")
 source("./modules/03-patients/selector/patients-sex-selector.R")
 source("./modules/03-patients/selector/patients-yob-selector.R")
 
-# 04-patients-add section: selector modules
-source("./modules/04-patients-add/selector/patients-add-sex-selector.R")
-source("./modules/04-patients-add/selector/patients-add-yob-selector.R")
-source("./modules/04-patients-add/selector/patients-add-age-selector.R")
+# 04-patients-snd section: selector modules
+source("./modules/04-patients-snd/selector/patients-snd-sex-selector.R")
+source("./modules/04-patients-snd/selector/patients-snd-yob-selector.R")
+source("./modules/04-patients-snd/selector/patients-snd-age-selector.R")
 
 # Table modules
 source("./modules/table/editable.R")

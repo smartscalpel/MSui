@@ -1,24 +1,25 @@
 # Module UI function
-tissuesAddGradeSelectorUI <- function(id) {
+patientsSndAgeSelectorUI <- function(id) {
         ns <- NS(id)
         
         tagList(
                 shiny::radioButtons(
                         inputId = ns("radio"),
-                        label = "Grade",
+                        label = "Age",
                         choices = c("Null"  = "null", 
-                                    "Value" = "val"),
-                        inline = TRUE
+                                    "Value" = "value"),
+                        inline = TRUE,
+                        selected = "null"
                 ),
                 
                 shinyjs::useShinyjs(),
                 shiny::sliderInput(
-                        inputId = ns("gradeval"),
+                        inputId = ns("agevalue"),
                         label = NULL,
                         min = 0,
-                        max = 10,
+                        max = 100,
                         step = 1,
-                        value = 5,
+                        value = c(40),
                         width = "50%"
                 )
         )
@@ -27,21 +28,21 @@ tissuesAddGradeSelectorUI <- function(id) {
 
 
 # Module server function
-tissuesAddGradeSelector <- function(input, output, session) {
+patientsSndAgeSelector <- function(input, output, session) {
         
         shiny::observeEvent(input$radio, {
                 ns <- session$ns
                 
                 if (input$radio == "null") {
-                        shinyjs::disable("gradeval")
+                        shinyjs::disable("agevalue")
                 }
                 
-                if (input$radio == "val") {
-                        shinyjs::enable("gradeval")
+                if (input$radio == "value") {
+                        shinyjs::enable("agevalue")
                 }
                 
         })
         
         return(list(reactive({input$radio}), 
-                    reactive({input$gradeval})))
+                    reactive({input$agevalue})))
 }

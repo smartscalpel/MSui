@@ -1,4 +1,4 @@
-patientsAddCheckEmsIdUniqueness <- function(pool, emsIdValue) {
+patientsSndCheckEmsIdUniqueness <- function(pool, emsIdValue) {
                 
         if (emsIdValue == "" | is.null(emsIdValue))
                 return(FALSE)

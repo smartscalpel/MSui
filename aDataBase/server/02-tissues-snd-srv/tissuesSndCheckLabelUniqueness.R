@@ -1,4 +1,4 @@
-tissuesAddCheckLabelUniqueness <- function(pool) {
+tissuesSndCheckLabelUniqueness <- function(pool) {
         function(labelValue) {
                 
                 if (labelValue == "" | is.null(labelValue))

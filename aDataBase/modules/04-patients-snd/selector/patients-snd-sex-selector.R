@@ -1,5 +1,5 @@
 # Module UI function
-patientsAddSexSelectorUI <- function(id) {
+patientsSndSexSelectorUI <- function(id) {
         ns <- NS(id)
         
         tagList(
@@ -18,7 +18,7 @@ patientsAddSexSelectorUI <- function(id) {
 }
 
 # Module server function
-patientsAddSexSelector <- function(input, output, session) {
+patientsSndSexSelector <- function(input, output, session) {
         
         return(list(reactive({input$radio})))
 }

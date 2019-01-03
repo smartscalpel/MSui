@@ -19,8 +19,8 @@ server <- function(input, output, session) {
         source("./server/dataModal.R",               local = TRUE)
         
         source("./server/01-tissues-srv/01-tissues-srv.R",           local = TRUE)
-        source("./server/02-tissues-add-srv/02-tissues-add-srv.R",   local = TRUE)
+        source("./server/02-tissues-snd-srv/02-tissues-snd-srv.R",   local = TRUE)
         source("./server/03-patients-srv/03-patients-srv.R",         local = TRUE)
-        source("./server/04-patients-add-srv/04-patients-add-srv.R", local = TRUE)
+        source("./server/04-patients-snd-srv/04-patients-snd-srv.R", local = TRUE)
         
 }

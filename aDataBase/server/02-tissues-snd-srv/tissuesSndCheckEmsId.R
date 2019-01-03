@@ -1,5 +1,5 @@
 # You need to be sure, that patient table exists.
-tissuesAddCheckEmsId <- function(pool, emsIdValue) {
+tissuesSndCheckEmsId <- function(pool, emsIdValue) {
         
         # The following sequence of operations never touches the database,
         # until we ask the data in the end

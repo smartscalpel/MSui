@@ -1,5 +1,5 @@
 # Module UI function
-tissuesAddCreatePatientUI <- function(id) {
+tissuesSndCreatePatientUI <- function(id) {
         ns <- NS(id)
         
         tagList(
@@ -33,7 +33,7 @@ tissuesAddCreatePatientUI <- function(id) {
 
 
 # Module server function
-tissuesAddCreatePatient <- function(input, output, session, dataModal, emsid, addPatient) {
+tissuesSndCreatePatient <- function(input, output, session, dataModal, emsid, addPatient) {
         
         df <- base::data.frame(NA, emsid, -1, NA, NA)
         x <- c("id", "emsid", "yob", "sex", "age")
@@ -80,6 +80,6 @@ tissuesAddCreatePatient <- function(input, output, session, dataModal, emsid, ad
         observeEvent(input$ok, {
                 removeModal()
                 
-                click(id = "tissueAddSearch")
+                click(id = "tissueSndSearch")
         })
 }

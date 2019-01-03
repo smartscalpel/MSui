@@ -1,4 +1,4 @@
-tissuesAddRecieveDataFromSelectors <- function(label, patient, location, diagnosisSelector, gradeSelector, coords, timeSelector) {
+tissuesSndRecieveDataFromSelectors <- function(label, patient, location, diagnosisSelector, gradeSelector, coords, timeSelector) {
         
         tissueData <- c()
         

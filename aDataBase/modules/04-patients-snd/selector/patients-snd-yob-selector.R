@@ -1,5 +1,5 @@
 # Module UI function
-patientsAddYobSelectorUI <- function(id) {
+patientsSndYobSelectorUI <- function(id) {
         ns <- NS(id)
         
         tagList(
@@ -18,7 +18,7 @@ patientsAddYobSelectorUI <- function(id) {
 
 
 # Module server function
-patientsAddYobSelector <- function(input, output, session) {
+patientsSndYobSelector <- function(input, output, session) {
         
         return(reactive({input$yobvalue}))
 }

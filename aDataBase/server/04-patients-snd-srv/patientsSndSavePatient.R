@@ -1,4 +1,4 @@
-patientsAddSavePatient <- function(pool, patientsAddData) {
+patientsSndSavePatient <- function(pool, patientData) {
         
         conn <- pool::poolCheckout(pool)
         
@@ -9,10 +9,10 @@ patientsAddSavePatient <- function(pool, patientsAddData) {
                         "INSERT INTO patient (emsid, yob, sex, age) VALUES (",
                         paste(
                                 c(
-                                        patientsAddData["emsid"],
-                                        patientsAddData["yob"],
-                                        patientsAddData["sex"],
-                                        patientsAddData["age"]
+                                        patientData["emsid"],
+                                        patientData["yob"],
+                                        patientData["sex"],
+                                        patientData["age"]
                                 ),
                                 collapse = ", "
                         ),
