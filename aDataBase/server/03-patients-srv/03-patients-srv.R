@@ -41,7 +41,7 @@ shiny::observeEvent(input$patientsSelect, {
                                 dataFromDB = patientsDataFromDB,
                                 hideColumns = c(0),
                                 checkEditTable = patientsCheckEditTable,
-                                saveUpdated = patientsSaveUpdated,
+                                saveUpdated = patientsSaveUpdated(pool),
                                 dataModal = dataModal
                         )
                 }
