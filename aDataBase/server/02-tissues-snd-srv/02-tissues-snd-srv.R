@@ -1,8 +1,8 @@
-source("./server/02-tissues-snd-srv/tissuesSndCheckEmsId.R",               local = TRUE)
-source("./server/02-tissues-snd-srv/tissuesSndCheckLabelUniqueness.R",     local = TRUE)
-source("./server/02-tissues-snd-srv/tissuesSndCreateNewPatient.R",         local = TRUE)
-source("./server/02-tissues-snd-srv/tissuesSndSaveTissue.R",               local = TRUE)
-source("./server/02-tissues-snd-srv/tissuesSndRecieveDataFromSelectors.R", local = TRUE)
+source("./server/02-tissues-snd-srv/tissuesSndCheckEmsId.R",            local = TRUE)
+source("./server/02-tissues-snd-srv/tissuesSndCheckLabelUniqueness.R",  local = TRUE)
+source("./server/02-tissues-snd-srv/tissuesSndCreateNewPatient.R",      local = TRUE)
+source("./server/02-tissues-snd-srv/tissuesSndSaveTissue.R",            local = TRUE)
+source("./server/02-tissues-snd-srv/tissuesSndRecieveSelectorValues.R", local = TRUE)
 
 
 
@@ -37,7 +37,7 @@ shiny::callModule(
         reactivePatientData = tissuesSndReactivePatientData,
         checkLabelUniqueness = tissuesSndCheckLabelUniqueness(pool = pool),
         saveTissue = tissuesSndSaveTissue(pool = pool),
-        recieveDataFromSelectors = tissuesSndRecieveDataFromSelectors,
+        recieveSelectorValues = tissuesSndRecieveSelectorValues,
         trigger = tissuesSndCreateTissueTrigger
 )
 

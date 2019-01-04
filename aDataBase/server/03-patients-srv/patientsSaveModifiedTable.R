@@ -1,5 +1,5 @@
 # Save updated data in database
-patientsSaveUpdated <- function(pool) {
+patientsSaveModifiedTable <- function(pool) {
         function (updatedPart) {
                 updatedPart[is.na(updatedPart)] <- "null"
                 

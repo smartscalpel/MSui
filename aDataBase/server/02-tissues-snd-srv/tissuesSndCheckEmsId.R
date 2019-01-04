@@ -11,7 +11,7 @@ tissuesSndCheckEmsId <- function(pool, emsIdValue) {
         }
         
         dataFromDB <- dplyr::tbl(pool, "patient")
-        dataFromDB <- dataFromDB %>% filter(emsid == emsIdValue)
+        dataFromDB <- dataFromDB %>% dplyr::filter(emsid == emsIdValue)
         dataFromDB <- data.frame(dataFromDB)
         
         if (dim(dataFromDB)[1] >= 1) {

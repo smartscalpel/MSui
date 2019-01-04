@@ -1,5 +1,5 @@
 # Save updated data in database
-tissuesSaveUpdated <- function(pool) {
+tissuesSaveModifiedTable <- function(pool) {
         function (updatedPart) {
                 updatedPart[c("yob", "sex", "age", "emsid")] <- NULL
                 

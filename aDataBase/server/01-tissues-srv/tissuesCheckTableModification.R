@@ -1,4 +1,4 @@
-tissuesCheckEditTable <- function(dataFromDB, j, newValue) {
+tissuesCheckTableModification <- function(dataFromDB, j, newValue) {
         
         columnNames <- names(dataFromDB)
         

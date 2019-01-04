@@ -7,7 +7,8 @@ tissuesAgeSelectorUI <- function(id) {
                         inputId = ns("radio"),
                         label = "Age",
                         choices = c("All"   = "all", 
-                                    "Range" = "range"),
+                                    "Range" = "range",
+                                    "Null"  = "null"),
                         inline = TRUE
                 ),
                 
@@ -31,7 +32,7 @@ tissuesAgeSelector <- function(input, output, session) {
         shiny::observeEvent(input$radio, {
                 ns <- session$ns
 
-                if (input$radio == "all") {
+                if (input$radio == "all" | input$radio == "null") {
                         shinyjs::disable("agerange")
                 }
                 

@@ -7,7 +7,8 @@ patientsYobSelectorUI <- function(id) {
                         inputId = ns("radio"),
                         label = "Year of birth",
                         choices = c("All"   = "all", 
-                                    "Range" = "range"),
+                                    "Range" = "range",
+                                    "-1"    = "-1"),
                         inline = TRUE
                 ),
                 
@@ -31,7 +32,7 @@ patientsYobSelector <- function(input, output, session) {
         shiny::observeEvent(input$radio, {
                 ns <- session$ns
                 
-                if (input$radio == "all") {
+                if (input$radio == "all" | input$radio == "-1") {
                         shinyjs::disable("yobrange")
                 }
                 

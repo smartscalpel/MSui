@@ -1,14 +1,14 @@
 tissuesSndCreateNewPatient <- function(pool) {
         function(emsid) {
                 
-                df <- base::data.frame(NA, emsid, -1, NA, NA)
+                df <- data.frame(NA, emsid, -1, NA, NA)
                 x <- c("id", "emsid", "yob", "sex", "age")
-                base::colnames(df) <- x
+                colnames(df) <- x
                 
                 conn <- pool::poolCheckout(pool)
                 
                 # Single update/insert/delete commands is already in a transaction
-                dbSendQuery(
+                DBI::dbSendQuery(
                         conn,
                         paste(
                                 "INSERT INTO patient (emsid, yob) VALUES ('",

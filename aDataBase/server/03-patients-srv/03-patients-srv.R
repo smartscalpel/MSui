@@ -1,7 +1,7 @@
-source("./server/03-patients-srv/patientsSaveUpdated.R",    local = TRUE)
-source("./server/03-patients-srv/patientsLoadDataFromDB.R", local = TRUE)
-source("./server/03-patients-srv/patientsCheckInput.R",     local = TRUE)
-source("./server/03-patients-srv/patientsCheckEditTable.R", local = TRUE)
+source("./server/03-patients-srv/patientsSaveModifiedTable.R",     local = TRUE)
+source("./server/03-patients-srv/patientsLoadDataFromDB.R",        local = TRUE)
+source("./server/03-patients-srv/patientsCheckSelectorValues.R",   local = TRUE)
+source("./server/03-patients-srv/patientsCheckTableModification.R", local = TRUE)
 
 
 
@@ -26,8 +26,8 @@ shiny::callModule(
         dtTable = dtTable,
         reactiveDataFromDB = patientsReactiveDataFromDB,
         hideColumns = c(0),
-        checkEditTable = patientsCheckEditTable,
-        saveUpdated = patientsSaveUpdated(pool),
+        checkModification = tissuesCheckTableModification,
+        saveUpdated = patientsSaveModifiedTable(pool),
         dataModal = dataModal
 )
 
@@ -42,7 +42,7 @@ shiny::callModule(
 
 shiny::observeEvent(input$patientsSelect, {
         
-        patientsCheckInputRes <- patientsCheckInput()
+        patientsCheckInputRes <- patientsCheckSelectorValues()
         
         if (patientsCheckInputRes[[1]]) {
                 patientsReactiveValues$error <- FALSE

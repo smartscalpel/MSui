@@ -3,9 +3,17 @@ patientsSndYobSelectorUI <- function(id) {
         ns <- NS(id)
         
         tagList(
+                shiny::radioButtons(
+                        inputId = ns("radio"),
+                        label = "Year of birth",
+                        choices = c("-1"   = "-1", 
+                                    "Value" = "value"),
+                        inline = TRUE
+                ),
+                
                 shiny::sliderInput(
                         inputId = ns("yobvalue"),
-                        label = "Year of birth",
+                        label = NULL,
                         min = 1900,
                         max = 2000,
                         step = 1,
@@ -20,5 +28,19 @@ patientsSndYobSelectorUI <- function(id) {
 # Module server function
 patientsSndYobSelector <- function(input, output, session) {
         
-        return(reactive({input$yobvalue}))
+        shiny::observeEvent(input$radio, {
+                ns <- session$ns
+                
+                if (input$radio == "-1") {
+                        shinyjs::disable("yobvalue")
+                }
+                
+                if (input$radio == "value") {
+                        shinyjs::enable("yobvalue")
+                }
+                
+        })
+        
+        return(list(reactive({input$radio}), 
+                    reactive({input$yobvalue})))
 }

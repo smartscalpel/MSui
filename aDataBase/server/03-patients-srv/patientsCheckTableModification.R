@@ -1,4 +1,4 @@
-patientsCheckEditTable <- function(dataFromDB, j, newValue) {
+patientsCheckTableModification <- function(dataFromDB, j, newValue) {
         
         columnNames <- names(dataFromDB)
         

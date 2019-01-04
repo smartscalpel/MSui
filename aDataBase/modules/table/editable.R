@@ -23,7 +23,7 @@ editable <- function(input, output, session,
                      dtTable,
                      reactiveDataFromDB,
                      hideColumns,
-                     checkEditTable,
+                     checkModification,
                      saveUpdated,
                      dataModal) {
         
@@ -52,7 +52,7 @@ editable <- function(input, output, session,
                         j = info$col + 1
                         v = info$value
                         
-                        checkResult <- checkEditTable(dataFromDB = dataFromDB, j = j, newValue = v)
+                        checkResult <- checkModification(dataFromDB = dataFromDB, j = j, newValue = v)
                         
                         if (checkResult[[1]]) {
                                 dataFromDB[i, j] <<- DT::coerceValue(v, dataFromDB[i, j])

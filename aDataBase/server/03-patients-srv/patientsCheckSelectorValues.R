@@ -1,4 +1,4 @@
-patientsCheckInput <- function(diagnosisSelector, timeSelector) {
+patientsCheckSelectorValues <- function(diagnosisSelector, timeSelector) {
         
         check <- TRUE
         checkMessage <- ""

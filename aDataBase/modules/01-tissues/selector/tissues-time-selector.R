@@ -7,7 +7,8 @@ tissuesTimeSelectorUI <- function(id) {
                         inputId = ns("radio"),
                         label = "Select Time",
                         choices = c("All"  = "all", 
-                                    "Range" = "range"),
+                                    "Range" = "range",
+                                    "Null" = "null"),
                         inline = TRUE
                 ),
                 
@@ -29,7 +30,7 @@ tissuesTimeSelector <- function(input, output, session) {
         shiny::observeEvent(input$radio, {
                 ns <- session$ns
                 
-                if (input$radio == "all") {
+                if (input$radio == "all" | input$radio == "null") {
                         shinyjs::disable("daterange")
                 }
                 

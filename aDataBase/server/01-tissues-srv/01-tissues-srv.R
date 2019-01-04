@@ -1,7 +1,7 @@
-source("./server/01-tissues-srv/tissuesCheckInput.R",     local = TRUE)
-source("./server/01-tissues-srv/tissuesSaveUpdated.R",    local = TRUE)
-source("./server/01-tissues-srv/tissuesLoadDataFromDB.R", local = TRUE)
-source("./server/01-tissues-srv/tissuesCheckEditTable.R", local = TRUE)
+source("./server/01-tissues-srv/tissuesCheckSelectorValues.R",    local = TRUE)
+source("./server/01-tissues-srv/tissuesSaveModifiedTable.R",      local = TRUE)
+source("./server/01-tissues-srv/tissuesLoadDataFromDB.R",         local = TRUE)
+source("./server/01-tissues-srv/tissuesCheckTableModification.R", local = TRUE)
 
 
 
@@ -28,8 +28,8 @@ tissuesTableEditableClickedData <- shiny::callModule(
         dtTable = dtTable,
         reactiveDataFromDB = tissuesReactiveDataFromDB,
         hideColumns = c(0, 1),
-        checkEditTable = tissuesCheckEditTable,
-        saveUpdated = tissuesSaveUpdated(pool = pool),
+        checkModification = tissuesCheckTableModification,
+        saveUpdated = tissuesSaveModifiedTable(pool = pool),
         dataModal = dataModal
 )
 
@@ -55,7 +55,7 @@ tissuesClickedEmsId <- reactive({
 
 shiny::observeEvent(input$tissuesSelect, {
         
-        tissuesCheckOutput <- tissuesCheckInput(
+        tissuesCheckOutput <- tissuesCheckSelectorValues(
                 diagnosisSelector = tissuesDiagnosisSelector,
                 timeSelector = tissuesTimeSelector
         )

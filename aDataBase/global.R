@@ -109,4 +109,4 @@ pool <- pool::dbPool(
 
 
 # This variable is used by both ui and server
-diagnosisDictionary <- data.frame(tbl(pool, "diagnosis"))
+diagnosisDictionary <- data.frame(dplyr::tbl(pool, "diagnosis"))

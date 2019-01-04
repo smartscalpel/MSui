@@ -6,9 +6,10 @@ tissuesFridgeSelectorUI <- function(id) {
                 shiny::radioButtons(
                         inputId = ns("radio"),
                         label = "Avaliability in Fridge",
-                        choices = c(All = "all", 
-                                    Yes = "yes",
-                                    No  = "no"),
+                        choices = c("All" = "all", 
+                                    "Yes" = "yes",
+                                    "No"  = "no",
+                                    "Null" = "null"),
                         inline = TRUE
                 )
         )

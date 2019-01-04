@@ -23,35 +23,59 @@ tissuesLoadDataFromDB <- function(pool,
         
         dataFromDB <- dplyr::tbl(pool, "patisue4abd")
         
+        
+        # Fridge Selector
         if (fridgeSelector[[1]]() != "all") {
                 
         }
         
-        if (sexSelector[[1]]() != "all") {
+        
+        # Sex Selector
+        if (sexSelector[[1]]() != "all" & sexSelector[[1]]() != "null") {
                 if (sexSelector[[1]]() == "men") {
-                        dataFromDB <- dataFromDB %>% filter(sex == 'М')
+                        dataFromDB <- dataFromDB %>% dplyr::filter(sex == 'М')
                 }
                 if (sexSelector[[1]]() == "women") {
-                        dataFromDB <- dataFromDB %>% filter(sex == 'Ж')
+                        dataFromDB <- dataFromDB %>% dplyr::filter(sex == 'Ж')
                 }
         }
         
-        if (ageSelector[[1]]() != "all") {
-                dataFromDB <- dataFromDB %>%
-                        filter(age >= ageSelector[[2]]()[1]) %>%
-                        filter(age <= ageSelector[[2]]()[2])
+        if (sexSelector[[1]]() == "null") {
+                dataFromDB <- dataFromDB %>% dplyr::filter(is.null(sex))
         }
         
+        
+        # Age Selector
+        if (ageSelector[[1]]() == "range") {
+                dataFromDB <- dataFromDB %>%
+                        dplyr::filter(age >= ageSelector[[2]]()[1]) %>%
+                        dplyr::filter(age <= ageSelector[[2]]()[2])
+        }
+        
+        if (ageSelector[[1]]() == "null") {
+                dataFromDB <- dataFromDB %>% dplyr::filter(is.null(age))
+        }
+        
+        
+        # Diagnosis Selector
         if (diagnosisSelector[[1]]() != "all") {
                 # Recive actial list of diagnosis
-                dataFromDB <- dataFromDB %>% filter(diagnosis %in% diagnosisSelector[[2]]())
+                dataFromDB <- dataFromDB %>% dplyr::filter(diagnosis %in% diagnosisSelector[[2]]())
         }
         
-        if (timeSelector[[1]]() != "all") {
+        
+        # Time Selector
+        if (timeSelector[[1]]() == "range") {
                 dataFromDB <- dataFromDB %>%
-                        filter(dt >= timeSelector[[2]]()[1]) %>%
-                        filter(dt <= timeSelector[[2]]()[2])
+                        dplyr::filter(dt >= timeSelector[[2]]()[1]) %>%
+                        dplyr::filter(dt <= timeSelector[[2]]()[2])
         }
+        
+        if (timeSelector[[1]]() == "null") {
+                dataFromDB <- dataFromDB %>% dplyr::filter(is.null(dt))
+        }
+        
+        
         
         # Recive data from DB
         dataFromDB <- dplyr::as_data_frame(dataFromDB)

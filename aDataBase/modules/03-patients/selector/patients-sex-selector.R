@@ -6,9 +6,10 @@ patientsSexSelectorUI <- function(id) {
                 shiny::radioButtons(
                         inputId = ns("radio"),
                         label = "Sex",
-                        choices = c(All   = "all", 
-                                    Men   = "men",
-                                    Women = "women"),
+                        choices = c("All" = "all", 
+                                    "M"   = "men",
+                                    "W"   = "women",
+                                    "Null" = "null"),
                         inline = TRUE
                 )
         )

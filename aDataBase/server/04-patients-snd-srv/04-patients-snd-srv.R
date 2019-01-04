@@ -1,6 +1,6 @@
-source("./server/04-patients-snd-srv/patientsSndCheckEmsIdUniqueness.R",     local = TRUE)
-source("./server/04-patients-snd-srv/patientsSndRecieveDataFromSelectors.R", local = TRUE)
-source("./server/04-patients-snd-srv/patientsSndSavePatient.R",              local = TRUE)
+source("./server/04-patients-snd-srv/patientsSndCheckEmsIdUniqueness.R",  local = TRUE)
+source("./server/04-patients-snd-srv/patientsSndRecieveSelectorValues.R", local = TRUE)
+source("./server/04-patients-snd-srv/patientsSndSavePatient.R",           local = TRUE)
 
 
 
@@ -23,7 +23,7 @@ shiny::observeEvent(input$patientsSndSave, {
         
         if (patientsSndCheckEmsIdUniqueness(pool = pool, emsIdValue = input$patientsSndEmsId)) {
                 
-                patientsSndData <- patientsSndRecieveDataFromSelectors(
+                patientsSndData <- patientsSndRecieveSelectorValues(
                         emsId = input$patientsSndEmsId,
                         yob   = patientsSndYobSelector,
                         sex   = patientsSndSexSelector,

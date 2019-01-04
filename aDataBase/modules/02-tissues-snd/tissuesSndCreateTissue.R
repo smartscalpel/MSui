@@ -62,7 +62,7 @@ tissuesSndCreateTissue <- function(input, output, session,
                                    reactivePatientData,
                                    checkLabelUniqueness,
                                    saveTissue,
-                                   recieveDataFromSelectors,
+                                   recieveSelectorValues,
                                    trigger) {
         
         diagnosisSelector <- shiny::callModule(
@@ -113,7 +113,7 @@ tissuesSndCreateTissue <- function(input, output, session,
                 
                 if (checkLabelUniqueness(labelValue = input$label)) {
                         
-                        tissueData <- recieveDataFromSelectors(
+                        tissueData <- recieveSelectorValues(
                                 label = input$label,
                                 patient = patientData$id,
                                 location = input$location,

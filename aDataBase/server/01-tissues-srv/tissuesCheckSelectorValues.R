@@ -1,4 +1,4 @@
-tissuesCheckInput <- function(diagnosisSelector, timeSelector) {
+tissuesCheckSelectorValues <- function(diagnosisSelector, timeSelector) {
         
         check <- TRUE
         checkMessage <- ""
