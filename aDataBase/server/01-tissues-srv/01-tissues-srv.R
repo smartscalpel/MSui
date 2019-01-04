@@ -5,11 +5,11 @@ source("./server/01-tissues-srv/tissuesCheckEditTable.R", local = TRUE)
 
 
 
-tissueReactiveValues <- reactiveValues()
+tissueReactiveValues <- shiny::reactiveValues()
 tissueReactiveValues$error         <- TRUE
 tissueReactiveValues$editableTable <- FALSE
 
-tissuesReactiveDataFromDB <- reactiveVal()
+tissuesReactiveDataFromDB <- shiny::reactiveVal()
 tissuesReactiveDataFromDB(NULL)
 
 output$tissuesScreensaver <- generateHtmlScreenSaver(inputText = "Set up Filters and press Select!")
@@ -22,7 +22,7 @@ tissuesAgeSelector       <- shiny::callModule(tissuesAgeSelector,       "tissues
 tissuesDiagnosisSelector <- shiny::callModule(tissuesDiagnosisSelector, "tissuesDiagnosisSelector")
 tissuesTimeSelector      <- shiny::callModule(tissuesTimeSelector,      "tissuesTimeSelector")
 
-shiny::callModule(
+tissuesTableEditableClickedData <- shiny::callModule(
         editable,
         id = "tissuesEditable",
         dtTable = dtTable,
@@ -33,7 +33,7 @@ shiny::callModule(
         dataModal = dataModal
 )
 
-shiny::callModule(
+tissuesTableReadOnlyClickedData <- shiny::callModule(
         readOnly,
         dtTable = dtTable,
         id = "tissuesReadOnly",
@@ -42,6 +42,14 @@ shiny::callModule(
 )
 
 
+
+tissuesClickedEmsId <- reactive({
+        if (shiny::isolate(tissueReactiveValues$editableTable)) {
+                shiny::isolate(tissuesReactiveDataFromDB())[tissuesTableEditableClickedData()$row, ]$emsid
+        } else {
+                shiny::isolate(tissuesReactiveDataFromDB())[tissuesTableReadOnlyClickedData()$row, ]$emsid
+        }
+})
 
 
 
