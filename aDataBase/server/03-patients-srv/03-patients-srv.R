@@ -5,16 +5,40 @@ source("./server/03-patients-srv/patientsCheckEditTable.R", local = TRUE)
 
 
 
-patientsSexSelector <- shiny::callModule(patientsSexSelector, "patientsSexSelector")
-patientsAgeSelector <- shiny::callModule(patientsAgeSelector, "patientsAgeSelector")
-patientsYobSelector <- shiny::callModule(patientsYobSelector, "patientsYobSelector")
-
-
 patientsReactiveValues <- reactiveValues()
 patientsReactiveValues$error         <- TRUE
 patientsReactiveValues$editableTable <- FALSE
 
+patientsReactiveDataFromDB <- reactiveVal()
+patientsReactiveDataFromDB(NULL)
+
 output$patientsScreensaver <- generateHtmlScreenSaver(inputText = "Set up Filters and press Select!")
+
+
+
+patientsSexSelector <- shiny::callModule(patientsSexSelector, "patientsSexSelector")
+patientsAgeSelector <- shiny::callModule(patientsAgeSelector, "patientsAgeSelector")
+patientsYobSelector <- shiny::callModule(patientsYobSelector, "patientsYobSelector")
+
+shiny::callModule(
+        editable,
+        id = "patientsEditable",
+        dtTable = dtTable,
+        reactiveDataFromDB = patientsReactiveDataFromDB,
+        hideColumns = c(0),
+        checkEditTable = patientsCheckEditTable,
+        saveUpdated = patientsSaveUpdated(pool),
+        dataModal = dataModal
+)
+
+shiny::callModule(
+        readOnly,
+        dtTable = dtTable,
+        id = "patientsReadOnly",
+        reactiveDataFromDB = patientsReactiveDataFromDB,
+        hideColumns = c(0)
+)
+
 
 shiny::observeEvent(input$patientsSelect, {
         
@@ -24,37 +48,20 @@ shiny::observeEvent(input$patientsSelect, {
                 patientsReactiveValues$error <- FALSE
                 
                 # Load data from database
-                patientsDataFromDB <- patientsLoadDataFromDB(
-                        pool,
-                        sexSelector = patientsSexSelector,
-                        ageSelector = patientsAgeSelector,
-                        yobSelector = patientsYobSelector
+                patientsReactiveDataFromDB(
+                        patientsDataFromDB <- patientsLoadDataFromDB(
+                                pool = pool,
+                                sexSelector = patientsSexSelector,
+                                ageSelector = patientsAgeSelector,
+                                yobSelector = patientsYobSelector
+                        )
                 )
                 
                 if (input$patientsEditableSelector) {
                         patientsReactiveValues$editableTable <- TRUE
-                        # return editable table
-                        shiny::callModule(
-                                editable,
-                                id = "patientsEditable",
-                                dtTable = dtTable,
-                                dataFromDB = patientsDataFromDB,
-                                hideColumns = c(0),
-                                checkEditTable = patientsCheckEditTable,
-                                saveUpdated = patientsSaveUpdated(pool),
-                                dataModal = dataModal
-                        )
                 }
                 if (! input$patientsEditableSelector) {
                         patientsReactiveValues$editableTable <- FALSE
-                        # return noneditable table
-                        shiny::callModule(
-                                readOnly,
-                                dtTable = dtTable,
-                                id = "patientsReadOnly",
-                                dataFromDB = patientsDataFromDB,
-                                hideColumns = c(0)
-                        )
                 }
         } else {
                 patientsReactiveValues$error <- TRUE
