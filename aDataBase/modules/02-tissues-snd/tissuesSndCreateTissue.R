@@ -105,47 +105,47 @@ tissuesSndCreateTissue <- function(input, output, session,
                                 editable = FALSE
                         )
                 )
+        })
+        
+        
+        
+        shiny::observeEvent(input$save, {
                 
-                
-                
-                shiny::observeEvent(input$save, {
+                if (checkLabelUniqueness(labelValue = input$label)) {
                         
-                        if (checkLabelUniqueness(labelValue = input$label)) {
-                                
-                                tissueData <- recieveDataFromSelectors(
-                                        label = input$label,
-                                        patient = patientData$id,
-                                        location = input$location,
-                                        diagnosisSelector = diagnosisSelector,
-                                        gradeSelector = gradeSelector,
-                                        coords = input$coords,
-                                        timeSelector = timeSelector
-                                )
-                                
-                                saveTissue(tissueData = tissueData)
-                                showModal(
-                                        dataModal(
-                                                modalID = session$ns("ok"),
-                                                failed = FALSE,
-                                                msg = "Data was successfully stored in database!"
-                                        )
-                                )
-                                
-                        } else {
-                                showModal(
-                                        dataModal(
-                                                modalID = session$ns("ok"),
-                                                failed = TRUE,
-                                                msg = "Given label already exists in database. Please, try anouther one"
-                                        )
-                                )
-                        }
+                        tissueData <- recieveDataFromSelectors(
+                                label = input$label,
+                                patient = patientData$id,
+                                location = input$location,
+                                diagnosisSelector = diagnosisSelector,
+                                gradeSelector = gradeSelector,
+                                coords = input$coords,
+                                timeSelector = timeSelector
+                        )
                         
-                })
+                        saveTissue(tissueData = tissueData)
+                        showModal(
+                                dataModal(
+                                        modalID = session$ns("ok"),
+                                        failed = FALSE,
+                                        msg = "Data was successfully stored in database!"
+                                )
+                        )
+                        
+                } else {
+                        showModal(
+                                dataModal(
+                                        modalID = session$ns("ok"),
+                                        failed = TRUE,
+                                        msg = "Given label already exists in database. Please, try anouther one"
+                                )
+                        )
+                }
                 
-                observeEvent(input$ok, {
-                        removeModal()
-                })
+        })
+        
+        observeEvent(input$ok, {
+                removeModal()
         })
         
 }

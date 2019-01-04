@@ -43,6 +43,12 @@ shiny::callModule(
 
 
 
+observeEvent(tissuesClickedEmsId(), {
+        updateTextInput(session = session, inputId = "tissueSndEmsId", value = tissuesClickedEmsId())
+})
+
+
+
 shiny::observeEvent(input$tissueSndSearch, {
         
         tissuesSndCheckEmsIdOutput <- tissuesSndCheckEmsId(pool, input$tissueSndEmsId)

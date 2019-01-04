@@ -44,10 +44,10 @@ tissuesTableReadOnlyClickedData <- shiny::callModule(
 
 
 tissuesClickedEmsId <- reactive({
-        if (shiny::isolate(tissueReactiveValues$editableTable)) {
-                shiny::isolate(tissuesReactiveDataFromDB())[tissuesTableEditableClickedData()$row, ]$emsid
+        if (tissueReactiveValues$editableTable) {
+                tissuesReactiveDataFromDB()[tissuesTableEditableClickedData()$row, ]$emsid
         } else {
-                shiny::isolate(tissuesReactiveDataFromDB())[tissuesTableReadOnlyClickedData()$row, ]$emsid
+                tissuesReactiveDataFromDB()[tissuesTableReadOnlyClickedData()$row, ]$emsid
         }
 })
 
