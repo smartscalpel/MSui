@@ -34,9 +34,5 @@ patientsLoadDataFromDB <- function(pool,
         dataFromDB <- dplyr::as_data_frame(dataFromDB)
         dataFromDB <- data.frame(dataFromDB)
         
-        print(dataFromDB)
-        print(typeof(dataFromDB$age[1]))
-        print(typeof(dataFromDB$yob[1]))
-        
         return(dataFromDB)
 }
