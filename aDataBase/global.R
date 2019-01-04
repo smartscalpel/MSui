@@ -79,7 +79,6 @@ source("./modules/02-tissues-snd/selector/tissues-snd-time-selector.R")
 
 # 02-tissues-snd section: other (used by both ui and server)
 source("./modules/02-tissues-snd/tissuessndCreateTissue.R")
-source("./modules/02-tissues-snd/tissuessndCreatePatient.R")
 
 # 03-patients section: selector modules
 source("./modules/03-patients/selector/patients-age-selector.R")

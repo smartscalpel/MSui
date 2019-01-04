@@ -52,10 +52,6 @@ shinydashboard::tabItem(
                                                 id = "tissuesSndCreateTissue",
                                                 diagnosisDictionary = diagnosisDictionary
                                         )
-                                ),
-                                shiny::conditionalPanel(
-                                        "output.tissuesSndAdd == true",
-                                        tissuesSndCreatePatientUI(id = "tissuesSndCreatePatient")
                                 )
                         )
                 ),

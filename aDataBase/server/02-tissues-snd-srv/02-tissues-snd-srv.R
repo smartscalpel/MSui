@@ -21,7 +21,6 @@ output$tissuesSndMessgae <- shiny::renderText({
 
 tissuesSndValues <- reactiveValues()
 tissuesSndValues$find <- FALSE
-tissuesSndValues$add  <- FALSE
 
 
 
@@ -31,7 +30,6 @@ shiny::observeEvent(input$tissueSndSearch, {
         
         if (isTRUE(tissuesSndCheckEmsIdOutput[[1]])) {
                 tissuesSndValues$find <- TRUE
-                tissuesSndValues$add  <- FALSE
                 
                 shiny::callModule(
                         module = tissuesSndCreateTissue,
@@ -45,7 +43,6 @@ shiny::observeEvent(input$tissueSndSearch, {
         }
         if (is.null(tissuesSndCheckEmsIdOutput[[1]])) {
                 tissuesSndValues$find <- FALSE
-                tissuesSndValues$add  <- FALSE
                 
                 output$tissuesSndMessgae <- generateErrorMessage(
                         "EmsId is empty. Just type something!"
@@ -53,19 +50,11 @@ shiny::observeEvent(input$tissueSndSearch, {
         }
         if (isFALSE(tissuesSndCheckEmsIdOutput[[1]])) {
                 tissuesSndValues$find <- FALSE
-                tissuesSndValues$add  <- TRUE
                 
                 output$tissuesSndMessgae <- generateErrorMessage(
                         "Unfortunately, we can't find a patient with given EmsId.
                         You can try to search again with different value or create a new patient.
                         If you want to do it, see information below."
-                )
-                shiny::callModule(
-                        module = tissuesSndCreatePatient,
-                        dataModal = dataModal,
-                        id = "tissuesSndCreatePatient",
-                        input$tissueSndEmsId,
-                        tissuesSndCreateNewPatient(pool)
                 )
         }      
 })
@@ -75,8 +64,4 @@ shiny::observeEvent(input$tissueSndSearch, {
 output$tissuesSndFind <- reactive({
         return(tissuesSndValues$find)
 })
-output$tissuesSndAdd <- reactive({
-        return(tissuesSndValues$add)
-})
 outputOptions(output, "tissuesSndFind", suspendWhenHidden = FALSE)
-outputOptions(output, "tissuesSndAdd",  suspendWhenHidden = FALSE)
