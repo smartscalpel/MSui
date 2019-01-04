@@ -74,6 +74,10 @@ shiny::observeEvent(input$tissueSndSearch, {
         if (isFALSE(tissuesSndCheckEmsIdOutput[[1]])) {
                 tissuesSndValues$find <- FALSE
                 
+                patientsSndEmptyEmsIdFromTissue(
+                        input$tissueSndEmsId
+                )
+                
                 output$tissuesSndMessgae <- generateErrorMessage(
                         "Unfortunately, we can't find a patient with given EmsId.
                         You can try to search again with different value or create a new patient.

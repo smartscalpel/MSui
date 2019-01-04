@@ -4,11 +4,20 @@ source("./server/04-patients-snd-srv/patientsSndSavePatient.R",              loc
 
 
 
+patientsSndEmptyEmsIdFromTissue <- reactiveVal()
+patientsSndEmptyEmsIdFromTissue(NULL)
+
+
+
 patientsSndSexSelector <- shiny::callModule(patientsSndSexSelector, "patientsSndSexSelector")
 patientsSndYobSelector <- shiny::callModule(patientsSndYobSelector, "patientsSndYobSelector")
 patientsSndAgeSelector <- shiny::callModule(patientsSndAgeSelector, "patientsSndAgeSelector")
 
 
+
+observeEvent(patientsSndEmptyEmsIdFromTissue(), {
+        updateTextInput(session = session, inputId = "patientsSndEmsId", value = patientsSndEmptyEmsIdFromTissue())
+})
 
 shiny::observeEvent(input$patientsSndSave, {
         
