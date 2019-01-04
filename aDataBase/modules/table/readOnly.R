@@ -22,6 +22,10 @@ readOnly <- function(input, output, session, dtTable, reactiveDataFromDB, hideCo
                                 hideColumns = hideColumns,
                                 height = "68vh"
                         )
-                )       
+                )
+                
+                observeEvent(input$table_cell_clicked, {
+                        return(reactive({input$data_cell_clicked}))
+                })
         })
 }
