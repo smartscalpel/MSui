@@ -19,8 +19,27 @@ output$tissuesSndMessgae <- shiny::renderText({
 
 
 
-tissuesSndValues <- reactiveValues()
+tissuesSndValues <- shiny::reactiveValues()
 tissuesSndValues$find <- FALSE
+
+tissuesSndReactivePatientData <- reactiveVal()
+tissuesSndReactivePatientData(NULL)
+
+tissuesSndCreateTissueTrigger <- reactiveVal()
+tissuesSndCreateTissueTrigger(0)
+
+
+
+shiny::callModule(
+        module = tissuesSndCreateTissue,
+        id = "tissuesSndCreateTissue",
+        dataModal = dataModal,
+        reactivePatientData = tissuesSndReactivePatientData,
+        checkLabelUniqueness = tissuesSndCheckLabelUniqueness(pool = pool),
+        saveTissue = tissuesSndSaveTissue(pool = pool),
+        recieveDataFromSelectors = tissuesSndRecieveDataFromSelectors,
+        trigger = tissuesSndCreateTissueTrigger
+)
 
 
 
@@ -31,14 +50,12 @@ shiny::observeEvent(input$tissueSndSearch, {
         if (isTRUE(tissuesSndCheckEmsIdOutput[[1]])) {
                 tissuesSndValues$find <- TRUE
                 
-                shiny::callModule(
-                        module = tissuesSndCreateTissue,
-                        dataModal = dataModal,
-                        id = "tissuesSndCreateTissue",
-                        patient = tissuesSndCheckEmsIdOutput[[2]],
-                        checkLabelUniqueness = tissuesSndCheckLabelUniqueness(pool = pool),
-                        saveTissue = tissuesSndSaveTissue(pool = pool),
-                        recieveDataFromSelectors = tissuesSndRecieveDataFromSelectors
+                tissuesSndCreateTissueTrigger(
+                        tissuesSndCreateTissueTrigger() + 1
+                )
+                
+                tissuesSndReactivePatientData(
+                        tissuesSndCheckEmsIdOutput[[2]]
                 )
         }
         if (is.null(tissuesSndCheckEmsIdOutput[[1]])) {
@@ -61,7 +78,7 @@ shiny::observeEvent(input$tissueSndSearch, {
 
 
 
-output$tissuesSndFind <- reactive({
+output$tissuesSndFind <- shiny::reactive({
         return(tissuesSndValues$find)
 })
-outputOptions(output, "tissuesSndFind", suspendWhenHidden = FALSE)
+shiny::outputOptions(output, "tissuesSndFind", suspendWhenHidden = FALSE)

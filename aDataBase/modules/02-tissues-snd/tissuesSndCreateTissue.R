@@ -57,7 +57,13 @@ tissuesSndCreateTissueUI <- function(id, diagnosisDictionary) {
 
 
 # Module server function
-tissuesSndCreateTissue <- function(input, output, session, dataModal, patient, checkLabelUniqueness, saveTissue, recieveDataFromSelectors) {
+tissuesSndCreateTissue <- function(input, output, session,
+                                   dataModal,
+                                   reactivePatientData,
+                                   checkLabelUniqueness,
+                                   saveTissue,
+                                   recieveDataFromSelectors,
+                                   trigger) {
         
         diagnosisSelector <- shiny::callModule(
                 module = tissuesSndDiagnosisSelector,
@@ -74,64 +80,72 @@ tissuesSndCreateTissue <- function(input, output, session, dataModal, patient, c
                 id = "time"
         )
         
-        output$table <- DT::renderDataTable(
-                DT::datatable(
-                        data = patient,
-                        rownames = FALSE,
-                        
-                        extensions = list(
-                                'Scroller' = NULL
-                        ),
-                        
-                        options = list(
-                                scrollX = TRUE,
-                                paging = FALSE,
-                                dom = 'tip'
-                        ),
-                        
-                        selection = "none",
-                        editable = FALSE
+        
+        
+        observeEvent(trigger(), {
+                patientData <- reactivePatientData()
+                
+                
+                output$table <- DT::renderDataTable(
+                        DT::datatable(
+                                data = patientData,
+                                rownames = FALSE,
+                                
+                                extensions = list(
+                                        'Scroller' = NULL
+                                ),
+                                
+                                options = list(
+                                        scrollX = TRUE,
+                                        paging = FALSE,
+                                        dom = 'tip'
+                                ),
+                                
+                                selection = "none",
+                                editable = FALSE
+                        )
                 )
-        )
-        
-        
-        
-        
-        shiny::observeEvent(input$save, {
                 
-                if (checkLabelUniqueness(labelValue = input$label)) {
-                        
-                        tissueData <- recieveDataFromSelectors(
-                                input$label,
-                                patient$id,
-                                input$location,
-                                diagnosisSelector,
-                                gradeSelector,
-                                input$coords,
-                                timeSelector
-                        )
-                        
-                        saveTissue(tissueData = tissueData)
-                        showModal(
-                                dataModal(
-                                        modalID = session$ns("ok"),
-                                        failed = FALSE,
-                                        msg = "Data was successfully stored in database!"
-                                )
-                        )
-                } else {
-                        showModal(
-                                dataModal(
-                                        modalID = session$ns("ok"),
-                                        failed = TRUE,
-                                        msg = "Given label already exists in database. Please, try anouther one"
-                                )
-                        )
-                }
                 
+                
+                shiny::observeEvent(input$save, {
+                        
+                        if (checkLabelUniqueness(labelValue = input$label)) {
+                                
+                                tissueData <- recieveDataFromSelectors(
+                                        label = input$label,
+                                        patient = patientData$id,
+                                        location = input$location,
+                                        diagnosisSelector = diagnosisSelector,
+                                        gradeSelector = gradeSelector,
+                                        coords = input$coords,
+                                        timeSelector = timeSelector
+                                )
+                                
+                                saveTissue(tissueData = tissueData)
+                                showModal(
+                                        dataModal(
+                                                modalID = session$ns("ok"),
+                                                failed = FALSE,
+                                                msg = "Data was successfully stored in database!"
+                                        )
+                                )
+                                
+                        } else {
+                                showModal(
+                                        dataModal(
+                                                modalID = session$ns("ok"),
+                                                failed = TRUE,
+                                                msg = "Given label already exists in database. Please, try anouther one"
+                                        )
+                                )
+                        }
+                        
+                })
+                
+                observeEvent(input$ok, {
+                        removeModal()
+                })
         })
         
-        observeEvent(input$ok, {
-                removeModal()
-        })
 }

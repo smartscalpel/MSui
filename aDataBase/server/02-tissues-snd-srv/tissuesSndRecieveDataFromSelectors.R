@@ -45,7 +45,7 @@ tissuesSndRecieveDataFromSelectors <- function(label, patient, location, diagnos
                 tissueData <- c(tissueData, "null")
         }
 
-        names(tissueData) <- c("label", "patient","location", "diagnosis", "grade", "dt", "coords")
+        names(tissueData) <- c("label", "patient", "location", "diagnosis", "grade", "dt", "coords")
 
         return(tissueData)
 }
