@@ -1,60 +1,44 @@
-tissuesSndRecieveSelectorValues <- function(label, patient, location, diagnosisSelector, gradeSelector, coords, timeSelector) {
+tissuesSndRecieveSelectorValues <- function(label, patientId, location, diagnosisSelector, gradeSelector, coords, timeSelector) {
         
-        tissueData <- c()
+        tissueData <- c("null", "null", "null", "null", "null", "null", "null")
+        names(tissueData) <- c("label", "patient", "location", "diagnosis", "grade", "dt", "coords")
         
         
         # label non empty string
-        tissueData <- c(tissueData, label)
+        tissueData["label"] <- label
         
         
         # patient is non empty integer
-        patient <- patient[1]
-        tissueData <- c(tissueData, patient)
+        tissueData["patient"] <- patientId
         
         
         # Location Selector
         if (location != "" & ! is.null(location)) {
-                tissueData <- c(tissueData, location)
-        } else {
-                tissueData <- c(tissueData, "null")
+                tissueData["location"] <- location
         }
         
         
         # Diagnosis Selector
-        tissueData <- c(
-                tissueData,
-                diagnosisDictionary$id[match(diagnosisSelector[[2]](), diagnosisDictionary$name)]
-        )
+        tissueData["diagnosis"] <- diagnosisDictionary$id[match(diagnosisSelector(), diagnosisDictionary$name)]
         
         
         # Grade Selector
         if (gradeSelector[[1]]() != "null") {
-                tissueData <- c(
-                        tissueData,
-                        integer(gradeSelector[[2]]())
-                )
-        } else {
-                tissueData <- c(tissueData, "null")
+                tissueData["grade"] <- integer(gradeSelector[[2]]())
         }
         
         
         # Time Selector
         if (timeSelector[[1]]() != "null") {
-                tissueData <- c(tissueData, as.Date(timeSelector[[2]]()))
-        } else {
-                tissueData <- c(tissueData, "null")
+                tissueData["dt"] <- as.Date(timeSelector[[2]]())
         }
         
         
         # Coords Selector
-        if (coords != "" | is.null(coords)) {
-                tissueData <- c(tissueData, coords)
-        } else {
-                tissueData <- c(tissueData, "null")
+        if (coords != "" & ! is.null(coords)) {
+                tissueData["coords"] <- coords
         }
-
         
-        names(tissueData) <- c("label", "patient", "location", "diagnosis", "grade", "dt", "coords")
-
+        
         return(tissueData)
 }

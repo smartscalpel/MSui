@@ -4,7 +4,7 @@ patientsSndRecieveSelectorValues <- function(emsId, yob, sex, age) {
         names(patientData) <- c("emsid", "yob", "sex", "age")
         
         
-        # emsid non empty string
+        # EmsId
         patientData["emsid"] <- emsId
         
         
@@ -17,8 +17,13 @@ patientsSndRecieveSelectorValues <- function(emsId, yob, sex, age) {
         
         
         # Sex Selector
-        if (sex[[1]]() != "null") {
-                patientData["sex"] <- sex[[2]]()
+        if (sex() != "null") {
+                if (sex() == "men") {
+                        patientData["sex"] <- "'М'"
+                }
+                if (sex() == "women") {
+                        patientData["sex"] <- "'Ж'"
+                }
         }
         
         

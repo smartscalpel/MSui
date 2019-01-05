@@ -62,8 +62,7 @@ tissuesSndCreateTissue <- function(input, output, session,
                                    reactivePatientData,
                                    checkLabelUniqueness,
                                    saveTissue,
-                                   recieveSelectorValues,
-                                   trigger) {
+                                   recieveSelectorValues) {
         
         diagnosisSelector <- shiny::callModule(
                 module = tissuesSndDiagnosisSelector,
@@ -82,30 +81,25 @@ tissuesSndCreateTissue <- function(input, output, session,
         
         
         
-        observeEvent(trigger(), {
-                patientData <- reactivePatientData()
-                
-                
-                output$table <- DT::renderDataTable(
-                        DT::datatable(
-                                data = patientData,
-                                rownames = FALSE,
-                                
-                                extensions = list(
-                                        'Scroller' = NULL
-                                ),
-                                
-                                options = list(
-                                        scrollX = TRUE,
-                                        paging = FALSE,
-                                        dom = 'tip'
-                                ),
-                                
-                                selection = "none",
-                                editable = FALSE
-                        )
+        output$table <- DT::renderDataTable(
+                DT::datatable(
+                        data = reactivePatientData(),
+                        rownames = FALSE,
+                        
+                        extensions = list(
+                                'Scroller' = NULL
+                        ),
+                        
+                        options = list(
+                                scrollX = TRUE,
+                                paging = FALSE,
+                                dom = 'tip'
+                        ),
+                        
+                        selection = "none",
+                        editable = FALSE
                 )
-        })
+        )
         
         
         
@@ -115,7 +109,7 @@ tissuesSndCreateTissue <- function(input, output, session,
                         
                         tissueData <- recieveSelectorValues(
                                 label = input$label,
-                                patient = patientData$id,
+                                patientId = reactivePatientData()$id,
                                 location = input$location,
                                 diagnosisSelector = diagnosisSelector,
                                 gradeSelector = gradeSelector,
@@ -143,6 +137,8 @@ tissuesSndCreateTissue <- function(input, output, session,
                 }
                 
         })
+        
+        
         
         observeEvent(input$ok, {
                 removeModal()

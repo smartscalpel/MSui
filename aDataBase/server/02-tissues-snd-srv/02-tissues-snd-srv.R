@@ -25,10 +25,6 @@ tissuesSndValues$find <- FALSE
 tissuesSndReactivePatientData <- reactiveVal()
 tissuesSndReactivePatientData(NULL)
 
-tissuesSndCreateTissueTrigger <- reactiveVal()
-tissuesSndCreateTissueTrigger(0)
-
-
 
 shiny::callModule(
         module = tissuesSndCreateTissue,
@@ -37,8 +33,7 @@ shiny::callModule(
         reactivePatientData = tissuesSndReactivePatientData,
         checkLabelUniqueness = tissuesSndCheckLabelUniqueness(pool = pool),
         saveTissue = tissuesSndSaveTissue(pool = pool),
-        recieveSelectorValues = tissuesSndRecieveSelectorValues,
-        trigger = tissuesSndCreateTissueTrigger
+        recieveSelectorValues = tissuesSndRecieveSelectorValues
 )
 
 
@@ -55,10 +50,6 @@ shiny::observeEvent(input$tissueSndSearch, {
         
         if (isTRUE(tissuesSndCheckEmsIdOutput[[1]])) {
                 tissuesSndValues$find <- TRUE
-                
-                tissuesSndCreateTissueTrigger(
-                        tissuesSndCreateTissueTrigger() + 1
-                )
                 
                 tissuesSndReactivePatientData(
                         tissuesSndCheckEmsIdOutput[[2]]

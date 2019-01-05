@@ -20,5 +20,5 @@ patientsSndSexSelectorUI <- function(id) {
 # Module server function
 patientsSndSexSelector <- function(input, output, session) {
         
-        return(list(reactive({input$radio})))
+        return(reactive({input$radio}))
 }
