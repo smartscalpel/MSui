@@ -12,6 +12,11 @@ tissueReactiveValues$editableTable <- FALSE
 tissuesReactiveDataFromDB <- shiny::reactiveVal()
 tissuesReactiveDataFromDB(NULL)
 
+tissuesTriggerUpdateTableEditable <- shiny::reactiveVal()
+tissuesTriggerUpdateTableEditable(0)
+tissuesTriggerUpdateTableReadOnly <- shiny::reactiveVal()
+tissuesTriggerUpdateTableReadOnly(0)
+
 output$tissuesScreensaver <- generateHtmlScreenSaver(inputText = "Set up Filters and press Select!")
 
 
@@ -30,7 +35,8 @@ tissuesTableEditableClickedData <- shiny::callModule(
         hideColumns = c(0, 1),
         checkModification = tissuesCheckTableModification,
         saveUpdated = tissuesSaveModifiedTable(pool = pool),
-        dataModal = dataModal
+        dataModal = dataModal,
+        trigger = tissuesTriggerUpdateTableEditable
 )
 
 tissuesTableReadOnlyClickedData <- shiny::callModule(
@@ -38,7 +44,8 @@ tissuesTableReadOnlyClickedData <- shiny::callModule(
         dtTable = dtTable,
         id = "tissuesReadOnly",
         reactiveDataFromDB = tissuesReactiveDataFromDB,
-        hideColumns = c(0, 1)
+        hideColumns = c(0, 1),
+        trigger = tissuesTriggerUpdateTableReadOnly
 )
 
 
@@ -77,9 +84,17 @@ shiny::observeEvent(input$tissuesSelect, {
 
                 if (input$tissuesEditableSelector) {
                         tissueReactiveValues$editableTable <- TRUE
+                        
+                        tissuesTriggerUpdateTableEditable(
+                                tissuesTriggerUpdateTableEditable() + 1
+                        )
                 }
                 if (! input$tissuesEditableSelector) {
                         tissueReactiveValues$editableTable <- FALSE
+                        
+                        tissuesTriggerUpdateTableReadOnly(
+                                tissuesTriggerUpdateTableReadOnly() + 1
+                        )
                 }
         } else {
                 tissueReactiveValues$error <- TRUE

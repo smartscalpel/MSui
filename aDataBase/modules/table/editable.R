@@ -25,16 +25,19 @@ editable <- function(input, output, session,
                      hideColumns,
                      checkModification,
                      saveUpdated,
-                     dataModal) {
+                     dataModal,
+                     trigger) {
         
         proxy <- DT::dataTableProxy('table')
         
+        dataFromDB <- NULL
+        
         # Store ids of updates rows
-        updated <- reactiveValues()
+        updated <- shiny::reactiveValues()
         updated$id <- c()
         
-        observeEvent(reactiveDataFromDB(), {
-                dataFromDB <- reactiveDataFromDB()
+        observeEvent(trigger(), {
+                dataFromDB <<- shiny::isolate(reactiveDataFromDB())
                 
                 output$table <- renderDT(
                         dtTable(
@@ -44,71 +47,69 @@ editable <- function(input, output, session,
                                 height = "63vh"
                         )
                 )
+        })
+        
+        observeEvent(input$table_cell_edit, {
+                info = input$table_cell_edit
+                # str(info)
+                i = info$row
+                j = info$col + 1
+                v = info$value
                 
-                observeEvent(input$table_cell_edit, {
-                        info = input$table_cell_edit
-                        str(info)
-                        i = info$row
-                        j = info$col + 1
-                        v = info$value
-                        
-                        checkResult <- checkModification(dataFromDB = dataFromDB, j = j, newValue = v)
-                        
-                        if (checkResult[[1]]) {
-                                dataFromDB[i, j] <<- DT::coerceValue(v, dataFromDB[i, j])
-                                # dataFromDB[i, j] <- DT::coerceValue(v, dataFromDB[i, j])
-                                replaceData(proxy, dataFromDB, resetPaging = FALSE, rownames = FALSE)
-                                updated$id <- c(updated$id, dataFromDB[i, 1])
-                        } else {
-                                DT::reloadData(proxy, dataFromDB, resetPaging = FALSE)
+                checkResult <- checkModification(dataFromDB = dataFromDB, j = j, newValue = v)
+                
+                if (checkResult[[1]]) {
+                        dataFromDB[i, j] <<- DT::coerceValue(v, dataFromDB[i, j])
+                        replaceData(proxy, dataFromDB, resetPaging = FALSE, rownames = FALSE)
+                        updated$id <- c(updated$id, dataFromDB[i, 1])
+                } else {
+                        DT::reloadData(proxy, dataFromDB, resetPaging = FALSE)
+                        showModal(
+                                dataModal(
+                                        modalID = session$ns("ok"),
+                                        failed = TRUE,
+                                        msg = paste(
+                                                "Error! Invalid input:",
+                                                checkResult[[2]]
+                                        )
+                                )
+                        )
+                }
+        })
+        
+        observeEvent(input$save, {
+                if (is.null(updated$id)) {
+                        showModal(
+                                dataModal(
+                                        modalID = session$ns("ok"),
+                                        failed = FALSE,
+                                        msg = "Nothing to save!"
+                                )
+                        )
+                } else {
+                        updatedPart <- dataFromDB[dataFromDB$id %in% updated$id, ]
+                        if (! saveUpdated(updatedPart = updatedPart)){
                                 showModal(
                                         dataModal(
                                                 modalID = session$ns("ok"),
                                                 failed = TRUE,
-                                                msg = paste(
-                                                        "Error! Invalid input:",
-                                                        checkResult[[2]]
-                                                )
+                                                msg = "Something went wrong!"
                                         )
                                 )
-                        }
-                })
-                
-                observeEvent(input$save, {
-                        if (is.null(updated$id)) {
+                        } else {
                                 showModal(
                                         dataModal(
                                                 modalID = session$ns("ok"),
                                                 failed = FALSE,
-                                                msg = "Nothing to save!"
+                                                msg = "Success!"
                                         )
                                 )
-                        } else {
-                                updatedPart <- dataFromDB[dataFromDB$id %in% updated$id, ]
-                                if (! saveUpdated(updatedPart = updatedPart)){
-                                        showModal(
-                                                dataModal(
-                                                        modalID = session$ns("ok"),
-                                                        failed = FALSE,
-                                                        msg = "Something went wrong!"
-                                                )
-                                        )
-                                } else {
-                                        showModal(
-                                                dataModal(
-                                                        modalID = session$ns("ok"),
-                                                        failed = FALSE,
-                                                        msg = "Success!"
-                                                )
-                                        )
-                                }
                         }
-                })
-                
-                observeEvent(input$ok, {
-                        removeModal()
-                })
-                
+                }
+        })
+
+        observeEvent(input$ok, {
+                removeModal()
         })
         
         return(reactive(input$table_cell_clicked))

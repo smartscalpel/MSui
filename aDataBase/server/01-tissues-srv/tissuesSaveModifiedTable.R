@@ -8,7 +8,18 @@ tissuesSaveModifiedTable <- function(pool) {
                         updatedPart$diagnosis,
                         function(x) diagnosisDictionary$id[match(x, diagnosisDictionary$name)]
                 )
+                
                 updatedPart[is.na(updatedPart)] <- "null"
+                updatedPart$label    <- sapply(updatedPart$label,
+                                               function (x) {if (x != "null") paste("'", x, "'", sep = "") else x})
+                updatedPart$location <- sapply(updatedPart$location,
+                                               function (x) {if (x != "null") paste("'", x, "'", sep = "") else x})
+                updatedPart$dt       <- sapply(updatedPart$dt,
+                                               function (x) {if (x != "null") paste("'", x, "'", sep = "") else x})
+                updatedPart$coords   <- sapply(updatedPart$coords,
+                                               function (x) {if (x != "null") paste("'", x, "'", sep = "") else x})
+                
+                
                 
                 # Create a transaction
                 conn <- pool::poolCheckout(pool)
@@ -20,13 +31,12 @@ tissuesSaveModifiedTable <- function(pool) {
                                                         conn,
                                                         paste(
                                                                 "UPDATE tissue SET",
-                                                                " label = '",    updatedPart[i, "label"],     "',",
-                                                                " patientid = ", updatedPart[i, "patientid"], ",",
-                                                                " location = '", updatedPart[i, "location"],  "',",
+                                                                " label = ",     updatedPart[i, "label"],     ",",
+                                                                " location = ",  updatedPart[i, "location"],  ",",
                                                                 " diagnosis = ", updatedPart[i, "diagnosis"], ",",
                                                                 " grade = ",     updatedPart[i, "grade"],     ",",
-                                                                " dt = '",       updatedPart[i, "dt"],        "',",
-                                                                " coords = '",   updatedPart[i, "coords"],    "'",
+                                                                " dt = ",        updatedPart[i, "dt"],        ",",
+                                                                " coords = ",    updatedPart[i, "coords"],    "",
                                                                 " WHERE id = ",  updatedPart[i, "id"],        ";",
                                                                 sep = ""
                                                         )

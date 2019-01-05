@@ -5,7 +5,7 @@ patientsSndRecieveSelectorValues <- function(emsId, yob, sex, age) {
         
         
         # EmsId
-        patientData["emsid"] <- emsId
+        patientData["emsid"] <- paste("'", emsId, "'", sep = "")
         
         
         # Year of Birth Selector

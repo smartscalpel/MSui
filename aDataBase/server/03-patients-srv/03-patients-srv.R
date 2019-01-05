@@ -5,12 +5,17 @@ source("./server/03-patients-srv/patientsCheckTableModification.R", local = TRUE
 
 
 
-patientsReactiveValues <- reactiveValues()
+patientsReactiveValues <- shiny::reactiveValues()
 patientsReactiveValues$error         <- TRUE
 patientsReactiveValues$editableTable <- FALSE
 
-patientsReactiveDataFromDB <- reactiveVal()
+patientsReactiveDataFromDB <- shiny::reactiveVal()
 patientsReactiveDataFromDB(NULL)
+
+patientsTriggerUpdateTableEditable <- shiny::reactiveVal()
+patientsTriggerUpdateTableEditable(0)
+patientsTriggerUpdateTableReadOnly <- shiny::reactiveVal()
+patientsTriggerUpdateTableReadOnly(0)
 
 output$patientsScreensaver <- generateHtmlScreenSaver(inputText = "Set up Filters and press Select!")
 
@@ -26,9 +31,10 @@ shiny::callModule(
         dtTable = dtTable,
         reactiveDataFromDB = patientsReactiveDataFromDB,
         hideColumns = c(0),
-        checkModification = tissuesCheckTableModification,
+        checkModification = patientsCheckTableModification,
         saveUpdated = patientsSaveModifiedTable(pool),
-        dataModal = dataModal
+        dataModal = dataModal,
+        trigger = patientsTriggerUpdateTableReadOnly
 )
 
 shiny::callModule(
@@ -36,7 +42,8 @@ shiny::callModule(
         dtTable = dtTable,
         id = "patientsReadOnly",
         reactiveDataFromDB = patientsReactiveDataFromDB,
-        hideColumns = c(0)
+        hideColumns = c(0),
+        trigger = patientsTriggerUpdateTableReadOnly
 )
 
 
@@ -59,9 +66,17 @@ shiny::observeEvent(input$patientsSelect, {
                 
                 if (input$patientsEditableSelector) {
                         patientsReactiveValues$editableTable <- TRUE
+                        
+                        patientsTriggerUpdateTableEditable(
+                                patientsTriggerUpdateTableEditable() + 1
+                        )
                 }
                 if (! input$patientsEditableSelector) {
                         patientsReactiveValues$editableTable <- FALSE
+                        
+                        patientsTriggerUpdateTableReadOnly(
+                                patientsTriggerUpdateTableReadOnly() + 1
+                        )
                 }
         } else {
                 patientsReactiveValues$error <- TRUE

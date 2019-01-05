@@ -5,7 +5,7 @@ tissuesSndRecieveSelectorValues <- function(label, patientId, location, diagnosi
         
         
         # label non empty string
-        tissueData["label"] <- label
+        tissueData["label"] <- paste("'", label, "'", sep = "")
         
         
         # patient is non empty integer
@@ -14,7 +14,7 @@ tissuesSndRecieveSelectorValues <- function(label, patientId, location, diagnosi
         
         # Location Selector
         if (location != "" & ! is.null(location)) {
-                tissueData["location"] <- location
+                tissueData["location"] <- paste("'", location, "'", sep = "")
         }
         
         
@@ -24,19 +24,19 @@ tissuesSndRecieveSelectorValues <- function(label, patientId, location, diagnosi
         
         # Grade Selector
         if (gradeSelector[[1]]() != "null") {
-                tissueData["grade"] <- integer(gradeSelector[[2]]())
+                tissueData["grade"] <- gradeSelector[[2]]()
         }
         
         
         # Time Selector
         if (timeSelector[[1]]() != "null") {
-                tissueData["dt"] <- as.Date(timeSelector[[2]]())
+                tissueData["dt"] <- paste("'", as.Date(timeSelector[[2]](), format = "yyyy-mm-dd"), "'", sep = "")
         }
         
         
         # Coords Selector
         if (coords != "" & ! is.null(coords)) {
-                tissueData["coords"] <- coords
+                tissueData["coords"] <- paste("'", coords, "'", sep = "")
         }
         
         

@@ -16,7 +16,8 @@ tissuesSndTimeSelectorUI <- function(id) {
                 shiny::dateInput(
                         inputId = ns("date"),
                         label = NULL,
-                        width = "50%"
+                        width = "50%",
+                        format = "yyyy-mm-dd"
                 )
         )
 }

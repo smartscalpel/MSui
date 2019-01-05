@@ -10,10 +10,12 @@ readOnlyUI <- function(id) {
 
 
 # Module server function
-readOnly <- function(input, output, session, dtTable, reactiveDataFromDB, hideColumns) {
+readOnly <- function(input, output, session, dtTable, reactiveDataFromDB, hideColumns, trigger) {
         
-        observeEvent(reactiveDataFromDB(), {
-                dataFromDB <- reactiveDataFromDB()
+        dataFromDB <- NULL
+        
+        observeEvent(trigger(), {
+                dataFromDB <<- shiny::isolate(reactiveDataFromDB())
                 
                 output$table <- DT::renderDataTable(
                         dtTable(

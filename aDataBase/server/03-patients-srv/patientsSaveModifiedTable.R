@@ -3,6 +3,9 @@ patientsSaveModifiedTable <- function(pool) {
         function (updatedPart) {
                 updatedPart[is.na(updatedPart)] <- "null"
                 
+                updatedPart$sex <- sapply(updatedPart$sex,
+                                          function (x) {if (x != "null") paste("'", x, "'", sep = "") else x})
+                
                 # Create a transaction
                 conn <- pool::poolCheckout(pool)
                 
@@ -15,7 +18,7 @@ patientsSaveModifiedTable <- function(pool) {
                                                         paste(
                                                                 "UPDATE patient SET",
                                                                 " yob = ",      updatedPart[i, "yob"],  ",",
-                                                                " sex = '",     updatedPart[i, "sex"],  "',",
+                                                                " sex = ",     updatedPart[i, "sex"],   ",",
                                                                 " age = ",      updatedPart[i, "age"],  "",
                                                                 " WHERE id = ", updatedPart[i, "id"],   ";",
                                                                 sep = ""
