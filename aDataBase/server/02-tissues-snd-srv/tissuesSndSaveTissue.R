@@ -6,18 +6,24 @@ tissuesSndSaveTissue <- function(pool) {
                 conn <- pool::poolCheckout(pool)
                 
                 # Single update/insert/delete commands is already in a transaction
-                dbSendQuery(
-                        conn,
-                        paste(
-                                "INSERT INTO tissue (label, patientid, location, diagnosis, grade, dt, coords) VALUES (",
-                                paste(tissueData, collapse = ", "),
-                                ");",
-                                sep = ""
-                        )
+                updatedResult <- tryCatch(
+                        {
+                                DBI::dbSendQuery(
+                                        conn,
+                                        paste(
+                                                "INSERT INTO tissue (label, patientid, location, diagnosis, grade, dt, coords) VALUES (",
+                                                paste(tissueData, collapse = ", "),
+                                                ");",
+                                                sep = ""
+                                        )
+                                )
+                                TRUE
+                        },
+                        error = function(c) FALSE
                 )
                 
                 pool::poolReturn(conn)
                 
-                return (TRUE)
+                return (updatedResult)
         }
 }

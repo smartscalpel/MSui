@@ -117,15 +117,23 @@ tissuesSndCreateTissue <- function(input, output, session,
                                 timeSelector = timeSelector
                         )
                         
-                        saveTissue(tissueData = tissueData)
-                        showModal(
-                                dataModal(
-                                        modalID = session$ns("ok"),
-                                        failed = FALSE,
-                                        msg = "Data was successfully stored in database!"
+                        if (saveTissue(tissueData = tissueData)) {
+                                showModal(
+                                        dataModal(
+                                                modalID = session$ns("ok"),
+                                                failed = FALSE,
+                                                msg = "Data was successfully stored in database!"
+                                        )
                                 )
-                        )
-                        
+                        } else {
+                                showModal(
+                                        dataModal(
+                                                modalID = session$ns("ok"),
+                                                failed = TRUE,
+                                                msg = "Oops, something went wrong!"
+                                        )
+                                )
+                        }
                 } else {
                         showModal(
                                 dataModal(
