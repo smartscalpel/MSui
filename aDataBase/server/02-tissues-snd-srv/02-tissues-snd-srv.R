@@ -79,8 +79,8 @@ shiny::observeEvent(input$tissueSndSearch, {
                 
                 output$tissuesSndMessgae <- generateErrorMessage(
                         "Unfortunately, we can't find a patient with given EmsId.
-                        You can try to search again with different value or create a new patient.
-                        If you want to do it, see information below."
+                        You can try to search again with different value. To create
+                        a new patient please please visit Add Patient tab."
                 )
         }      
 })
