@@ -6,6 +6,7 @@ source("./server/02-tissues-snd-srv/tissuesSndRecieveSelectorValues.R", local = 
 
 
 
+# Initial message
 output$tissuesSndMessgae <- shiny::renderText({
         HTML(
                 paste(
@@ -19,13 +20,17 @@ output$tissuesSndMessgae <- shiny::renderText({
 
 
 
+# Display different error messages
 tissuesSndValues <- shiny::reactiveValues()
 tissuesSndValues$find <- FALSE
 
+# Data from data base is reactive
 tissuesSndReactivePatientData <- reactiveVal()
 tissuesSndReactivePatientData(NULL)
 
 
+
+# Call modules
 shiny::callModule(
         module = tissuesSndCreateTissue,
         id = "tissuesSndCreateTissue",
@@ -38,12 +43,14 @@ shiny::callModule(
 
 
 
+# Auto filling emsId from tissue tab
 observeEvent(tissuesClickedEmsId(), {
         updateTextInput(session = session, inputId = "tissueSndEmsId", value = tissuesClickedEmsId())
 })
 
 
 
+# Search patient with given emsId
 shiny::observeEvent(input$tissueSndSearch, {
         
         tissuesSndCheckEmsIdOutput <- tissuesSndCheckEmsId(pool, input$tissueSndEmsId)
@@ -65,6 +72,7 @@ shiny::observeEvent(input$tissueSndSearch, {
         if (isFALSE(tissuesSndCheckEmsIdOutput[[1]])) {
                 tissuesSndValues$find <- FALSE
                 
+                # Auto filling emsId from tissue-snd tab, if search of patient is unsuccessful
                 patientsSndEmptyEmsIdFromTissue(
                         input$tissueSndEmsId
                 )
@@ -79,6 +87,7 @@ shiny::observeEvent(input$tissueSndSearch, {
 
 
 
+# Display different error messages
 output$tissuesSndFind <- shiny::reactive({
         return(tissuesSndValues$find)
 })

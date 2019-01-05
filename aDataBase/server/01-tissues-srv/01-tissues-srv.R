@@ -5,22 +5,29 @@ source("./server/01-tissues-srv/tissuesCheckTableModification.R", local = TRUE)
 
 
 
+# Variables for conditionalPanel. Display editable/readOnly table or error message
 tissueReactiveValues <- shiny::reactiveValues()
 tissueReactiveValues$error         <- TRUE
 tissueReactiveValues$editableTable <- FALSE
 
+# Data from data base is reactive
 tissuesReactiveDataFromDB <- shiny::reactiveVal()
 tissuesReactiveDataFromDB(NULL)
 
+# Special trigger for updating table inside editable and readOnly modules
 tissuesTriggerUpdateTableEditable <- shiny::reactiveVal()
 tissuesTriggerUpdateTableEditable(0)
 tissuesTriggerUpdateTableReadOnly <- shiny::reactiveVal()
 tissuesTriggerUpdateTableReadOnly(0)
 
+
+
+# Initial Screen
 output$tissuesScreensaver <- generateHtmlScreenSaver(inputText = "Set up Filters and press Select!")
 
 
 
+# Call modules
 tissuesFridgeSelector    <- shiny::callModule(tissuesFridgeSelector,    "tissuesFridgeSelector")
 tissuesSexSelector       <- shiny::callModule(tissuesSexSelector,       "tissuesSexSelector")
 tissuesAgeSelector       <- shiny::callModule(tissuesAgeSelector,       "tissuesAgeSelector")
@@ -50,6 +57,7 @@ tissuesTableReadOnlyClickedData <- shiny::callModule(
 
 
 
+# Auto filling emsId in tissue-snd tab
 tissuesClickedEmsId <- reactive({
         if (tissueReactiveValues$editableTable) {
                 tissuesReactiveDataFromDB()[tissuesTableEditableClickedData()$row, ]$emsid
@@ -60,6 +68,7 @@ tissuesClickedEmsId <- reactive({
 
 
 
+# Load data from DB
 shiny::observeEvent(input$tissuesSelect, {
         
         tissuesCheckOutput <- tissuesCheckSelectorValues(
@@ -106,6 +115,7 @@ shiny::observeEvent(input$tissuesSelect, {
 
 
 
+# Variables for conditionalPanel. Display editable/readOnly table or error message
 output$tissuesError <- reactive({
         return(tissueReactiveValues$error)
 })

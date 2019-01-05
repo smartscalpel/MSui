@@ -5,22 +5,29 @@ source("./server/03-patients-srv/patientsCheckTableModification.R", local = TRUE
 
 
 
+# Variables for conditionalPanel. Display editable/readOnly table or error message
 patientsReactiveValues <- shiny::reactiveValues()
 patientsReactiveValues$error         <- TRUE
 patientsReactiveValues$editableTable <- FALSE
 
+# Data from data base is reactive
 patientsReactiveDataFromDB <- shiny::reactiveVal()
 patientsReactiveDataFromDB(NULL)
 
+# Special trigger for updating table inside editable and readOnly modules
 patientsTriggerUpdateTableEditable <- shiny::reactiveVal()
 patientsTriggerUpdateTableEditable(0)
 patientsTriggerUpdateTableReadOnly <- shiny::reactiveVal()
 patientsTriggerUpdateTableReadOnly(0)
 
+
+
+# Initial Screen
 output$patientsScreensaver <- generateHtmlScreenSaver(inputText = "Set up Filters and press Select!")
 
 
 
+# Call modules
 patientsSexSelector <- shiny::callModule(patientsSexSelector, "patientsSexSelector")
 patientsAgeSelector <- shiny::callModule(patientsAgeSelector, "patientsAgeSelector")
 patientsYobSelector <- shiny::callModule(patientsYobSelector, "patientsYobSelector")
@@ -47,6 +54,8 @@ shiny::callModule(
 )
 
 
+
+# Load data from DB
 shiny::observeEvent(input$patientsSelect, {
         
         patientsCheckInputRes <- patientsCheckSelectorValues()
@@ -86,6 +95,9 @@ shiny::observeEvent(input$patientsSelect, {
         }
 })
 
+
+
+# Variables for conditionalPanel. Display editable/readOnly table or error message
 output$patientsError <- reactive({
         return(patientsReactiveValues$error)
 })

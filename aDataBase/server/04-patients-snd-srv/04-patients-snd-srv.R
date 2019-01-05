@@ -4,21 +4,24 @@ source("./server/04-patients-snd-srv/patientsSndSavePatient.R",           local 
 
 
 
+# Auto filling emsId from tissue-snd tab, if search of patient is unsuccessful
 patientsSndEmptyEmsIdFromTissue <- reactiveVal()
 patientsSndEmptyEmsIdFromTissue(NULL)
 
+observeEvent(patientsSndEmptyEmsIdFromTissue(), {
+        updateTextInput(session = session, inputId = "patientsSndEmsId", value = patientsSndEmptyEmsIdFromTissue())
+})
 
 
+
+# Call modules
 patientsSndSexSelector <- shiny::callModule(patientsSndSexSelector, "patientsSndSexSelector")
 patientsSndYobSelector <- shiny::callModule(patientsSndYobSelector, "patientsSndYobSelector")
 patientsSndAgeSelector <- shiny::callModule(patientsSndAgeSelector, "patientsSndAgeSelector")
 
 
 
-observeEvent(patientsSndEmptyEmsIdFromTissue(), {
-        updateTextInput(session = session, inputId = "patientsSndEmsId", value = patientsSndEmptyEmsIdFromTissue())
-})
-
+# Save patient in database
 shiny::observeEvent(input$patientsSndSave, {
         
         if (patientsSndCheckEmsIdUniqueness(pool = pool, emsIdValue = input$patientsSndEmsId)) {
@@ -58,8 +61,6 @@ shiny::observeEvent(input$patientsSndSave, {
         }
         
 })
-
-
 
 observeEvent(input$patientsSndModal, {
         removeModal()
