@@ -1,8 +1,6 @@
 tissuesSndSaveTissue <- function(pool) {
         function(tissueData) {
                 
-                print(tissueData)
-                
                 conn <- pool::poolCheckout(pool)
                 
                 # Single update/insert/delete commands is already in a transaction

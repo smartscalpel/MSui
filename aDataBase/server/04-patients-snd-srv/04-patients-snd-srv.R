@@ -30,14 +30,23 @@ shiny::observeEvent(input$patientsSndSave, {
                         age   = patientsSndAgeSelector
                 )
                 
-                patientsSndSavePatient(pool = pool, patientData = patientsSndData)
-                showModal(
-                        dataModal(
-                                modalID = "patientsSndModal",
-                                failed = FALSE,
-                                msg = "Data was successfully stored in database!"
+                if (patientsSndSavePatient(pool = pool, patientData = patientsSndData)) {
+                        showModal(
+                                dataModal(
+                                        modalID = "patientsSndModal",
+                                        failed = FALSE,
+                                        msg = "Data was successfully stored in database!"
+                                )
                         )
-                )
+                } else {
+                        showModal(
+                                dataModal(
+                                        modalID = "patientsSndModal",
+                                        failed = TRUE,
+                                        msg = "Oops, something went wrong!"
+                                )
+                        )
+                }
         } else {
                 showModal(
                         dataModal(
