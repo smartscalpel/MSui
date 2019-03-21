@@ -29,7 +29,7 @@ library(knitr)
 #library('Matrix')
 library(ggplot2)
 library(data.table)
-#library(plyr)
+library(plyr)
 library(xtable)
 #library(xcms)
 #library("FactoMineR")
@@ -121,7 +121,7 @@ insertSpectrum<-paste("INSERT INTO spectrum ",
 insertPatient<-'insert into patient (emsid,yob) values(?,-1)'
 insertTissue<-'insert into tissue (patientid,label,diagnosis) values (?,?,1)'
 insertSample<-'insert into smpl (tumorpatientid,tumorid,label) values (?,?,?)'
-getSpecID<-'SELECT ID FROM spectrum where filename=?'
+getSpecID<-"SELECT ID FROM spectrum where filename like ?";
 getPatient<-'select id,emsid,yob,sex from patient where emsid like ?'
 getTissue<-'select t.id,t.patientid,t.label,t.dt from tissue t join patient p on p.id=t.patientid where p.id=? and t.label like ?' 
 getSample<-'select s.id,s.label as name, \'tissue: "\'||t.label||\'"; patient: "\'|| p.emsid||\'"\' as description from smpl s,tissue t, patient p where t.id=s.tumorid and s.tumorpatientid=p.id and p.id=? and t.id=? and s.label like ? ;'
@@ -191,7 +191,6 @@ nMode<-1 #Negative mode
 Before running the code a number of variables should be setted for appropriate data loading:
  
  1. the path to the folder where data will be moved after upload *dtPath* 
- 2. the references to device *devID*, solvent *solID*, ion source *isID*, resolution *resID*, mode *nMode*
  3. the name of the database *dbname*
  4. user/password for teh database: *usr* and *pwd*
  
@@ -204,16 +203,12 @@ if(!(exists('dbname')&
      exists('usr')&
      exists('pwd')&
      exists('dtPath')&
-     exists('cdf.fname')& #CDF file not needed any more it was processed by prepare4db, but it should be loaded into database
-     exists('devID')&
      exists('solID')&
      exists('isID')&
-     exists('resID')&
+     exists('cdf.fname')& #CDF file not needed any more it was processed by prepare4db, but its name should be loaded into database
      exists('smplID')&
      exists('stID')&
-     exists('rangeID')&
-     exists('stpID')&
-     exists('nMode'))){
+     exists('stpID'))){
   stop('not all obligatory parameters are provided\n')
 }
 if(!exists('halfWindowSize')){
@@ -243,7 +238,7 @@ plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+spectra[[imTIC]]@mass[imTICmax])
 conn <- dbConnect(MonetDB.R::MonetDB(), 
                   dbname = dbname,
                   user=usr,password=pwd)
-spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
+spectrumID<-dbGetQuery(conn,getSpecID,paste0(cdf.fname,'_%'))
 proceedFile<-(dim(spectrumID)[1]==0)
 #proceedFile<-TRUE
 
@@ -271,11 +266,8 @@ idxSol<-which(solvents$id==solID)
 ionSources<-dbReadTable(conn,'ionsource')
 idxIS<-which(ionSources$id==isID)
 resolutions<-dbReadTable(conn,'resolution')
-idxRes<-which(resolutions$id==resID)
 modes<-dbReadTable(conn,'mode')
-idxMode<-which(modes$id==nMode)
 ranges<-dbReadTable(conn,'mzrange')
-idxRange<-which(ranges$id==rangeID)
 note<-paste('exDT:',experimentData,'\nfileDT:',
             fileData,'\norigFile:',
             origFilePath,'\ncomment:',comment)
@@ -302,33 +294,44 @@ if(dim(sample)[1]==0){
 
 The data loaded with the following properties:
 ```{r prop.table, eval=proceedFile}
-parName<-c('Sample','Device','Ion source','Resolution','Mode','Solvent','Ranges')
+parName<-c('Sample','Device','Ion source','Solvent')
 resDF<-cbind(data.frame(Parameter=parName),
              rbind(sample,
                    devices[idxDev,c(1,2,4)],
                    ionSources[idxIS,],
-                   resolutions[idxRes,],
-                   modes[idxMode,],
                    data.frame(id=solvents$id[idxSol],
                               name=solvents$name[idxSol],
-                              description=solvents$composition[idxSol]),
-                   data.frame(id=ranges$id[idxRange],
-                              name=paste(ranges$min[idxRange],ranges$max[idxRange],sep='-'),
-                              description='')
+                              description=solvents$composition[idxSol])
                    )
                
              )
 kable(resDF, format = "latex", caption = 'Predefined parameters for load', row.names=FALSE, booktabs=TRUE)
 ```
+According to the protocol other parameters are as follows:
+```{r protocol.table, eval=proceedFile}
+pr<-sapply(mdL,function(.x).x$protocol)
+mdLdf<-unique(ldply(mdL,function(.x)as.data.frame(.x)))
+kable(mdLdf, format = "latex", caption = 'Predefined parameters for protocol', row.names=FALSE, booktabs=TRUE)
+```
+
 ```{r already.loaded,eval=!proceedFile}
 cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
 ```
  
 
 ## Spectrum
-```{r insert.spectrum, eval=proceedFile}
-spectrumID<-dbGetQuery(conn,getSpecID,cdf.fname)
+```{r insert.spectrums, eval=proceedFile}
+for(sidx in unique(intRT)){
+  cdf.fid<-paste0(cdf.fname,'_',sidx)
+spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
 if(dim(spectrumID)[1]==0){
+  rtIdx<-which(intRT==sidx)[1]
+  idxRes<-which(resolutions$name==mdL[[rtIdx]]$Detector)
+  resID<-resolutions$id[idxRes]
+  nMode<-ifelse(mdL[[idxRes]]$Polarity=='Neg',1,2)
+  rangeID<-ifelse(mdL[[idxRes]]$Range=="100-2000",1,2)
+# idxMode<-which(modes$id==nMode)
+# idxRange<-which(ranges$id==rangeID)
   rs<-dbSendStatement(conn,insertSpectrum,
                     patient$id, #patient
                     tissue$id, #tumor
@@ -336,7 +339,7 @@ if(dim(spectrumID)[1]==0){
                     resID,# resolution
                     solID,# solution
                     devID,# device
-                    cdf.fname,
+                    cdf.fid,
                     isID,# ionsource
                     nMode,# mode
                     rangeID #range
@@ -344,10 +347,11 @@ if(dim(spectrumID)[1]==0){
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
     dbClearResult(rs)
-spectrumID<-dbGetQuery(conn,getSpecID,cdf.fname)
+spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
 rs<-dbSendStatement(conn,insertComment,note,'autoloader')
 commentID<-dbGetQuery(conn,getCommentID,note)
 rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
+}
 }
 ```
 
@@ -355,8 +359,11 @@ rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
 
 ```{r insert.scans, eval=proceedFile}
 df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
+for(sidx in unique(intRT)){
+  cdf.fid<-paste0(cdf.fname,'_',sidx)
+spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
 system.time(
-for(sp in origSpectra){
+for(sp in origSpectra[intRT==sidx]){
   md<-metaData(sp)
   rs<-dbSendStatement(conn,insertScan,
                       spectrumID$id,
@@ -364,6 +371,7 @@ for(sp in origSpectra){
                       md$retentionTime,totalIonCurrent(sp))
 }
 )
+}
 #spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 ```
 
@@ -510,6 +518,9 @@ wcn
 ```{r populate.peak.table, eval=proceedFile}
 before<-dbGetQuery(conn,'select count(*) as num from peak;')
 before
+for(sidx in unique(intRT)){
+  cdf.fid<-paste0(cdf.fname,'_',sidx)
+spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
 rs<-dbSendStatement(conn,
                         paste('INSERT INTO peak(mz,scan,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr) ',
 '(select mz,s.id as scan, intensity, norm2tic, ',
@@ -525,6 +536,7 @@ if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
 }
 abDF<-data.frame(tsv=wcn[1],before=before$num,after=after$num,diff=(after$num-before$num))
 kable(abDF, format = "latex", caption = 'Predefined parameters for load', row.names=FALSE, booktabs=TRUE)
+}
 ```
 
 Database load r after$num-before$num rows into the peak table. The TSV file contains r wcn[1] rows. Content of the `tmp_peak` table was `r if((after$num>before$num) & (after$num-before$num==wcn[1])) c("NOT")` cleaned.
