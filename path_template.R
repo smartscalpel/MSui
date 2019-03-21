@@ -2,7 +2,7 @@
 dbname = "msinvent"
 usr='msinvent'
 pwd='msinvent'
-protocol<-data.frame(id=2,devID=4,solID=10,isID=5)
+protocolPath<-'/var/workspaceR/dataloading/190130.txt'
 tmpPath = '/var/workspaceR/dataloading/Burdenko'
 dtPath = '/var/workspaceR/scalpelData/data/'
 path<- '/var/samba/share/Burdenko/'
