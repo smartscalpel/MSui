@@ -26,6 +26,7 @@ for(f in fl){
   rmd.fname<-normalizePath(rmd.fname)
   if(!file.exists(sub('Rmd','pdf',rmd.fname))){
     cdf.file<-normalizePath(paste0(path,f))
+    cdf.fname<-paste0(ifelse(protocolName=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file))
     try(rmarkdown::render(rmd.fname,'pdf_document'),FALSE,outFile=sub('Rmd$','try.out',rmd.fname))
   }
 }

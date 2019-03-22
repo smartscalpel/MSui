@@ -506,8 +506,9 @@ There was `r if(exists('beforeTMP')){beforeTMP$num}else {0}` rows in the `tmp_pe
 tmp_peak<-fread(peakFname)
 names(tmp_peak)<-c('spec','num','mz','intensity','norm2tic','snr')
 if(any(is.na(tmp_peak$intensity))){
-  system(paste0('rm -rf ',peakFname))
-system.time(res<-sapply(c(1:length(fpeaks2)),writeDTpeak,specID=cdf.fname,tic=tic,peak=fpeaks2,fname=peakFname))
+  #system(paste0('rm -rf ',peakFname))
+  stop(paste0('THere is empty peaks in the peak file "',peakFname,'"\n'))
+  #system.time(res<-sapply(c(1:length(fpeaks2)),writeDTpeak,specID=cdf.fname,tic=tic,peak=fpeaks2,fname=peakFname))
 }
 ```
 
