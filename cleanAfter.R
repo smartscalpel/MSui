@@ -17,6 +17,7 @@ getSpec<-paste('select s.id from spectrum s join patient p on s.sampletumorpatie
                'where p.emsid=? and t.label=? and l.label=?')
 
 mfl<-dir(path=path,pattern='^(M|m)eta.*.xlsx',recursive = TRUE)
+cnames<-c('data','num','patient','tissue','sample','mode','resolution','type','status','mass-range','protocol','comment')
 wd<-getwd()
 conn <- dbConnect(MonetDB.R::MonetDB(), 
                   dbname = dbname,
