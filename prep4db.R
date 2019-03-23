@@ -37,39 +37,39 @@ for(mf in mfl){
   }
   idx2Load<-which(mdt$type=='signal'&!is.na(mdt$status)&mdt$status=='good')
   mdt<-mdt[idx2Load,]
- # if(dim(mdt)[1]>0){
+  # if(dim(mdt)[1]>0){
   if((dim(mdt)[1]>0)&(all(grepl(protocolName,mdt$protocol)))){
     for(i in 1:dim(mdt)[1]){
       f<-paste0(wdir,'/cdf/',mdt$num[i],'.cdf')
       if(file.exists(f)){
-      # pIdx<-match(mdt$protocol[i],protocol$id)
-      # devID<-protocol$devID[pIdx] #Device
-      # solID<-protocol$solID[pIdx] #Solvent
-      # isID<-protocol$isID[pIdx] # ionsource
-      # resID<-switch (mdt$resolution[i],
-      #                'trap' = 2, 'ft'=1) #ResolutionID
-      smplID<-mdt$sample[i] #SampleID
-      stID<-mdt$tissue[i] #SampleTumorID
-      stpID<-mdt$patient[i] #SampleTumorPatientID
-      # nMode<-switch(mdt$mode[i],
-      #               'neg'=1,'pos'=2) #Negative/Positive mode
-      # rangeID<-switch (mdt$`mass-range`[i],
-      #                  '120-2000'=1,'500-1000'=2)
-      dir.name<-sub(path,'',sub('.cdf$','',f))
-      rmd.name<-paste0(dir.name,'/prep.Rmd')
-      system(paste0('mkdir -p ',tmpPath,shQuote(dir.name)))
-      cat('cdf:',f,'\ndir:',dir.name,'\nrmd:',rmd.name,'\n')
-      rmd.fname<-paste0(tmpPath,rmd.name)
-      cat('fname',rmd.fname,'\n')
-      if(!file.exists(rmd.fname)){
-        file.copy('./prepare4scalpelDB.Rmd',rmd.fname)
-      }
-      rmd.fname<-normalizePath(rmd.fname)
-      if(!file.exists(sub('Rmd','pdf',rmd.fname))){
-        cdf.file<-normalizePath(f)
-        cdf.fname<-paste0(ifelse(protocolName=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file))
-        try(rmarkdown::render(rmd.fname,'pdf_document'),FALSE,outFile=sub('Rmd$','try.out',rmd.fname))
-      }
+        # pIdx<-match(mdt$protocol[i],protocol$id)
+        # devID<-protocol$devID[pIdx] #Device
+        # solID<-protocol$solID[pIdx] #Solvent
+        # isID<-protocol$isID[pIdx] # ionsource
+        # resID<-switch (mdt$resolution[i],
+        #                'trap' = 2, 'ft'=1) #ResolutionID
+        smplID<-mdt$sample[i] #SampleID
+        stID<-mdt$tissue[i] #SampleTumorID
+        stpID<-mdt$patient[i] #SampleTumorPatientID
+        # nMode<-switch(mdt$mode[i],
+        #               'neg'=1,'pos'=2) #Negative/Positive mode
+        # rangeID<-switch (mdt$`mass-range`[i],
+        #                  '120-2000'=1,'500-1000'=2)
+        dir.name<-sub(path,'',sub('.cdf$','',f))
+        rmd.name<-paste0(dir.name,'/prep.Rmd')
+        system(paste0('mkdir -p ',tmpPath,shQuote(dir.name)))
+        cat('cdf:',f,'\ndir:',dir.name,'\nrmd:',rmd.name,'\n')
+        rmd.fname<-paste0(tmpPath,rmd.name)
+        cat('fname',rmd.fname,'\n')
+        if(!file.exists(rmd.fname)){
+          file.copy('./prepare4scalpelDB.Rmd',rmd.fname)
+        }
+        rmd.fname<-normalizePath(rmd.fname)
+        if(!file.exists(sub('Rmd','pdf',rmd.fname))){
+          cdf.file<-normalizePath(f)
+          cdf.fname<-paste0(ifelse(protocolName=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file))
+          try(rmarkdown::render(rmd.fname,'pdf_document'),FALSE,outFile=sub('Rmd$','try.out',rmd.fname))
+        }
       }
     }
   }

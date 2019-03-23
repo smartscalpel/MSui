@@ -43,12 +43,12 @@ for(mf in mfl){
         }
       }
       if(res){
-      cat('move ',wdir,' to archive\n')
-      adir<-dirname(sub(path,archPath,wdir))
-      system(paste0('mkdir -p ',adir))
-      system(paste0('mv ',wdir,' ',adir))
+        cat('move ',wdir,' to archive\n')
+        adir<-dirname(sub(path,archPath,wdir))
+        system(paste0('mkdir -p ',adir))
+        system(paste0('mv ',wdir,' ',adir))
       }else{
-       cat('not loaded: \n',paste(misL,collapse='\n'),'\n')
+        cat('not loaded: \n',paste(misL,collapse='\n'),'\n')
       }
     }else{
       idx<-match(dirname(rmdl),dirname(tsvl))
