@@ -26,6 +26,12 @@ for(mf in mfl){
   wdir<-dirname(normalizePath(paste0(path,mf)))
   cat('start ',wdir,'\n')
   mdt<-read.xlsx(paste0(path,mf))
+  if(any(grepl('(wash|bg)',names(mdt)))){# to fix crasy Excel without header row
+    cat(mf,'\n')
+    mdt<-read.xlsx(paste0(path,mf),colNames=FALSE)
+    while(dim(mdt)[2]<length(cnames)){mdt<-cbind(mdt,rep(NA,dim(mdt)[1]))}
+    names(mdt)<-cnames
+  }
   idx2Load<-which(mdt$type=='signal'&!is.na(mdt$status)&mdt$status=='good')
   mdt<-mdt[idx2Load,]
   if(dim(mdt)[1]>0){
