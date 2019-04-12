@@ -11,12 +11,9 @@ if(!require(MonetDB.R)){stop('Library "MonetDB.R" is missing.\n')}
 # path<- '/var/samba/share/Burdenko/'
 #########################################
 source('./path.R')
-getSpec<-paste('select s.id from spectrum s join patient p on s.sampletumorpatientid=p.id ',
-               'join tissue t on s.sampletumorid=t.id',
-               'join smpl l on s.sampleid=l.id',
-               'where p.emsid=? and t.label=? and l.label=?')
+getSpec<-paste('select s.id from spectrum s where filename like ?')
 
-mfl<-dir(path=path,pattern='^(M|m)eta.*.xlsx',recursive = TRUE)
+mfl<-dir(path=path,pattern='^(M|m)eta.*.xls(x|m)',recursive = TRUE)
 cnames<-c('data','num','patient','tissue','sample','mode','resolution','type','status','mass-range','protocol','comment')
 wd<-getwd()
 conn <- dbConnect(MonetDB.R::MonetDB(), 
@@ -43,10 +40,14 @@ for(mf in mfl){
       res<-TRUE
       misL<-c()
       for(i in 1:dim(mdt)[1]){
-        spid<-dbGetQuery(conn,getSpec,mdt$patient[i],mdt$tissue[i],mdt$sample[i])
+        f<-paste0(wdir,'/cdf/',mdt$num[i],'.cdf')
+        cdf.file<-normalizePath(f)
+        cdf.fname<-paste0(ifelse(mdt$protocolName[i]=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file),'_%')
+        spid<-dbGetQuery(conn,getSpec,cfd.fname)
+        cat(i,cfd.fname,dim(spid),mdt$num[i],'\n')
         if(dim(spid)[1]==0){
           res<-FALSE
-          misL<-c(misL,paste0(tdir,'/',dirname(rmdl[i])))
+          misL<-c(misL,paste0(tdir,'/',i,', ',mdt$num[i],', ',cdf.fname))
         }
       }
       if(res){

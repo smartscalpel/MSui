@@ -22,7 +22,7 @@ source('./path.R')
 
 protocol<-read.delim(paste0(protocolPath,protocolName,'.txt'))
 protocol$rt<-protocol$timestamp*60
-mfl<-dir(path=path,pattern='^(M|m)eta.*.xlsx',recursive = TRUE)
+mfl<-dir(path=path,pattern='^(M|m)eta.*.xls(x|m)',recursive = TRUE)
 cnames<-c('data','num','patient','tissue','sample','mode','resolution','type','status','mass-range','protocol','comment')
 peaks<-list()
 wd<-getwd()
