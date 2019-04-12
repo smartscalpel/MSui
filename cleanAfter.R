@@ -44,7 +44,7 @@ for(mf in mfl){
         cdf.file<-normalizePath(f)
         cdf.fname<-paste0(ifelse(mdt$protocolName[i]=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file),'_%')
         spid<-dbGetQuery(conn,getSpec,cdf.fname)
-        cat(i,cfd.fname,dim(spid),mdt$num[i],'\n')
+        cat(i,cdf.fname,dim(spid),mdt$num[i],'\n')
         if(dim(spid)[1]==0){
           res<-FALSE
           misL<-c(misL,paste0(tdir,'/',i,', ',mdt$num[i],', ',cdf.fname))
