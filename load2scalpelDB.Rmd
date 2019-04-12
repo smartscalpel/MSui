@@ -333,8 +333,8 @@ if(dim(spectrumID)[1]==0){
   rtIdx<-which(intRT==sidx)[1]
   idxRes<-which(resolutions$name==mdL[[rtIdx]]$Detector)
   resID<-resolutions$id[idxRes]
-  nMode<-ifelse(mdL[[idxRes]]$Polarity=='Neg',1,2)
-  rangeID<-ifelse(mdL[[idxRes]]$Range=="100-2000",1,2)
+  nMode<-ifelse(mdL[[rtIdx]]$Polarity=='Neg',1,2)
+  rangeID<-ifelse(mdL[[rtIdx]]$Range=="100-2000",1,2)
 # idxMode<-which(modes$id==nMode)
 # idxRange<-which(ranges$id==rangeID)
   rs<-dbSendStatement(conn,insertSpectrum,
