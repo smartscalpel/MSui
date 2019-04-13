@@ -42,7 +42,7 @@ for(mf in mfl){
       for(i in 1:dim(mdt)[1]){
         f<-paste0(wdir,'/cdf/',mdt$num[i],'.cdf')
         cdf.file<-normalizePath(f)
-        cdf.fname<-paste0(ifelse(mdt$protocolName[i]=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file),'_%')
+        cdf.fname<-paste0(ifelse(mdt$protocol[i]=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file),'_%')
         spid<-dbGetQuery(conn,getSpec,cdf.fname)
         cat(i,cdf.fname,dim(spid),mdt$num[i],'\n')
         if(dim(spid)[1]==0){
