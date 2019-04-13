@@ -242,7 +242,7 @@ plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+spectra[[imTIC]]@mass[imTICmax])
 ```{r db.connect}
 conn <- dbConnect(MonetDB.R::MonetDB(), 
                   dbname = dbname,
-                  user=usr,password=pwd)
+                  user=usr,password=pwd,timeout=2400)
 spectrumID<-dbGetQuery(conn,getSpecID,paste0(cdf.fname,'_%'))
 proceedFile<-(dim(spectrumID)[1]==0)
 #proceedFile<-TRUE
@@ -579,7 +579,7 @@ res.afname<-paste0(dtPath,spectrumID$id,'.peaks.RData')
 cdf.afname<-paste0(dtPath,spectrumID$id,'.cdf')
 ```
 
-Loaded spectra saved in `r res.fname` and original CDF file saved in `r cdf.fname`
+Loaded spectra saved in `r res.afname` and original CDF file saved in `r cdf.afname`
 
 ```{r save.data}
 save(spectra,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,devID,solID,isID,resID,smplID,stID,stpID,rangeID,nMode,mdL,cdf.file,cdf.fname,spectrumID,patient,tissue,sample,file = res.afname)
