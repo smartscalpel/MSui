@@ -208,14 +208,6 @@ spectra<-import(cdf.file,verbose=TRUE,removeEmptySpectra=FALSE)
 if(any(sapply(spectra, MALDIquant::isEmpty))){
   spectra<-spectra[!sapply(spectra, MALDIquant::isEmpty)]
 }
-rt<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
-intRT<-findInterval(rt,protocol$rt)
-mdL<-lapply(intRT,function(.x)list(Polarity=as.character(protocol$Polarity[.x]),
-                                   Detector=as.character(protocol$Detector[.x]),
-                                   Range=as.character(protocol$Range[.x]),
-                                   protocol=paste(protocol$Polarity[.x],
-                                                  protocol$Detector[.x],
-                                                  protocol$Range[.x],sep = '.')))
 
 # mzWidth<-sapply(spectra, function(.x)diff(range(.x@mass)))
 # if(any(mzWidth<0.2*max(mzWidth))){
@@ -232,7 +224,14 @@ qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
 plot(tic)
 abline(h = qth)
 spectra <-spectra[tic>qth]
-intRT<-intRT[tic>qth]
+rt<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
+intRT<-findInterval(rt,protocol$rt)
+mdL<-lapply(intRT,function(.x)list(Polarity=as.character(protocol$Polarity[.x]),
+                                   Detector=as.character(protocol$Detector[.x]),
+                                   Range=as.character(protocol$Range[.x]),
+                                   protocol=paste(protocol$Polarity[.x],
+                                                  protocol$Detector[.x],
+                                                  protocol$Range[.x],sep = '.')))
 tic<-sapply(spectra,totalIonCurrent)
 #spectra <- trim(spectra,range = mzrange)
 imTIC<-which.max(tic)
