@@ -55,7 +55,7 @@ for(mf in mfl){
         adir<-dirname(sub(path,archPath,wdir))
         system(paste0('mkdir -p ',adir))
         system(paste0('mv ',wdir,' ',adir))
-        system(paste0('tar cvjf ',tdir,'.tbz2 ',tdir))
+        system(paste0('tar cvjf ',tdir,".tbz2 --exclude='*_cache' ",tdir))
         #system(paste0('rm -rf ',tdir))
       }else{
         cat('not loaded: \n',paste(misL,collapse='\n'),'\n')
