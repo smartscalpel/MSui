@@ -18,7 +18,7 @@ for(f in fl){
 #  rm(list=L[!L%in%c('fl','f','rmd.name')])
   dir.name<-sub('tmp_peak.tsv','',f)
   rmd.name<-paste0(dir.name,'load.Rmd')
-  cat('peaks:',f,'\ndir:',dir.name,'\nrmd:',rmd.name,'\n')
+  cat('peaks:',f,format(Sys.time(), "%b %d %X"),'\ndir:',dir.name,'\nrmd:',rmd.name,'\n')
   rmd.fname<-paste0(tmpPath,'/',rmd.name)
   pdf.fname<-sub('.Rmd$','.pdf',rmd.fname)
   cat('fname',rmd.fname,'\npdf',pdf.fname,'\n')
