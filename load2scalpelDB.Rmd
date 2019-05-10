@@ -222,11 +222,12 @@ tic<-sapply(origSpectra,totalIonCurrent)
 imTIC<-which.max(tic)
 qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
 experimentData<-ncMD$experiment_date_time_stamp
+if(is.na(exData)){
 if(is.null(ncMD$created_by)){
   exData<-as.POSIXlt.character(experimentData,format='%Y%m%d%H%M%S%z')
 }else {
   exData<-as.POSIXlt.character(experimentData,format='%m/%d/%Y %H:%M:%OS')
-}
+}}
 fileData<-ncMD$netcdf_file_date_time_stamp
 origFilePath<-ncMD$source_file_reference
 comment<-ncMD$administrative_comments
