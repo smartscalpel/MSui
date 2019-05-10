@@ -1,5 +1,5 @@
 #!/usr/bin/Rscript
-if(!require(openxlsx)){stop('Library "openxlsx" is missing.\n')}
+if(!require(xlsx)){stop('Library "xlsx" is missing.\n')}
 ############ Predefined parameters
 # dbname = "msinvent"
 # usr='msinvent'
@@ -28,7 +28,7 @@ peaks<-list()
 wd<-getwd()
 for(mf in mfl){
   wdir<-dirname(normalizePath(paste0(path,mf)))
-  mdt<-read.xlsx(paste0(path,mf))
+  mdt<-xlsx::read.xlsx(paste0(path,mf),1)
   if(any(grepl('(wash|bg)',names(mdt)))){# to fix crasy Excel without header row
     cat(mf,'\n')
     mdt<-read.xlsx(paste0(path,mf),colNames=FALSE)
