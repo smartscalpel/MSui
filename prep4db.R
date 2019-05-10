@@ -28,9 +28,10 @@ peaks<-list()
 wd<-getwd()
 for(mf in mfl){
   wdir<-dirname(normalizePath(paste0(path,mf)))
+  cat(format(Sys.time(), "%b %d %X"),mf,wdir,'\n')
   mdt<-xlsx::read.xlsx(paste0(path,mf),1)
   if(any(grepl('(wash|bg)',names(mdt)))){# to fix crasy Excel without header row
-    cat(mf,'\n')
+    cat(format(Sys.time(), "%b %d %X"),mf,'\n')
     mdt<-read.xlsx(paste0(path,mf),colNames=FALSE)
     while(dim(mdt)[2]<length(cnames)){mdt<-cbind(mdt,rep(NA,dim(mdt)[1]))}
     names(mdt)<-cnames
@@ -58,7 +59,7 @@ for(mf in mfl){
         dir.name<-sub(path,'',sub('.cdf$','',f))
         rmd.name<-paste0(dir.name,'/prep.Rmd')
         system(paste0('mkdir -p ',tmpPath,shQuote(dir.name)))
-        cat('cdf:',f,'\ndir:',dir.name,'\nrmd:',rmd.name,'\n')
+        cat(format(Sys.time(), "%b %d %X"),'cdf:',f,'\ndir:',dir.name,'\nrmd:',rmd.name,'\n')
         rmd.fname<-paste0(tmpPath,rmd.name)
         cat('fname',rmd.fname,'\n')
         if(!file.exists(rmd.fname)){

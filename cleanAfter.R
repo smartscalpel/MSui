@@ -19,13 +19,13 @@ wd<-getwd()
 conn <- dbConnect(MonetDB.R::MonetDB(), 
                   dbname = dbname,
                   user=usr,password=pwd)
-cat('connect, ',length(mfl),'metafiles\n')
+cat(format(Sys.time(), "%b %d %X"),'connect, ',length(mfl),'metafiles\n')
 for(mf in mfl){
   wdir<-dirname(normalizePath(paste0(path,mf)))
-  cat('start ',wdir,'\n')
+  cat(format(Sys.time(), "%b %d %X"),'start ',wdir,'\n')
   mdt<-xlsx::read.xlsx(paste0(path,mf),1)
   if(any(grepl('(wash|bg)',names(mdt)))){# to fix crasy Excel without header row
-    cat(mf,'\n')
+    cat(format(Sys.time(), "%b %d %X"),mf,'\n')
     mdt<-read.xlsx(paste0(path,mf),colNames=FALSE)
     while(dim(mdt)[2]<length(cnames)){mdt<-cbind(mdt,rep(NA,dim(mdt)[1]))}
     names(mdt)<-cnames
@@ -44,7 +44,7 @@ for(mf in mfl){
         cdf.file<-normalizePath(f)
         cdf.fname<-paste0(ifelse(mdt$protocol[i]=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file),'_%')
         spid<-dbGetQuery(conn,getSpec,cdf.fname)
-        cat(i,cdf.fname,dim(spid),mdt$num[i],'\n')
+        cat(format(Sys.time(), "%b %d %X"),i,cdf.fname,dim(spid),mdt$num[i],'\n')
         if(dim(spid)[1]==0){
           res<-FALSE
           misL<-c(misL,paste0(tdir,'/',i,', ',mdt$num[i],', ',cdf.fname))
@@ -65,7 +65,7 @@ for(mf in mfl){
       cat('not loaded: \n',paste0(tdir,'/',dirname(rmdl[is.na(idx)]),collapse = '\n'),'\n')
     }
   }else{
-    cat('move unprocessed ',wdir,' to archive\n')
+    cat(format(Sys.time(), "%b %d %X"),'move unprocessed ',wdir,' to archive\n')
     adir<-dirname(sub(path,archPath,wdir))
     system(paste0('mkdir -p ',adir))
     system(paste0('mv ',wdir,' ',adir))
