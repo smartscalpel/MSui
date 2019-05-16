@@ -240,7 +240,7 @@ plot(spectra[[imTIC]])
 
 
 ```{r save.sig}
-save(spectra,intRT,ncMD,mdL,solID,isID,smplID,stID,stpID,cdf.file,cdf.fname,exData,file = 'spectra.RData')
+save(spectra,intRT,ncMD,mdL,solID,isID,smplID,stID,stpID,cdf.file,cdf.fname,exData,protocol,file = 'spectra.RData')
 
 ```
 
