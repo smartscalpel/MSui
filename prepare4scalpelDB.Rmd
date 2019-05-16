@@ -303,7 +303,12 @@ peaks <- detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
                        method="SuperSmoother")
 idx<-which(sapply(peaks,length)>10)
 peaks2 <- binPeaks(peaks[idx],method = 'strict',tolerance = tolerance)
-fpeaks2 <- filterPeaks(peaks2, minNumber = 10)
+pnum<-sapply(peaks2,function(.x)metaData(.x)$number)
+idx<-match(pnum,mnum)
+mdLspectra<-mdL
+mdL<-mdL[idx]
+pr<-sapply(mdL,function(.x).x$protocol)
+fpeaks2 <- filterPeaks(peaks2, minNumber = 10,labels=pr,mergeWhitelists=FALSE)
 featureMatrix2 <- intensityMatrix(fpeaks2, spectra)
 
 ```
