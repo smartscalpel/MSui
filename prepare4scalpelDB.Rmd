@@ -320,7 +320,7 @@ system.time(res<-sapply(c(1:length(fpeaks2)),writeDTpeak,specID=cdf.fname,tic=ti
 
 # Save data
 ```{r save.data}
-save(spectra,intRT,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,mdL,solID,isID,smplID,stID,stpID,exData,cdf.file,cdf.fname,file = 'spectra.RData')
+save(spectra,intRT,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,mdL,mdLspectra,solID,isID,smplID,stID,stpID,exData,cdf.file,cdf.fname,file = 'spectra.RData')
 ```
 
 # Appendix {.tabset}
