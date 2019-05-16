@@ -226,12 +226,13 @@ abline(h = qth)
 spectra <-spectra[tic>qth]
 rt<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
 intRT<-findInterval(rt,protocol$rt)
-mdL<-lapply(intRT,function(.x)list(Polarity=as.character(protocol$Polarity[.x]),
-                                   Detector=as.character(protocol$Detector[.x]),
-                                   Range=as.character(protocol$Range[.x]),
-                                   protocol=paste(protocol$Polarity[.x],
-                                                  protocol$Detector[.x],
-                                                  protocol$Range[.x],sep = '.')))
+mdL<-lapply(1:length(intRT),function(.x)list(number=.x,Polarity=as.character(protocol$Polarity[intRT[.x]]),
+                                   Detector=as.character(protocol$Detector[intRT[.x]]),
+                                   Range=as.character(protocol$Range[intRT[.x]]),
+                                   protocol=paste(protocol$Polarity[intRT[.x]],
+                                                  protocol$Detector[intRT[.x]],
+                                                  protocol$Range[intRT[.x]],sep = '.')))
+mnum<-sapply(mdL,function(.x).x$number)
 tic<-sapply(spectra,totalIonCurrent)
 #spectra <- trim(spectra,range = mzrange)
 imTIC<-which.max(tic)
