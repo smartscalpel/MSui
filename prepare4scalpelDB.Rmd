@@ -284,7 +284,16 @@ spectra <- calibrateIntensity(spectra, method="TIC")
 calibrSpectra<-spectra
 peaks0<-detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
                        method="SuperSmoother")
-spectra <- alignSpectra(spectra,reference = spectra[[imTIC]], halfWindowSize = halfWindowSize,tolerance = tolerance)
+pr<-sapply(mdL,function(.x).x$protocol)
+l<-list()
+for(p in unique(pr)){
+  idx<-which(pr==p)
+l[[p]]<-alignSpectra(spectra[idx],reference = spectra[[which.max(tic[idx])]], halfWindowSize = halfWindowSize,tolerance = tolerance)
+}
+al<-unlist(l)
+snum<-sapply(al,function(.x)metaData(.x)$number)
+spectra<-al[order(snum)]
+#spectra <- alignSpectra(spectra,reference = spectra[[imTIC]], halfWindowSize = halfWindowSize,tolerance = tolerance)
 alSpectra<-spectra
 
 ```
