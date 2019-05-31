@@ -53,7 +53,7 @@ tissuesCheckTableModification <- function(dataFromDB, j, newValue) {
                         tryCatch(
                                 {
                                         newD <- gsub('\\.', '-', newValue)
-                                        as.Date(newD)
+                                        newValue <- as.Date(newD)
                                 },
                                 error = function(c) "error"
                         ) == "error"
