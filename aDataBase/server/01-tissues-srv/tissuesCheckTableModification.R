@@ -41,7 +41,7 @@ tissuesCheckTableModification <- function(dataFromDB, j, newValue) {
 
         if (columnNames[j] == "diagnosis") {
                 # check if in dictionary
-                if (! newValue %in% diagnosisDictionary) {
+                if (! newValue %in% diagnosisDictionary$name) {
                         checkOutput <- FALSE
                         checkOutputMessage <- "Not in diagnosis dictionary."
                 }
@@ -51,7 +51,10 @@ tissuesCheckTableModification <- function(dataFromDB, j, newValue) {
                 # check if date
                 if (
                         tryCatch(
-                                as.Date(x, format = "%Y-%m-%d"),
+                                {
+                                        newD <- gsub('\\.', '-', newValue)
+                                        as.Date(newD)
+                                },
                                 error = function(c) "error"
                         ) == "error"
                 ) {

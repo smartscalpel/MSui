@@ -78,7 +78,7 @@ source("./modules/02-tissues-snd/selector/tissues-snd-grade-selector.R")
 source("./modules/02-tissues-snd/selector/tissues-snd-time-selector.R")
 
 # 02-tissues-snd section: other (used by both ui and server)
-source("./modules/02-tissues-snd/tissuessndCreateTissue.R")
+source("./modules/02-tissues-snd/tissuesSndCreateTissue.R")
 
 # 03-patients section: selector modules
 source("./modules/03-patients/selector/patients-age-selector.R")
@@ -101,6 +101,7 @@ source("./modules/table/dtTable.R")
 # when all sessions will be stopped
 pool <- pool::dbPool(
         MonetDBLite::MonetDB(),
+        host = "192.168.5.133",
         dbname = "msinvent",
         user = "msinvent",
         password = "msinvent"

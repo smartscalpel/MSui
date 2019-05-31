@@ -3,11 +3,13 @@ tissuesSaveModifiedTable <- function(pool) {
         function (updatedPart) {
                 updatedPart[c("yob", "sex", "age", "emsid")] <- NULL
                 
+                shiny::modalDialog(cat("diagnosis: ", updatedPart$diagnosis, "\n"), title = 'test error')
                 # Preprocessing Step
                 updatedPart$diagnosis <- sapply(
                         updatedPart$diagnosis,
                         function(x) diagnosisDictionary$id[match(x, diagnosisDictionary$name)]
                 )
+                
                 
                 updatedPart[is.na(updatedPart)] <- "null"
                 updatedPart$label    <- sapply(updatedPart$label,
