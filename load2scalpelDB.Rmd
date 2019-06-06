@@ -102,6 +102,9 @@ panderOptions("table.split.table", 160)
 ## Custom functions used in the analysis should go into this chunk.
 ## They will be listed in their own section of the appendix.
 
+```
+
+```{r queries, include=FALSE}
 ##==================== SQL queries ====================##
 insertComment<-paste('insert into comment(dt,comment,author) values (now(),?,?)')
 getCommentID<-'SELECT ID FROM comment where comment=?'
@@ -525,6 +528,9 @@ file.copy(cdf.file,cdf.afname)
 # Appendix {.tabset}
 ## Functions
 ```{r functions, eval=FALSE, include=TRUE}
+```
+
+```{r queries, eval=FALSE, include=TRUE}
 ```
 
 ## Setup R
