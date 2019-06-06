@@ -115,6 +115,18 @@ panderCnt<-function(d){
   j[inCol]<-'right'
   pander(d, justify = j)
 }
+plotPie<-function(x,label,main='',th=1){
+  pr<-100*x/sum(x)
+  idx<-which(pr>=th)
+  xx<-x[idx]
+  lx<-label[idx]
+  ord<-order(xx,decreasing = TRUE)
+  xx<-xx[ord]
+  lx<-lx[ord]
+  xx<-c(xx,sum(x[-idx]))
+  lx<-c(lx,'Other')
+  graphics::pie(xx,lx,main=main)
+}
 ##===================== Queries =====================##
 diagnosisQ<-paste('select diagnosis,diagnosis.name as diagname,',
 '       count(distinct tissue.patientid) cntpat,',
@@ -124,24 +136,62 @@ diagnosisQ<-paste('select diagnosis,diagnosis.name as diagname,',
 '                join spectrum p on p.sampletumorid=tissue.id ',
 '    group by diagnosis,diagname ',
 '    order by cntspec desc;')
+expTypeQ<-paste('select  exptype,e.name as expname',
+'      ,count(distinct tissue.patientid) cntpat',
+'      ,count(distinct s.id) cntsamp ',
+'      ,count(distinct p.id) cntspec ',
+'   from tissue left join smpl s on',
+'      s.tumorid=tissue.id left join spectrum p on',
+'      p.sampletumorid=tissue.id join exptype e on',
+'      p.exptype=e.id',
+'   group by exptype,expname order by cntspec desc')
+ionSourceQ<-paste('select  ionsource,e.name as name',
+'      ,count(distinct tissue.patientid) cntpat',
+'      ,count(distinct s.id) cntsamp ',
+'      ,count(distinct p.id) cntspec ',
+'   from tissue left join smpl s on',
+'      s.tumorid=tissue.id left join spectrum p on',
+'      p.sampletumorid=tissue.id join ionsource e on',
+'      p.ionsource=e.id',
+'   group by ionsource,name order by cntspec desc')
+resQ<-paste('select  resolutionid,e.name as name',
+'      ,count(distinct tissue.patientid) cntpat',
+'      ,count(distinct s.id) cntsamp ',
+'      ,count(distinct p.id) cntspec ',
+'   from tissue left join smpl s on',
+'      s.tumorid=tissue.id left join spectrum p on',
+'      p.sampletumorid=tissue.id join resolution e on',
+'      p.resolutionid=e.id',
+'   group by resolutionid,name order by cntspec desc')
+specTotQ<-paste('select s.id,sampletumorid,sampletumorpatientid,sampleid,',
+'diagnosis.name as diagname,r.name as res,i.name as ionsource, ',
+'m.name as mode, e.name as exptype',
+'from spectrum s join tissue on sampletumorid=tissue.id ',
+'join diagnosis on tissue.diagnosis=diagnosis.id',
+'join ionsource i on s.ionsource=i.id ',
+'join resolution r on r.id=resolutionid ',
+'join mode m on m.id=s.mode ',
+'join exptype e on e.id=s.exptype')
 
-```
-dtPath = '/Volumes/AS_WD_HFS/Scalpel/DBData/'
-cdf.file<-"/Volumes/AS_WD_HFS/Scalpel/BD_cdf/0_00_1178-15_FT100k.cdf"
-devID<-1 #Device
-solID<-6 #Solvent
-isID<-1 # ionsource
-resID<-1 #ResolutionID
-smplID<-1 #SampleID
-stID<-1 #SampleTumorID
-stpID<-1 #SampleTumorPatientID
-nMode<-1 #Negative mode
-rangeID<-1 #MZrange
-specID<-'name of the spec' # 
-cdf.fname
+emptyPeaksQ<-paste('select s.id,filename,',
+'count(distinct c.id) scn,',
+'count(distinct p.id) pnt ',
+'from spectrum s left join scan c on s.id=c.spectrumid ',
+'left join peak p on p.scan=c.id ',
+'group by s.id,filename',
+'having count(distinct p.id)=0',
+'order by scn desc;')
+emptyScansQ<-paste('select s.id,filename,count(distinct c.id) ',
+                   'from spectrum s left join scan c on s.id=c.spectrumid ',
+                   'group by s.id,filename having count(distinct c.id)=0;')
+########### NULL-IN queries #############
+ni.diag<-'select * from tissue where diagnosis=1'
+ni.mzrange<-'select id,mzrange,dt,filename  from spectrum where mzrange is null'
+ni.mode<-'select id,mode,dt,filename  from spectrum where mode is null'
+ni.exptype<-'select id,exptype,dt,filename  from spectrum where exptype is null'
 ```
 
-```{r}
+```{r echo=FALSE, include=FALSE}
 dbname<-'msinvent'
 usr<-'msinvent'
 pwd<-'msinvent'
@@ -170,7 +220,7 @@ if(!(exists('dbname')&
 ```{r db.connect}
 conn <- dbConnect(MonetDBLite::MonetDB.R(),
 dbname = dbname,host=host,
-user=usr,password=pwd)
+user=usr,password=pwd,timeout=2400)
 ```
 
 # Dictionaries
@@ -181,6 +231,7 @@ ionSources<-dbReadTable(conn,'ionsource')
 resolutions<-dbReadTable(conn,'resolution')
 modes<-dbReadTable(conn,'mode')
 ranges<-dbReadTable(conn,'mzrange')
+spectrum<-dbReadTable(conn,'spectrum')
 ```
 
 ## Devices
@@ -222,6 +273,111 @@ dCnt<-dbGetQuery(conn,diagnosisQ)
 panderCnt(dCnt)
 ```
 
+## Diagnosis over Patients
+```{r diag.cntpat.pie,fig.width=11,fig.height=11}
+plotPie(dCnt$cntpat,dCnt$diagname,main='Patients')
+```
+
+## Diagnosis over Samples
+```{r diag.cntsmpl.pie,fig.width=11,fig.height=11}
+plotPie(dCnt$cntsamp,dCnt$diagname,main='Samples')
+```
+
+## Diagnosis over Spectra
+```{r diag.cntspec.pie,fig.width=11,fig.height=11}
+plotPie(dCnt$cntspec,dCnt$diagname,main='Spectra')
+```
+
+
+
+```{r exT, cache=FALSE}
+etCnt<-dbGetQuery(conn,expTypeQ)
+panderCnt(etCnt)
+```
+
+```{r is, cache=FALSE}
+isCnt<-dbGetQuery(conn,ionSourceQ)
+panderCnt(isCnt)
+```
+
+```{r res, cache=FALSE}
+resCnt<-dbGetQuery(conn,resQ)
+panderCnt(resCnt)
+```
+
+
+```{r specT, cache=FALSE}
+spec<-dbGetQuery(conn,specTotQ)
+qplot(diagname,data = spec,facets = .~res)+coord_flip()
+qplot(diagname,data = spec,facets = .~ionsource)+coord_flip()
+qplot(diagname,data = spec,facets = .~exptype)+coord_flip()
+qplot(diagname,data = spec,facets = .~mode)+coord_flip()
+qplot(diagname,data = spec,facets = res~mode)+coord_flip()
+```
+
+## Pie charts
+### LTQ
+```{r spect.ltq.pie,fig.height=11,fig.width=11}
+x<-table(subset(spec,res=='LTQ',select = 'diagname'));plotPie(x,names(x),main='LTQ')
+x<-table(subset(spec,res=='LTQ'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative LTQ')
+x<-table(subset(spec,res=='LTQ'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive LTQ')
+x<-table(subset(spec,res=='LTQ'&exptype=='fresh',select = 'diagname'));plotPie(x,names(x),main='Fresh LTQ')
+x<-table(subset(spec,res=='LTQ'&exptype=='frozen',select = 'diagname'));plotPie(x,names(x),main='Frozen LTQ')
+```
+
+### FT
+```{r spect.ft.pie,fig.height=11,fig.width=11}
+x<-table(subset(spec,res=='FT',select = 'diagname'));plotPie(x,names(x),main='FT')
+x<-table(subset(spec,res=='FT'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative FT')
+x<-table(subset(spec,res=='FT'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive FT')
+```
+
+### FT
+
+
+```{r spec.pie,fig.height=11,fig.width=11}
+orig<-par(mfrow = c(2,2))
+x<-table(subset(spec,res=='FT'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative FT',th=2)
+x<-table(subset(spec,res=='FT'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive FT',th=2)
+x<-table(subset(spec,res=='LTQ'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative LTQ',th=2)
+x<-table(subset(spec,res=='LTQ'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive LTQ',th=2)
+par(orig)
+```
+
+
+# Possible errors and data inconsistencies
+
+## Empty spectra
+```{r empty.scans}
+resNI<-dbGetQuery(conn,emptyScansQ)
+panderCnt(resNI)
+```
+
+## Missing data
+
+### Null in Diagnosis
+```{r ni.diag}
+resNI<-dbGetQuery(conn,ni.diag)
+panderCnt(resNI)
+```
+
+### Null in MZrange
+```{r ni.mzrange}
+resNI<-dbGetQuery(conn,ni.mzrange)
+panderCnt(resNI)
+```
+
+### Null in Mode
+```{r ni.mode}
+resNI<-dbGetQuery(conn,ni.mode)
+panderCnt(resNI)
+```
+
+### Null in Type Experiment
+```{r ni.expt}
+resNI<-dbGetQuery(conn,ni.exptype)
+panderCnt(resNI)
+```
 
 # Appendix {.tabset}
 ## Functions

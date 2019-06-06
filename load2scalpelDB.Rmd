@@ -313,6 +313,7 @@ resDF<-cbind(data.frame(Parameter=parName),
              )
 kable(resDF, format = "latex", caption = 'Predefined parameters for load', row.names=FALSE, booktabs=TRUE)
 ```
+
 According to the protocol other parameters are as follows:
 ```{r protocol.table, eval=proceedFile}
 pr<-sapply(mdL,function(.x).x$protocol)
