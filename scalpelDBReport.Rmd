@@ -127,6 +127,9 @@ plotPie<-function(x,label,main='',th=1){
   lx<-c(lx,'Other')
   graphics::pie(xx,lx,main=main)
 }
+```
+
+```{r queries, include=FALSE}
 ##===================== Queries =====================##
 diagnosisQ<-paste('select diagnosis,diagnosis.name as diagname,',
 '       count(distinct tissue.patientid) cntpat,',
@@ -397,6 +400,8 @@ panderCnt(resNI)
 # Appendix {.tabset}
 ## Functions
 ```{r functions, eval=FALSE, include=TRUE}
+```
+```{r queries, eval=FALSE, include=TRUE}
 ```
 
 ## Setup R
