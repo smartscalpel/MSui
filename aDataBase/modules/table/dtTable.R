@@ -1,3 +1,12 @@
+js <- c(
+  "function(settings){",
+  "  $('tr td:nth-child(9)').bsDatepicker({",
+  "    format: 'yyyy-mm-dd',",
+  "    todayHighlight: true",
+  "  });",
+  "}"
+) # available options: https://bootstrap-datepicker.readthedocs.io/en/latest/
+
 dtTable <- function(dataFromDB, editable, hideColumns, height) {
         DT::datatable(
                 data = dataFromDB,
@@ -13,22 +22,43 @@ dtTable <- function(dataFromDB, editable, hideColumns, height) {
                 ),
                 
                 options = list(
-                        columnDefs = list(
-                                list(
+                        #initComplete = JS(js),
+                        columnDefs = list(      
+                          list(
                                         targets = c(0:(length(colnames(dataFromDB)) - 1)),
                                         render = JS(
                                                 "function(data, type, row, meta) {",
+                                                        "",
                                                         "return type === 'display' && !!data && data.length >= 15 ?",
                                                         "'<span title=\"' + data + '\">' + data.substr(0, 14) + '..</span>' : data;",
                                                 "}"
-                                        )
+                                        ),
+                                        className = "td"
                                 ),
                                 list(
                                         visible = FALSE,
                                         targets = hideColumns
                                 )
                         ),
-                        
+                        editType = list(
+                          "8" = "select",
+                          "7" = "text",
+                          "6" = "text",
+                          "9" = "text",
+                          "11" = "text",
+                          "10" = "text"
+                        ),
+                        editAttribs = list(
+                          "8" = list(
+                            options = diagnosisDictionary$name,
+                            value = diagnosisDictionary$id
+                          ),
+                          "7" = list(placeholder = colnames(dataFromDb)[8]),
+                          "6" = list(placeholder = colnames(dataFromDb)[7]),
+                          "9" = list(placeholder = colnames(dataFromDb)[10]),
+                          "10" = list(placeholder = colnames(dataFromDb)[11]),
+                          "11" = list(placeholder = colnames(dataFromDb)[12])
+                        ),
                         # Bottons
                         dom = 'Bfrtip',
                         buttons = list(

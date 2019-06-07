@@ -61,7 +61,8 @@ tissuesCheckTableModification <- function(dataFromDB, j, newValue) {
                                                 stop(e)
                                         } else {
                                         #cat(newValue, ': ', , "\n")
-                                                dd <- as.POSIXlt.Date(newValue, tryFormats = c("%Y-%m-%d %R", "%y-%m-%d %R", "%y-%m-%d", "%Y-%m-%d"))
+                                                dd <- as.POSIXlt.Date(newValue, 
+                                                                      tryFormats = c("%y-%m-%d", "%Y-%m-%d"))
                                                 newValue
                                         }
                                         #as.Date(strptime(newValue, "%Y-%m-%d"))
