@@ -101,6 +101,82 @@ panderOptions("table.split.table", 160)
 ```{r functions, include=FALSE}
 ## Custom functions used in the analysis should go into this chunk.
 ## They will be listed in their own section of the appendix.
+printTable <-
+  function(mat,main,landscape = TRUE,digits = 0,sig = 0.01,align= 'lllrr') {
+    addtorow          <- list()
+    addtorow$pos      <- list()
+    addtorow$pos[[1]] <- c(0)
+    addtorow$command  <- c(
+      paste(
+        "\\hline \n",
+        "\\endhead \n",
+        "\\hline \n",
+        "\\multicolumn{3}{l}{\\footnotesize Continued on next page} \n",
+        "\\endfoot \n",
+        "\\endlastfoot \n",sep = ""
+      )
+    )
+    subset <- 'anode'
+    if (landscape) {
+      cat(
+        sprintf(
+          "\\newpage\n  \\begin{landscape} \n\\begin{center}\n\\captionof{table}{Table, %s (%d OTUs)}\n\\scriptsize",
+          main,dim(mat)[1]
+        )
+      )
+    }else{
+      cat(
+        sprintf(
+          "\\begin{center}\n\\captionof{table}{Table, %s (%d OTUs)}\n\\scriptsize",
+          main,dim(mat)[1]
+        )
+      )
+    }
+    #cat(dim(mat),names(mat),'\n')
+    matU<-mat
+    # matU$name<-sanitizestr(mat$name)
+    # matU$description<-sanitizestr(mat$description)
+    # cat(dim(matU),names(matU),'\n')
+    print(
+      xtable(
+        matU,
+        align = align,#paste(align,collapse = ''),
+        digits = digits)
+      ,size = "small",include.colnames = TRUE,
+      tabular.environment = "longtable", sanitize.text.function=NULL,#function(.x)sanitizestr(stri_escape_unicode(.x)),
+      floating = FALSE,include.rownames = FALSE,add.to.row = addtorow,hline.after =
+        c(-1)
+    )
+    if (landscape) {
+      cat("\\end{center}\n \\end{landscape}")
+    }else{
+      cat("\\end{center}\n ")
+    }
+    
+  }
+##==================== Functions ====================##
+
+writeDTpeak<-function(id,scanDF,tic,peak,fname){
+  p<-peak[[id]]
+  md<-metaData(p)
+  if(length(p)>0){
+    scanID<-scanDF$id[scanDF$num==md$number]
+  #cat('Writing scan',md$number,md$retentionTime,'\n')
+  resDF<-data.table(scan=scanID,
+                    mz=p@mass,
+                    intensity=tic[id]*p@intensity,
+                    norm2tic=p@intensity,
+                    sqrtnorm2tic=sqrt(p@intensity),
+                    sqrtintensity=sqrt(tic[id]*p@intensity),
+                    snr=p@snr)
+  if(file.exists(fname)){
+  	app=TRUE
+  }else{
+  	app=FALSE
+  }
+  fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
+  }
+}
 
 ```
 
@@ -110,17 +186,17 @@ insertComment<-paste('insert into comment(dt,comment,author) values (now(),?,?)'
 getCommentID<-'SELECT ID FROM comment where comment=?'
 insertCommentRef<-paste('insert into spectrum_comment(spectrumid,commentid) values (?,?)')
 insertSpectrum<-paste("INSERT INTO spectrum ",
- "  (SampleTumorPatientID, ",
- "  SampleTumorID, ",
- "  SampleID, ",
- "  ResolutionID, ",
- "  Solvent, ",
- "  Device, ",
- "  dt, ",
- "  FileName, ",
- "  ionsource, ",
- "  mode,mzrange,exptype) ",
- "VALUES (?,?,?,?,?,?,?,?,?,?,?,?);")
+                      "  (SampleTumorPatientID, ",
+                      "  SampleTumorID, ",
+                      "  SampleID, ",
+                      "  ResolutionID, ",
+                      "  Solvent, ",
+                      "  Device, ",
+                      "  dt, ",
+                      "  FileName, ",
+                      "  ionsource, ",
+                      "  mode,mzrange,exptype) ",
+                      "VALUES (?,?,?,?,?,?,?,?,?,?,?,?);")
 insertPatient<-'insert into patient (emsid,yob) values(?,-1)'
 insertTissue<-'insert into tissue (patientid,label,diagnosis) values (?,?,1)'
 insertSample<-'insert into smpl (tumorpatientid,tumorid,label) values (?,?,?)'
@@ -129,47 +205,33 @@ getPatient<-'select id,emsid,yob,sex from patient where emsid like ?'
 getTissue<-'select t.id,t.patientid,t.label,t.dt from tissue t join patient p on p.id=t.patientid where p.id=? and t.label like ?' 
 getSample<-'select s.id,s.label as name, \'tissue: "\'||t.label||\'"; patient: "\'|| p.emsid||\'"\' as description from smpl s,tissue t, patient p where t.id=s.tumorid and s.tumorpatientid=p.id and p.id=? and t.id=? and s.label like ? ;'
 insertScan<-paste("INSERT INTO scan",
-"  (SpectrumID, ",
-"  num, ",
-"  rt, ",
-"  tic) ",
-"VALUES (?, ?, ?, ?);")
+                  "  (SpectrumID, ",
+                  "  num, ",
+                  "  rt, ",
+                  "  tic) ",
+                  "VALUES (?, ?, ?, ?);")
 getScanID<-'SELECT ID FROM scan where spectrumid=? and num=?'
+getSpectrum<-paste('select id,emsid,dt,diagnosis,',
+                   'filename,device,min,max,exptype,',
+                   'mode,resolution ',
+                   'from files ',
+                   'where filename like ?')
+getScans<-'select c.* from spectrum s join scan c  on s.id=c.spectrumid where filename like ?'
 
-##==================== Functions ====================##
-writeDTsignal<-function(sp,specID,fname){
-  md<-metaData(sp)
-  #cat('Writing scan',md$number,md$retentionTime,'\n')
-  resDF<-data.table(spec=specID,
-                    num=md$number,
-                    mz=sp@mass,
-                    intensity=sp@intensity)
-  if(file.exists(fname)){
-  	app=TRUE
-  }else{
-  	app=FALSE
-  }
-  fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
-}
-
-writeDTpeak<-function(id,specID,tic,peak,fname){
-  p<-peak[[id]]
-  md<-metaData(p)
-  if(length(p)>0){
-  #cat('Writing scan',md$number,md$retentionTime,'\n')
-  resDF<-data.table(spec=specID,
-                    num=md$number,
-                    mz=p@mass,
-                    intensity=tic[id]*p@intensity,
-                    norm2tic=p@intensity,snr=p@snr)
-  if(file.exists(fname)){
-  	app=TRUE
-  }else{
-  	app=FALSE
-  }
-  fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
-  }
-}
+emptyPeaksQ<-paste('select s.id,filename, ',
+                   'count(distinct c.id) scn  ',
+                   'from spectrum s join scan c ',
+                   'on s.id=c.spectrumid ',
+                   'where c.id in ',
+                   '(select id as scan from scan ',
+                   'except select scan from peak) ',
+                   'and filename like ?',
+                   'group by s.id,filename',
+                   'order by scn desc')
+emptyScansQ<-paste('select s.id,filename,count(distinct c.id) scans',
+                   'from spectrum s left join scan c on s.id=c.spectrumid ',
+                   'where filename like ?',
+                   'group by s.id,filename having count(distinct c.id)=0;')
 
 ```
 
@@ -244,13 +306,31 @@ plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+spectra[[imTIC]]@mass[imTICmax])
 # Connect to the database
 
 ```{r db.connect}
+proceedFile<-TRUE
 conn <- dbConnect(MonetDB.R::MonetDB(), 
                   dbname = dbname,
                   user=usr,password=pwd,timeout=2400)
 spectrumID<-dbGetQuery(conn,getSpecID,paste0(cdf.fname,'_%'))
-proceedFile<-(dim(spectrumID)[1]==0)
-#proceedFile<-TRUE
+if(dim(spectrumID)[1]>0){
+  scID<-dbGetQuery(conn,emptyScansQ,paste0(cdf.fname,'_%'))
+    pID<-dbGetQuery(conn,emptyPeaksQ,paste0(cdf.fname,'_%'))
+    if((dim(pID)[1]==0)&(dim(scID)[1]==0)){
+      proceedFile<-FALSE
+  }else{
+    proceedFile<-FALSE
+  }
+}
+  
+#proceedFile<-(dim(spectrumID)[1]==0)
 
+```
+
+```{r emptyScans}
+panderCnt(scID)
+```
+
+```{r emptyPeaks}
+panderCnt(pID)
 ```
 
 # Загрузка данных с помощью MALDIquant
@@ -333,38 +413,46 @@ cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
 ```{r insert.spectrums, eval=proceedFile}
 for(sidx in unique(intRT)){
   cdf.fid<-paste0(cdf.fname,'_',sidx)
-spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
-if(dim(spectrumID)[1]==0){
-  rtIdx<-which(intRT==sidx)[1]
-  idxRes<-which(resolutions$name==mdL[[rtIdx]]$Detector)
-  resID<-resolutions$id[idxRes]
-  nMode<-ifelse(mdL[[rtIdx]]$Polarity=='Neg',1,2)
-  rangeID<-ifelse(mdL[[rtIdx]]$Range=="100-2000",1,2)
-# idxMode<-which(modes$id==nMode)
-# idxRange<-which(ranges$id==rangeID)
-  rs<-dbSendStatement(conn,insertSpectrum,
-                    patient$id, #patient
-                    tissue$id, #tumor
-                    sample$id,# samlpe
-                    resID,# resolution
-                    solID,# solution
-                    devID,# device
-                    exData, # experimental data
-                    cdf.fid,
-                    isID,# ionsource
-                    nMode,# mode
-                    rangeID, #range
-                    expType
-                    )
+  spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
+  if(dim(spectrumID)[1]==0){
+    rtIdx<-which(intRT==sidx)[1]
+    idxRes<-which(resolutions$name==mdL[[rtIdx]]$Detector)
+    resID<-resolutions$id[idxRes]
+    nMode<-ifelse(mdL[[rtIdx]]$Polarity=='Neg',1,2)
+    rangeID<-ifelse(mdL[[rtIdx]]$Range=="100-2000",1,2)
+    # idxMode<-which(modes$id==nMode)
+    # idxRange<-which(ranges$id==rangeID)
+    rs<-dbSendStatement(conn,insertSpectrum,
+                        patient$id, #patient
+                        tissue$id, #tumor
+                        sample$id,# samlpe
+                        resID,# resolution
+                        solID,# solution
+                        devID,# device
+                        exData, # experimental data
+                        cdf.fid,
+                        isID,# ionsource
+                        nMode,# mode
+                        rangeID, #range
+                        expType
+    )
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
     dbClearResult(rs)
-spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
-rs<-dbSendStatement(conn,insertComment,note,'autoloader')
-commentID<-dbGetQuery(conn,getCommentID,note)
-rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
+    spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
+    rs<-dbSendStatement(conn,insertComment,note,'autoloader')
+    commentID<-dbGetQuery(conn,getCommentID,note)
+    rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+  }
 }
-}
+```
+
+```{r show.spectra,results='asis'}
+specT<-dbGetQuery(conn,getSpectrum,paste0(cdf.fname,'%'))
+printTable(specT,main="Loaded spectra",landscape = TRUE,digits=0,align = 'lllllllrrlll')
 ```
 
 ## Scans
@@ -373,39 +461,30 @@ rs<-dbSendStatement(conn,insertCommentRef,spectrumID$id,commentID$id)
 df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
 for(sidx in unique(intRT)){
   cdf.fid<-paste0(cdf.fname,'_',sidx)
-spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
-system.time(
-for(sp in origSpectra[intRT==sidx]){
-  md<-metaData(sp)
-  rs<-dbSendStatement(conn,insertScan,
-                      spectrumID$id,
-                      md$number,
-                      md$retentionTime,totalIonCurrent(sp))
+  spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
+  for(sp in origSpectra[intRT==sidx]){
+    md<-metaData(sp)
+    rs<-dbSendStatement(conn,insertScan,
+                        spectrumID$id,
+                        md$number,
+                        md$retentionTime,totalIonCurrent(sp))
+    dbHasCompleted(rs)
+    dbGetRowsAffected(rs)
+    dbClearResult(rs)
+  }
 }
-)
-}
+scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
 #spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 ```
+
+```{r show.scans,results='asis'}
+printTable(scanDF,main="Loaded scans",landscape = FALSE,digits=2,align = 'lrrrrr')
+```
+
 
 ## Peaks
 
 Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC, пики группируются с отностительной точностью 2e-5 и исключаются пики, встречающиеся менее чем в 25% сканов. 
-```{r prepare.peaks, cache=TRUE, eval=FALSE}
-imTIC<-which.max(tic)
-plot(spectra[[imTIC]])
-origSpectra<-spectra
-spectra <- calibrateIntensity(spectra, method="TIC")
-calibrSpectra<-spectra
-spectra <- alignSpectra(spectra,reference = spectra[[imTIC]],tolerance = 2e-4)
-alSpectra<-spectra
-peaks <- detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
-                       method="SuperSmoother")
-idx<-which(sapply(peaks,length)>10)
-peaks2 <- binPeaks(peaks[idx],method = 'strict',tolerance = 2e-5)
-fpeaks2 <- filterPeaks(peaks2, minFrequency=0.25)
-featureMatrix2 <- intensityMatrix(fpeaks2, spectra)
-
-```
 
 ### Disable referential constraints and indices
 ```
@@ -434,27 +513,18 @@ peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_
 peakFname
 ```
 
-```{r check.tmppeak.table, eval=proceedFile}
-beforeTMP<-dbGetQuery(conn,'select count(*) as num from tmp_peak;')
-if(beforeTMP$num>0){
-  rs<-dbSendStatement(conn,'delete from tmp_peak;')
-}
-```
-
-There was `r if(exists('beforeTMP')){beforeTMP$num}else {0}` rows in the `tmp_peak` table after last insert. THey are all deleted.
 
 ```{r preprocess.peak.file, eval=proceedFile}
-tmp_peak<-fread(peakFname)
-names(tmp_peak)<-c('spec','num','mz','intensity','norm2tic','snr')
-if(any(is.na(tmp_peak$intensity))){
-  #system(paste0('rm -rf ',peakFname))
-  stop(paste0('THere is empty peaks in the peak file "',peakFname,'"\n'))
-  #system.time(res<-sapply(c(1:length(fpeaks2)),writeDTpeak,specID=cdf.fname,tic=tic,peak=fpeaks2,fname=peakFname))
-}
+system.time(res<-sapply(c(1:dim(featureMatrix2)[1]),writeDTpeak,scanDF,tic=tic2,peak=peaks2,fname=peakFname))
+
 ```
 
 ```{r load.peak.file, eval=proceedFile}
-system(paste0('mclient  -d msinvent  -s  "COPY INTO ms.tmp_peak  FROM ',"'",peakFname,"'",';"'),intern = TRUE)->mcOut
+system(paste0('mclient  -d msinvent  -s  "COPY INTO ',
+              ' ms.peak(scan,mz,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)',
+              '  FROM ',"'",peakFname,
+              "'(scan,mz,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)",';"'),
+       intern = TRUE)->mcOut
 mcOut
 system2('wc', peakFname,stdout=TRUE)->wc
 wc

@@ -219,7 +219,7 @@ eic300<-sapply(trim(spectra,range = c(0,350)),totalIonCurrent)
 eic1000<-sapply(trim(spectra,range = c(400,1000)),totalIonCurrent)
 time<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
 qtic<-quantile(tic,probs = seq(0, 1, 0.1),names = TRUE)
-qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
+qth<-min(absTicThreshold,quantile(tic,probs = ticThreshold))
 #plot(xraw@tic,tic)
 plot(tic)
 abline(h = qth)
@@ -288,7 +288,9 @@ pr<-sapply(mdL,function(.x).x$protocol)
 l<-list()
 for(p in unique(pr)){
   idx<-which(pr==p)
-l[[p]]<-alignSpectra(spectra[idx],reference = spectra[[which.max(tic[idx])]], halfWindowSize = halfWindowSize,tolerance = tolerance)
+  k<-length(l)+1
+l[[k]]<-alignSpectra(spectra[idx],reference = spectra[[which.max(tic[idx])]], halfWindowSize = halfWindowSize,tolerance = tolerance)
+names(l)[k]<-p
 }
 al<-unlist(l)
 snum<-sapply(al,function(.x)metaData(.x)$number)
@@ -307,20 +309,22 @@ pnum<-sapply(peaks2,function(.x)metaData(.x)$number)
 idx<-match(pnum,mnum)
 mdLspectra<-mdL
 mdL<-mdL[idx]
+ticSpectra<-tic
+tic2<-tic[idx]
 pr<-sapply(mdL,function(.x).x$protocol)
 fpeaks2 <- filterPeaks(peaks2, minNumber = 10,labels=pr,mergeWhitelists=FALSE)
 featureMatrix2 <- intensityMatrix(fpeaks2, spectra)
 
 ```
 
-```{r prepare.peak.file}
+```{r prepare.peak.file,eval=FALSE}
 peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
 system.time(res<-sapply(c(1:length(fpeaks2)),writeDTpeak,specID=cdf.fname,tic=tic,peak=fpeaks2,fname=peakFname,intRT=intRT))
 ```
 
 # Save data
 ```{r save.data}
-save(spectra,intRT,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,mdL,mdLspectra,solID,isID,smplID,stID,stpID,exData,cdf.file,cdf.fname,file = 'spectra.RData')
+save(spectra,intRT,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,tic2,mdL,mdLspectra,solID,isID,smplID,stID,stpID,exData,cdf.file,cdf.fname,file = 'spectra.RData')
 ```
 
 # Appendix {.tabset}
