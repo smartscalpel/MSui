@@ -21,7 +21,7 @@ tissuesLoadDataFromDB <- function(pool,
         # The following sequence of operations never touches the database,
         # until we ask the data in the end
         
-        dataFromDB <- dplyr::tbl(pool, "patisue4abd")
+        dataFromDB <- dplyr::tbl(pool, "patissue4ui")
         
         
         # Fridge Selector

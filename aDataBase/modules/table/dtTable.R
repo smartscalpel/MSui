@@ -46,18 +46,20 @@ dtTable <- function(dataFromDB, editable, hideColumns, height) {
                           "6" = "text",
                           "9" = "text",
                           "11" = "text",
-                          "10" = "text"
+                          "10" = "text",
+                          "12" = "text"
                         ),
                         editAttribs = list(
                           "8" = list(
                             options = diagnosisDictionary$name,
                             value = diagnosisDictionary$id
                           ),
-                          "7" = list(placeholder = colnames(dataFromDb)[8]),
-                          "6" = list(placeholder = colnames(dataFromDb)[7]),
-                          "9" = list(placeholder = colnames(dataFromDb)[10]),
-                          "10" = list(placeholder = colnames(dataFromDb)[11]),
-                          "11" = list(placeholder = colnames(dataFromDb)[12])
+                          "7" = list(placeholder = colnames(dataFromDB)[8]),
+                          "6" = list(placeholder = colnames(dataFromDB)[7]),
+                          "9" = list(placeholder = colnames(dataFromDB)[10]),
+                          "10" = list(placeholder = colnames(dataFromDB)[11]),
+                          "11" = list(placeholder = colnames(dataFromDB)[12]),
+                          "12" = list(placeholder = colnames(dataFromDB)[13])
                         ),
                         # Bottons
                         dom = 'Bfrtip',
