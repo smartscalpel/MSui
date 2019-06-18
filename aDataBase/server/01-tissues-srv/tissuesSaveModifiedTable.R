@@ -38,7 +38,8 @@ tissuesSaveModifiedTable <- function(pool) {
                                                                 " diagnosis = ", updatedPart[i, "diagnosis"], ",",
                                                                 " grade = ",     updatedPart[i, "grade"],     ",",
                                                                 " dt = ",        updatedPart[i, "dt"],        ",",
-                                                                " coords = ",    updatedPart[i, "coords"],    "",
+                                                                " coords = ",    updatedPart[i, "coords"],    ",",
+                                                                " histdiag = '",  updatedPart[i, "histdiag"],  "'",
                                                                 " WHERE id = ",  updatedPart[i, "id"],        ";",
                                                                 sep = ""
                                                         )
