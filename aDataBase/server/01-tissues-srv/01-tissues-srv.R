@@ -75,36 +75,42 @@ shiny::observeEvent(input$tissuesSelect, {
                 diagnosisSelector = tissuesDiagnosisSelector,
                 timeSelector = tissuesTimeSelector
         )
+        loadedDataFromDb <- tissuesLoadDataFromDB(
+                pool = pool,
+                fridgeSelector = tissuesFridgeSelector,
+                sexSelector = tissuesSexSelector,
+                ageSelector = tissuesAgeSelector,
+                diagnosisSelector = tissuesDiagnosisSelector,
+                timeSelector = tissuesTimeSelector
+        )
         
         if (tissuesCheckOutput[[1]]) {
                 tissueReactiveValues$error <- FALSE
-                
                 # Load data from database
-                tissuesReactiveDataFromDB(
-                        tissuesLoadDataFromDB(
-                                pool = pool,
-                                fridgeSelector = tissuesFridgeSelector,
-                                sexSelector = tissuesSexSelector,
-                                ageSelector = tissuesAgeSelector,
-                                diagnosisSelector = tissuesDiagnosisSelector,
-                                timeSelector = tissuesTimeSelector
-                        )
-                )
-
-                if (input$tissuesEditableSelector) {
-                        tissueReactiveValues$editableTable <- TRUE
+                if (loadedDataFromDb[[1]]) {
+                        tissuesReactiveDataFromDB(loadedDataFromDb[[2]])
                         
-                        tissuesTriggerUpdateTableEditable(
-                                tissuesTriggerUpdateTableEditable() + 1
-                        )
-                }
-                if (! input$tissuesEditableSelector) {
-                        tissueReactiveValues$editableTable <- FALSE
+                        if (input$tissuesEditableSelector) {
+                                tissueReactiveValues$editableTable <- TRUE
+                                
+                                tissuesTriggerUpdateTableEditable(
+                                        tissuesTriggerUpdateTableEditable() + 1
+                                )
+                        }
+                        if (! input$tissuesEditableSelector) {
+                                tissueReactiveValues$editableTable <- FALSE
+                                
+                                tissuesTriggerUpdateTableReadOnly(
+                                        tissuesTriggerUpdateTableReadOnly() + 1
+                                )
+                        }
+                } else {
+                        tissueReactiveValues$error <- TRUE
                         
-                        tissuesTriggerUpdateTableReadOnly(
-                                tissuesTriggerUpdateTableReadOnly() + 1
-                        )
+                        output$tissuesScreensaver  <- generateHtmlScreenSaver(inputText = loadedDataFromDb[[2]])
+                        output$tissuesErrorMessage <- generateErrorMessage(errorText = loadedDataFromDb[[3]])
                 }
+                
         } else {
                 tissueReactiveValues$error <- TRUE
 

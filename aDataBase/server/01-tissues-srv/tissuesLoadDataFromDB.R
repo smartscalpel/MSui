@@ -23,7 +23,6 @@ tissuesLoadDataFromDB <- function(pool,
         
         dataFromDB <- dplyr::tbl(pool, "patissue4ui")
         
-        
         # Fridge Selector
         if (fridgeSelector[[1]]() != "all") {
                 
@@ -75,11 +74,23 @@ tissuesLoadDataFromDB <- function(pool,
                 dataFromDB <- dataFromDB %>% dplyr::filter(is.null(dt))
         }
         
-        
-        
         # Recive data from DB
-        dataFromDB <- dplyr::as_data_frame(dataFromDB)
-        dataFromDB <- data.frame(dataFromDB)
+        out <- tryCatch(
+                {
+                        dataFromDB <- dplyr::as_data_frame(dataFromDB)
+                        dataFromDB <- data.frame(dataFromDB)
+                },
+                error = function(c) {
+                        return(list('error', paste(c[[1]])))
+                }
+        )
+        if (
+                 out[[1]] == 'error'
+        ){
+                return(list(FALSE, 'Failed to load data from DataBase!', out[[2]]))
+          #dataFromDB$errordescr <-      
+        }
         
-        return(dataFromDB)
+        
+        return(list(TRUE, dataFromDB))
 }
