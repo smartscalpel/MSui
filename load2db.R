@@ -11,12 +11,12 @@
 #########################################
 source('./path.R')
 
-fl<-dir(path=tmpPath,pattern='.*tmp_peak.tsv$',recursive=TRUE)
+fl<-dir(path=tmpPath,pattern='.*spectra.RData$',recursive=TRUE)
 wd<-getwd()
 for(f in fl){
 #  ls()->L
 #  rm(list=L[!L%in%c('fl','f','rmd.name')])
-  dir.name<-sub('tmp_peak.tsv','',f)
+  dir.name<-sub('spectra.RData','',f)
   rmd.name<-paste0(dir.name,'load.Rmd')
   cat('peaks:',f,format(Sys.time(), "%b %d %X"),'\ndir:',dir.name,'\nrmd:',rmd.name,'\n')
   rmd.fname<-paste0(tmpPath,'/',rmd.name)
