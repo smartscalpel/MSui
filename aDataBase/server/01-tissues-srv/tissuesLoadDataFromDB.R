@@ -10,6 +10,10 @@
 # );
 #
 
+get_numeric <- function(f) {
+        return(as.numeric(levels(f))[as.integer(f)])
+}
+
 # Return a datatable
 tissuesLoadDataFromDB <- function(pool,
                                   fridgeSelector,
@@ -46,9 +50,11 @@ tissuesLoadDataFromDB <- function(pool,
         
         # Age Selector
         if (ageSelector[[1]]() == "range") {
+                #browser()
+                l_value <- ageSelector[[2]]()[1]
+                r_value <- ageSelector[[2]]()[2]
                 dataFromDB <- dataFromDB %>%
-                        dplyr::filter(age >= ageSelector[[2]]()[1]) %>%
-                        dplyr::filter(age <= ageSelector[[2]]()[2])
+                        dplyr::filter(between(age, l_value, r_value))
         }
         
         if (ageSelector[[1]]() == "null") {
@@ -65,15 +71,17 @@ tissuesLoadDataFromDB <- function(pool,
         
         # Time Selector
         if (timeSelector[[1]]() == "range") {
+                start_date <- timeSelector[[2]]()[1]
+                end_date <- timeSelector[[2]]()[2]
                 dataFromDB <- dataFromDB %>%
-                        dplyr::filter(dt >= timeSelector[[2]]()[1]) %>%
-                        dplyr::filter(dt <= timeSelector[[2]]()[2])
+                        dplyr::filter(dt >= start_date) %>%
+                        dplyr::filter(dt <= end_date)
         }
         
         if (timeSelector[[1]]() == "null") {
                 dataFromDB <- dataFromDB %>% dplyr::filter(is.null(dt))
         }
-        
+        #browser()
         # Recive data from DB
         out <- tryCatch(
                 {
@@ -84,8 +92,9 @@ tissuesLoadDataFromDB <- function(pool,
                         return(list('error', paste(c[[1]])))
                 }
         )
+        #browser()
         if (
-                 out[[1]] == 'error'
+                length(out) > 0 & isTRUE(out[[1]] == 'error')
         ){
                 return(list(FALSE, 'Failed to load data from DataBase!', out[[2]]))
           #dataFromDB$errordescr <-      

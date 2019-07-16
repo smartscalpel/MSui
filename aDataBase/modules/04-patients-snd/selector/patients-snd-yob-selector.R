@@ -15,10 +15,11 @@ patientsSndYobSelectorUI <- function(id) {
                         inputId = ns("yobvalue"),
                         label = NULL,
                         min = 1900,
-                        max = 2000,
+                        max = 2030,
                         step = 1,
                         value = c(1900),
-                        width = "50%"
+                        width = "50%",
+                        sep = ''
                 )
         )
 }
