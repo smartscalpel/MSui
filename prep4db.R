@@ -29,10 +29,10 @@ wd<-getwd()
 for(mf in mfl){
   wdir<-dirname(normalizePath(paste0(path,mf)))
   cat(format(Sys.time(), "%b %d %X"),mf,wdir,'\n')
-  mdt<-xlsx::read.xlsx(paste0(path,mf),1)
+  mdt<-xlsx::read.xlsx(paste0(path,mf),sheetIndex=1)
   if(any(grepl('(wash|bg)',names(mdt)))){# to fix crasy Excel without header row
     cat(format(Sys.time(), "%b %d %X"),mf,'\n')
-    mdt<-read.xlsx(paste0(path,mf),colNames=FALSE)
+    mdt<-read.xlsx(paste0(path,mf),sheetIndex=1,colNames=FALSE)
     while(dim(mdt)[2]<length(cnames)){mdt<-cbind(mdt,rep(NA,dim(mdt)[1]))}
     names(mdt)<-cnames
   }
