@@ -178,6 +178,14 @@ writeDTpeak<-function(id,scanDF,tic,peak,fname){
   }
 }
 
+panderCnt<-function(d){
+  w<-dim(d)[2]
+  inCol<-sapply(d,is.numeric)
+  j<-rep('left',w)
+  j[inCol]<-'right'
+  pander(d, justify = j)
+}
+
 ```
 
 ```{r queries, include=FALSE}
@@ -227,7 +235,7 @@ emptyPeaksQ<-paste('select s.id,filename, ',
                    'except select scan from peak) ',
                    'and filename like ?',
                    'group by s.id,filename',
-                   'order by scn desc')
+                   'order by s.id asc')
 emptyScansQ<-paste('select s.id,filename,count(distinct c.id) scans',
                    'from spectrum s left join scan c on s.id=c.spectrumid ',
                    'where filename like ?',
@@ -313,11 +321,11 @@ conn <- dbConnect(MonetDB.R::MonetDB(),
 spectrumID<-dbGetQuery(conn,getSpecID,paste0(cdf.fname,'_%'))
 if(dim(spectrumID)[1]>0){
   scID<-dbGetQuery(conn,emptyScansQ,paste0(cdf.fname,'_%'))
+  if(dim(scID)[1]==0){
     pID<-dbGetQuery(conn,emptyPeaksQ,paste0(cdf.fname,'_%'))
-    if((dim(pID)[1]==0)&(dim(scID)[1]==0)){
+    if((dim(pID)[1]==0)){
       proceedFile<-FALSE
-  }else{
-    proceedFile<-FALSE
+    }
   }
 }
   
@@ -414,12 +422,12 @@ cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
 for(sidx in unique(intRT)){
   cdf.fid<-paste0(cdf.fname,'_',sidx)
   spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
-  if(dim(spectrumID)[1]==0){
     rtIdx<-which(intRT==sidx)[1]
     idxRes<-which(resolutions$name==mdL[[rtIdx]]$Detector)
     resID<-resolutions$id[idxRes]
     nMode<-ifelse(mdL[[rtIdx]]$Polarity=='Neg',1,2)
     rangeID<-ifelse(mdL[[rtIdx]]$Range=="100-2000",1,2)
+  if(dim(spectrumID)[1]==0){
     # idxMode<-which(modes$id==nMode)
     # idxRange<-which(ranges$id==rangeID)
     rs<-dbSendStatement(conn,insertSpectrum,
@@ -458,6 +466,8 @@ printTable(specT,main="Loaded spectra",landscape = TRUE,digits=0,align = 'llllll
 ## Scans
 
 ```{r insert.scans, eval=proceedFile}
+scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
+if(dim(scanDF)[1]==0){
 df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
 for(sidx in unique(intRT)){
   cdf.fid<-paste0(cdf.fname,'_',sidx)
@@ -474,10 +484,11 @@ for(sidx in unique(intRT)){
   }
 }
 scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
+}
 #spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 ```
 
-```{r show.scans,results='asis'}
+```{r show.scans,results='asis',eval=proceedFile}
 printTable(scanDF,main="Loaded scans",landscape = FALSE,digits=2,align = 'lrrrrr')
 ```
 
