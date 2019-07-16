@@ -224,6 +224,7 @@ qth<-min(absTicThreshold,quantile(tic,probs = ticThreshold))
 plot(tic)
 abline(h = qth)
 spectra <-spectra[tic>qth]
+tic<-sapply(spectra,totalIonCurrent)
 rt<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
 intRT<-findInterval(rt,protocol$rt)
 mdL<-lapply(1:length(intRT),function(.x)list(number=.x,Polarity=as.character(protocol$Polarity[intRT[.x]]),
