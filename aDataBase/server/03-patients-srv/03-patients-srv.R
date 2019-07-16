@@ -59,34 +59,42 @@ shiny::callModule(
 shiny::observeEvent(input$patientsSelect, {
         
         patientsCheckInputRes <- patientsCheckSelectorValues()
-        
+        patientsFromDB <- patientsLoadDataFromDB(
+                pool = pool,
+                sexSelector = patientsSexSelector,
+                ageSelector = patientsAgeSelector,
+                yobSelector = patientsYobSelector
+        )
         if (patientsCheckInputRes[[1]]) {
                 patientsReactiveValues$error <- FALSE
                 
                 # Load data from database
-                patientsReactiveDataFromDB(
-                        patientsDataFromDB <- patientsLoadDataFromDB(
-                                pool = pool,
-                                sexSelector = patientsSexSelector,
-                                ageSelector = patientsAgeSelector,
-                                yobSelector = patientsYobSelector
+                if (patientsFromDB[[1]]){
+                        patientsReactiveDataFromDB(
+                                patientsDataFromDB <- patientsFromDB[[2]]
                         )
-                )
+                        
+                        if (input$patientsEditableSelector) {
+                                patientsReactiveValues$editableTable <- TRUE
+                                
+                                patientsTriggerUpdateTableEditable(
+                                        patientsTriggerUpdateTableEditable() + 1
+                                )
+                        }
+                        if (! input$patientsEditableSelector) {
+                                patientsReactiveValues$editableTable <- FALSE
+                                
+                                patientsTriggerUpdateTableReadOnly(
+                                        patientsTriggerUpdateTableReadOnly() + 1
+                                )
+                        }
+                } else {
+                        patientsReactiveValues$error <- TRUE
+                        
+                        output$patientsScreensaver  <- generateHtmlScreenSaver(inputText = patientsFromDB[[2]])
+                        output$patientsErrorMessage <- generateErrorMessage(errorText = patientsFromDB[[3]])
+                }
                 
-                if (input$patientsEditableSelector) {
-                        patientsReactiveValues$editableTable <- TRUE
-                        
-                        patientsTriggerUpdateTableEditable(
-                                patientsTriggerUpdateTableEditable() + 1
-                        )
-                }
-                if (! input$patientsEditableSelector) {
-                        patientsReactiveValues$editableTable <- FALSE
-                        
-                        patientsTriggerUpdateTableReadOnly(
-                                patientsTriggerUpdateTableReadOnly() + 1
-                        )
-                }
         } else {
                 patientsReactiveValues$error <- TRUE
                 
