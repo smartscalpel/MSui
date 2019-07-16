@@ -36,10 +36,10 @@ tissuesLoadDataFromDB <- function(pool,
         # Sex Selector
         if (sexSelector[[1]]() != "all" & sexSelector[[1]]() != "null") {
                 if (sexSelector[[1]]() == "men") {
-                        dataFromDB <- dataFromDB %>% dplyr::filter(sex == 'М')
+                        dataFromDB <- dataFromDB %>% dplyr::filter(sex %in% c('М', 'M', 'm', 'м'))
                 }
                 if (sexSelector[[1]]() == "women") {
-                        dataFromDB <- dataFromDB %>% dplyr::filter(sex == 'Ж')
+                        dataFromDB <- dataFromDB %>% dplyr::filter(sex %in% c('Ж', 'F', 'f', 'ж'))
                 }
         }
         

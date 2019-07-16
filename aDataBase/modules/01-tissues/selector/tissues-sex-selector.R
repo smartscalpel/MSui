@@ -8,7 +8,7 @@ tissuesSexSelectorUI <- function(id) {
                         label = "Sex",
                         choices = c("All" = "all", 
                                     "M" = "men",
-                                    "W" = "women",
+                                    "F" = "women",
                                     "Null" = "null"),
                         inline = TRUE
                 )
