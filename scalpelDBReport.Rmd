@@ -177,22 +177,22 @@ specTotQ<-paste('select s.id,sampletumorid,sampletumorpatientid,sampleid,',
 'join exptype e on e.id=s.exptype')
 
 emptyPeaksQ0<-paste('select s.id,filename,',
-'count(distinct c.id) scn,',
-'count(distinct p.id) pnt ',
-'from spectrum s left join scan c on s.id=c.spectrumid ',
-'left join peak p on p.scan=c.id ',
-'group by s.id,filename',
-'having count(distinct p.id)=0',
-'order by scn desc;')
+                    'count(distinct c.id) scn,',
+                    'count(distinct p.id) pnt ',
+                    'from spectrum s left join scan c on s.id=c.spectrumid ',
+                    'left join peak p on p.scan=c.id ',
+                    'group by s.id,filename',
+                    'having count(distinct p.id)=0',
+                    'order by s.id asc;')
 emptyPeaksQ<-paste('select s.id,filename, ',
-'count(distinct c.id) scn  ',
-'from spectrum s join scan c ',
-'on s.id=c.spectrumid ',
-'where c.id in ',
-'(select id as scan from scan ',
-'except select scan from peak) ',
-'group by s.id,filename ',
-'order by scn desc')
+                   'count(distinct c.id) scn  ',
+                   'from spectrum s join scan c ',
+                   'on s.id=c.spectrumid ',
+                   'where c.id in ',
+                   '(select id as scan from scan ',
+                   'except select scan from peak) ',
+                   'group by s.id,filename ',
+                   'order by scn desc')
 emptyScansQ<-paste('select s.id,filename,count(distinct c.id) scans',
                    'from spectrum s left join scan c on s.id=c.spectrumid ',
                    'group by s.id,filename having count(distinct c.id)=0;')
