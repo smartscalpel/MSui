@@ -226,8 +226,9 @@ abline(h = qth)
 spectra <-spectra[tic>qth]
 tic<-sapply(spectra,totalIonCurrent)
 rt<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
+num<-sapply(spectra,function(.x)metaData(.x)$number)
 intRT<-findInterval(rt,protocol$rt)
-mdL<-lapply(1:length(intRT),function(.x)list(number=.x,Polarity=as.character(protocol$Polarity[intRT[.x]]),
+mdL<-lapply(1:length(intRT),function(.x)list(number=num[.x],Polarity=as.character(protocol$Polarity[intRT[.x]]),
                                    Detector=as.character(protocol$Detector[intRT[.x]]),
                                    Range=as.character(protocol$Range[intRT[.x]]),
                                    protocol=paste(protocol$Polarity[intRT[.x]],
