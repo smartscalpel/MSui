@@ -192,7 +192,7 @@ emptyPeaksQ<-paste('select s.id,filename, ',
                    '(select id as scan from scan ',
                    'except select scan from peak) ',
                    'group by s.id,filename ',
-                   'order by scn desc')
+                   'order by filename')
 emptyScansQ<-paste('select s.id,filename,count(distinct c.id) scans',
                    'from spectrum s left join scan c on s.id=c.spectrumid ',
                    'group by s.id,filename having count(distinct c.id)=0;')
@@ -368,6 +368,8 @@ panderCnt(resNI)
 ## Empty scans
 ```{r empty.scans}
 resNI<-dbGetQuery(conn,emptyPeaksQ)
+resNI$fn<-sub('_[0-9]+$','',resNI$filename)
+panderCnt(as.data.table(resNI)[,.(N=length(id),cnt=length(unique(id)),scn=sum(scn)),by=.(fn)])
 panderCnt(resNI)
 ```
 
