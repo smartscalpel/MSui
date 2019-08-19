@@ -522,6 +522,9 @@ rs<-dbSendStatement(conn,'drop INDEX "peak_scan";')
 peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
 #system(paste0('gunzip ',peakFname,'.gz'))
 peakFname
+if(file.exists(peakFname)){
+  file.remove(peakFname)
+}
 ```
 
 
