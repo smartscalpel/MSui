@@ -169,6 +169,7 @@ writeDTpeak<-function(id,scanDF,tic,peak,fname){
                     sqrtnorm2tic=sqrt(p@intensity),
                     sqrtintensity=sqrt(tic[id]*p@intensity),
                     snr=p@snr)
+  resDF$scan<-as.integer(resDF$scan)
   if(file.exists(fname)){
   	app=TRUE
   }else{
