@@ -548,7 +548,7 @@ wcn
 #system(paste0('gzip ',peakFname))
 ```
 
-```{r populate.peak.table, eval=proceedFile}
+```{r populate.peak.table, eval=FALSE}
 before<-dbGetQuery(conn,'select count(*) as num from peak;')
 before
 for(sidx in unique(intRT)){
