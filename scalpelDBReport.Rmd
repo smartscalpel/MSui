@@ -197,7 +197,7 @@ emptyScansQ<-paste('select s.id,filename,count(distinct c.id) scans',
                    'from spectrum s left join scan c on s.id=c.spectrumid ',
                    'group by s.id,filename having count(distinct c.id)=0;')
 ########### NULL-IN queries #############
-ni.diag<-'select * from tissue where diagnosis=1'
+ni.diag<-'select id,label,grade,dt,histdiag from tissue where diagnosis=1'
 ni.mzrange<-'select id,mzrange,dt,filename  from spectrum where mzrange is null'
 ni.mode<-'select id,mode,dt,filename  from spectrum where mode is null'
 ni.exptype<-'select id,exptype,dt,filename  from spectrum where exptype is null'
