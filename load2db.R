@@ -29,6 +29,7 @@ for(f in fl){
     cdf.fname<-paste0(ifelse(protocolName=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file))
     expType<-ifelse(protocolName=='190130',2,1)
     try(rmarkdown::render(rmd.fname,'pdf_document',clean = FALSE),FALSE,outFile=sub('Rmd$','try.out',rmd.fname))
+    rm(spectra,intRT,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,tic2,mdL,mdLspectra,solID,isID,smplID,stID,stpID,exData,cdf.file,cdf.fname)
   }
 }
 
