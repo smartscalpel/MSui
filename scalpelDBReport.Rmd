@@ -280,10 +280,30 @@ panderDict(ranges)
 ```
 
 # Basic statistics
+## Counts
 ```{r diag, cache=FALSE}
 dCnt<-dbGetQuery(conn,diagnosisQ)
+dCnt<-rbind(dCnt,
+            data.frame(diagnosis=NA,
+                       diagname='Total',
+                       cntpat=sum(dCnt$cntpat),
+                       cntsamp=sum(dCnt$cntsamp),
+                       cntspec=sum(dCnt$cntspec)))
 panderCnt(dCnt)
 ```
+
+## Percent
+```{r diag.perc}
+cntpat=sum(dCnt$cntpat)
+cntsamp=sum(dCnt$cntsamp)
+cntspec=sum(dCnt$cntspec)
+dPerc<-dCnt
+dPerc$cntpat<-100*dCnt$cntpat/cntpat
+dPerc$cntsamp<-100*dCnt$cntsamp/cntsamp
+dPerc$cntspec<-100*dCnt$cntspec/cntspec
+panderCnt(dPerc)
+```
+
 
 ## Diagnosis over Patients
 ```{r diag.cntpat.pie,fig.width=11,fig.height=11}
