@@ -206,8 +206,8 @@ emptyScansQ<-paste('select s.id,filename,count(distinct c.id) scans',
 ########### NULL-IN queries #############
 ni.diag<-'select id,label,grade,dt,histdiag from tissue where diagnosis=1'
 ni.mzrange<-'select id,mzrange,dt,filename  from spectrum where dt>? and  mzrange is null'
-ni.mode<-'select id,mode,dt,filename  from spectrum where s.dt>? and mode is null'
-ni.exptype<-'select id,exptype,dt,filename  from spectrum where s.dt>? and exptype is null'
+ni.mode<-'select id,mode,dt,filename  from spectrum where dt>? and mode is null'
+ni.exptype<-'select id,exptype,dt,filename  from spectrum where dt>? and exptype is null'
 ```
 
 ```{r echo=FALSE, include=FALSE}
