@@ -1,3 +1,57 @@
+#' Create intensity matrix from the set of files
+#'
+#' @param files list of file names to be combined into matrix
+#' @param path path to the directory where files are located
+#' @param round where to round the MZ values and aggregate intensities
+#' @param digits number of digits to round mz to 
+#' 
+#' @details 
+#' We assume that files were created by the query from this package and contains
+#' following columns:
+#' * id
+#' * scan
+#' * spectrumid
+#' * diagnosis
+#' * num
+#' * rt
+#' * tic
+#' * mz
+#' * intensity
+#' * norm2tic
+#' * snr
+#' 
+#' @import data.table
+#' @return matrix of peaks intensity.
+#' @export
+#'
+#' 
+getIntensityMatrix<-function(files,path,round=FALSE,digits=0){
+  if(!dir.exists(path)){
+    stop('Folder [',path,'] does not exists.\n')
+  }
+  fl<-dir(path = path)
+  idx<-match(files,fl)
+  if(any(is.na(idx))){
+    stop('Files [',
+         paste(files[is.na(idx)],collapse = ','),
+         '] could not be found in the folder',path,'.\n')
+  }
+  res<-list()
+  for(f in files){
+    dt<-fread(paste0(path,'/',f))
+    names(dt)<-c('id','scan','spectrumid','diagnosis','num','rt','tic','mz','intensity','norm2tic','snr')
+    #dt<-setDT(dt)
+    #mdt<-dt[,.(N=length(id)),by=.(scan,spectrumid,num,rt,diagnosis,tic)]
+    mdt<-dt[,.(scan,spectrumid,num,rt,diagnosis,tic)]
+    md<-unique(mdt)
+    p<-makeMassPeak(dt,metadata = md)
+    res<-c(res,p)
+  }
+  mdt<-plyr::ldply(res,function(.x){as.data.frame(metaData(.x))})
+  fm<-prepareMatrix(res,gropId = mdt$diagnosis)
+  fm<-cbind(mdt,as.data.frame(fm))
+}
+
 #' Create intensity matrix from the database
 #'
 #' @param con connection to the database
@@ -16,8 +70,8 @@
 #' @export
 #'
 #' 
-getIntensityMatrix<-function(con,sql,round=0){
-  res<-
+getIntensityMatrixSQL<-function(con,sql,round=FALSE,digits=0){
+    res<-
     data.table::data.table(
       DBI::dbGetQuery(con,
                  sql))
@@ -25,14 +79,24 @@ getIntensityMatrix<-function(con,sql,round=0){
   if(any(is.na(idx))){
     stop('SQL query should return three columns in any order: mz, scan, intensity.\n')
   }
-  res$mzR<-round(res$mz,digits = round)
-  dt<-res[,.(int=sum(intensity)),by=.(mzR)]
+  if(round){
+  res$mzR<-round(res$mz,digits = digits)
+  dt<-res[,.(int=sum(intensity)),by=.(scan,mzR)]
+  dt$mz<-dt$mzR
+  }
 }
 
 #' makeMassPeak.
 #' 
 #' Function converts data.table with columns 'scan','mz' and 'intensity' into list of MassPeaks objects.
 #'
+#' @details 
+#' Here we assume that the data is homogenious in experimental and measurement
+#' properties such as mode, resolution, diagnosis etc. That assumption is required
+#' as the final step of the conversion is alignment of peak lists which has no
+#' sense for unhomogenious lists. To create unhomogenious peak list create peak lists
+#' for each group, for example diagnosis, and merge them afterwords.
+#' 
 #' @param peakDT data.table to take data from
 #' @param metadata dataFrame with scan-specific metadata.
 #'
@@ -77,5 +141,41 @@ makeMassPeak<-function(peakDT,metadata=NULL){
       p<-MALDIquant::createMassPeaks(l$mass,l$intensity,snr=l$snr)
     }
   }
-  l<-lapply(scans,makeP)
+  pl<-lapply(scans,makeP)
+  ln<-sapply(pl,length)
+  wf<-determineWarpingFunctions(pl,
+                                method="lowess",
+                                plot=FALSE,
+                                reference = pl[[which.max(ln)]])
+  aPeaks<-warpMassPeaks(pl,wf)
+}
+
+
+#' Prepare Feature Matrix from peak list.
+#'
+#' @param pl list of MassPeaks to convert
+#' @param gropId group identity for peaklist
+#' @param tolerance binPeaks tolerance
+#' @param minFrequency minimal peak frequency for the filterPeaks
+#' @param mergeWhitelists wether to merge white lists for the filterPeaks
+#' @param digits number of digits in the Feature matrix column names
+#'
+#' @return
+#' @export
+#'
+prepareMatrix<-function(pl,gropId,tolerance=2e-3,minFrequency=0.25, mergeWhitelists=TRUE,digits=3){
+  if(length(pl)!=length(gropId)){
+    stop('Length of Peaklist',length(pl),'is not equal to the length of groupID',length(gropId),'\n')
+  }
+  bPeaks <- binPeaks(pl, tolerance=tolerance)
+  fpeaks <- filterPeaks(bPeaks,
+                        labels=gropId,
+                        minFrequency=minFrequency, mergeWhitelists=mergeWhitelists)
+  featureMatrix <- intensityMatrix(fpeaks)
+  idNA<-which(is.na(featureMatrix),arr.ind =TRUE)
+  featureMatrix[idNA]<-0
+  colnames(featureMatrix)<-paste0('MZ',
+                                  as.character(round(as.double(colnames(featureMatrix)),
+                                                     digits)))
+  return(featureMatrix)
 }

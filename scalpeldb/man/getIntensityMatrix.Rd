@@ -2,28 +2,37 @@
 % Please edit documentation in R/getMatrix.R
 \name{getIntensityMatrix}
 \alias{getIntensityMatrix}
-\title{Create intensity matrix from the database}
+\title{Create intensity matrix from the set of files}
 \usage{
-getIntensityMatrix(con, sql, round = 0)
+getIntensityMatrix(files, path, round = FALSE, digits = 0)
 }
 \arguments{
-\item{con}{connection to the database}
+\item{files}{list of file names to be combined into matrix}
 
-\item{sql}{query to take peaks}
+\item{path}{path to the directory where files are located}
 
-\item{round}{number of digits to round mz to}
+\item{round}{where to round the MZ values and aggregate intensities}
+
+\item{digits}{number of digits to round mz to}
 }
 \value{
 matrix of peaks intensity.
 }
 \description{
-Create intensity matrix from the database
+Create intensity matrix from the set of files
 }
 \details{
-SQL query should return three columns in any order: mz, scan, intensity. 
-First two will be columns and rows of the matrix, the last one will be matrix 
-content. MZ is truncated with round function before matrix generation, 
-however it is better to use SQL functions to aggregate intensities of 
-appropriate mass, as meaning of aggregation would depend upot type of the 
-intensity (normalized, squared etc).
+We assume that files were created by the query from this package and contains
+following columns:
+* id
+* scan
+* spectrumid
+* diagnosis
+* num
+* rt
+* tic
+* mz
+* intensity
+* norm2tic
+* snr
 }

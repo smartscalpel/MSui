@@ -17,3 +17,10 @@ list of MassPeaks objects corresponding th data in peakDT
 \description{
 Function converts data.table with columns 'scan','mz' and 'intensity' into list of MassPeaks objects.
 }
+\details{
+Here we assume that the data is homogenious in experimental and measurement
+properties such as mode, resolution, diagnosis etc. That assumption is required
+as the final step of the conversion is alignment of peak lists which has no
+sense for unhomogenious lists. To create unhomogenious peak list create peak lists
+for each group, for example diagnosis, and merge them afterwords.
+}
