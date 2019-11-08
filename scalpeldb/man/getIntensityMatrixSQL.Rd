@@ -11,7 +11,9 @@ getIntensityMatrixSQL(con, sql, round = FALSE, digits = 0)
 
 \item{sql}{query to take peaks}
 
-\item{round}{number of digits to round mz to}
+\item{round}{where to round the MZ values and aggregate intensities}
+
+\item{digits}{number of digits to round mz to}
 }
 \value{
 matrix of peaks intensity.

@@ -56,7 +56,8 @@ getIntensityMatrix<-function(files,path,round=FALSE,digits=0){
 #'
 #' @param con connection to the database
 #' @param sql query to take peaks
-#' @param round number of digits to round mz to 
+#' @param round where to round the MZ values and aggregate intensities
+#' @param digits number of digits to round mz to 
 #'
 #' @details 
 #' SQL query should return three columns in any order: mz, scan, intensity. 
@@ -100,6 +101,7 @@ getIntensityMatrixSQL<-function(con,sql,round=FALSE,digits=0){
 #' @param peakDT data.table to take data from
 #' @param metadata dataFrame with scan-specific metadata.
 #'
+#' @import MALDIquant
 #' @return list of MassPeaks objects corresponding th data in peakDT
 #' @export
 #'
