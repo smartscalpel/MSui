@@ -270,13 +270,6 @@ plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+spectra[[imTIC]]@mass[imTICmax])
 ```
 
 
-
-```
-{r prepare.signal.file, eval=proceedFile}
-sigFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_signal.tsv'))
-system.time(res<-sapply(spectra,writeDTsignal,specID=basename(cdf.file),fname=sigFname))
-```
-
 ## Peaks
 
 Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC, пики группируются с отностительной точностью 2e-5 и исключаются пики, встречающиеся менее чем в 25% сканов. 
@@ -319,10 +312,6 @@ featureMatrix2 <- intensityMatrix(fpeaks2, spectra)
 
 ```
 
-```{r prepare.peak.file,eval=FALSE}
-peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
-system.time(res<-sapply(c(1:length(fpeaks2)),writeDTpeak,specID=cdf.fname,tic=tic,peak=fpeaks2,fname=peakFname,intRT=intRT))
-```
 
 # Save data
 ```{r save.data}

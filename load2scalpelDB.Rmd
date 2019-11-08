@@ -565,29 +565,6 @@ wcn
 #system(paste0('gzip ',peakFname))
 ```
 
-```{r populate.peak.table, eval=FALSE}
-before<-dbGetQuery(conn,'select count(*) as num from peak;')
-before
-for(sidx in unique(intRT)){
-  cdf.fid<-paste0(cdf.fname,'_',sidx)
-spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
-rs<-dbSendStatement(conn,
-                        paste('INSERT INTO peak(mz,scan,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr) ',
-'(select mz,s.id as scan, intensity, norm2tic, ',
-'        SQRT(norm2tic) as sqrtnorm2tic,  ',
-'        SQRT(intensity) as sqrtintensity, snr ',
-'from (select p.id from (select * from tmp_peak limit 1) t, ',
-'      spectrum p  where p.filename like t.spec) sp, ',
-'      tmp_peak t, scan s where s.spectrumid=sp.id and s.num=t.num );'))
-after<-dbGetQuery(conn,'select count(*) as num from peak;')
-after
-if((after$num>before$num) & (after$num-before$num==wcn[1]) ){
-  rs<-dbSendStatement(conn,'delete from tmp_peak;')
-}
-abDF<-data.frame(tsv=wcn[1],before=before$num,after=after$num,diff=(after$num-before$num))
-kable(abDF, format = "latex", caption = 'Predefined parameters for load', row.names=FALSE, booktabs=TRUE)
-}
-```
 
 
 ### Enable referential constraints
