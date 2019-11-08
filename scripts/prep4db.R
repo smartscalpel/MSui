@@ -29,10 +29,10 @@ wd<-getwd()
 for(mf in mfl){
   wdir<-dirname(normalizePath(paste0(path,mf)))
   cat(format(Sys.time(), "%b %d %X"),mf,wdir,'\n')
-  mdt<-xlsx::read.xlsx(paste0(path,mf),sheetIndex=1)
+  mdt<-xlsx::read.xlsx(paste0(path,mf),1)
   if(any(grepl('(wash|bg)',names(mdt)))){# to fix crasy Excel without header row
     cat(format(Sys.time(), "%b %d %X"),mf,'\n')
-    mdt<-read.xlsx(paste0(path,mf),sheetIndex=1,colNames=FALSE)
+    mdt<-read.xlsx(paste0(path,mf),1,colNames=FALSE)
     while(dim(mdt)[2]<length(cnames)){mdt<-cbind(mdt,rep(NA,dim(mdt)[1]))}
     names(mdt)<-cnames
   }
@@ -66,11 +66,10 @@ for(mf in mfl){
           file.copy('./prepare4scalpelDB.Rmd',rmd.fname)
         }
         rmd.fname<-normalizePath(rmd.fname)
-        if(!file.exists(sub('Rmd','pdf',rmd.fname))){
+        if(!file.exists(sub('Rmd','tex',rmd.fname))){
           cdf.file<-normalizePath(f)
           cdf.fname<-paste0(ifelse(protocolName=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file))
           try(rmarkdown::render(rmd.fname,'pdf_document'),FALSE,outFile=sub('Rmd$','try.out',rmd.fname))
-          rm(spectra,intRT,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,tic2,mdL,mdLspectra,solID,isID,smplID,stID,stpID,exData,cdf.file,cdf.fname)
         }
       }
     }

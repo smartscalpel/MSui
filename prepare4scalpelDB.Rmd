@@ -116,12 +116,12 @@ writeDTsignal<-function(sp,specID,fname){
   fwrite(resDF,file=fname,col.names=FALSE,append=app,quote=FALSE,sep='|',row.names=FALSE,na='')
 }
 
-writeDTpeak<-function(id,specID,tic,peak,fname){
+writeDTpeak<-function(id,specID,tic,peak,fname,intRT){
   p<-peak[[id]]
   md<-metaData(p)
   if(length(p)>0){
   #cat('Writing scan',md$number,md$retentionTime,'\n')
-  resDF<-data.table(spec=specID,
+  resDF<-data.table(spec=paste0(specID,'_',intRT[id]),
                     num=md$number,
                     mz=p@mass,
                     intensity=tic[id]*p@intensity,
@@ -159,7 +159,6 @@ cdf.fname
 Before running the code a number of variables should be setted for appropriate data loading:
  
  1. the path to the folder where data will be moved after upload *dtPath* 
- 2. the references to device *devID*, solvent *solID*, ion source *isID*, resolution *resID*, mode *nMode*, mz range *rangeID*
  3. the name of the database *dbname*
  4. user/password for teh database: *usr* and *pwd*
  
@@ -170,12 +169,12 @@ Before running the code a number of variables should be setted for appropriate d
 if(!(exists('devID')&
      exists('solID')&
      exists('isID')&
-     exists('resID')&
+     # exists('resID')&
      exists('smplID')&
      exists('stID')&
      exists('stpID')&
-     exists('rangeID')&
-     exists('nMode')&
+     # exists('rangeID')&
+     # exists('nMode')&
       exists('cdf.fname')&
      exists('cdf.file'))){
   stop('not all obligatory parameters are provided\n')
@@ -192,6 +191,7 @@ if(!exists('tolerance')){
 }
 ncMD<- ncatt_get(nc_open(cdf.file),0)
 experimentData<-ncMD$experiment_date_time_stamp
+exData<-as.POSIXlt.character(experimentData,format='%Y%m%d%H%M%S%z')
 fileData<-ncMD$netcdf_file_date_time_stamp
 origFilePath<-ncMD$source_file_reference
 comment<-ncMD$administrative_comments
@@ -204,33 +204,46 @@ comment<-ncMD$administrative_comments
 `r cdf.file`
 
 ```{r load.cdf,cache=TRUE}
-spectra<-import(cdf.file,verbose=TRUE)
+spectra<-import(cdf.file,verbose=TRUE,removeEmptySpectra=FALSE)
 if(any(sapply(spectra, MALDIquant::isEmpty))){
   spectra<-spectra[!sapply(spectra, MALDIquant::isEmpty)]
 }
-mzWidth<-sapply(spectra, function(.x)diff(range(.x@mass)))
-if(any(mzWidth<0.2*max(mzWidth))){
-  spectra<-spectra[mzWidth>=0.2*max(mzWidth)]
-}
+
+# mzWidth<-sapply(spectra, function(.x)diff(range(.x@mass)))
+# if(any(mzWidth<0.2*max(mzWidth))){
+#   spectra<-spectra[mzWidth>=0.2*max(mzWidth)]
+# }
 #hist(sapply(spectra, length))
 tic<-sapply(spectra,totalIonCurrent)
 eic300<-sapply(trim(spectra,range = c(0,350)),totalIonCurrent)
 eic1000<-sapply(trim(spectra,range = c(400,1000)),totalIonCurrent)
 time<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
 qtic<-quantile(tic,probs = seq(0, 1, 0.1),names = TRUE)
-qth<-max(absTicThreshold,quantile(tic,probs = ticThreshold))
+qth<-min(absTicThreshold,quantile(tic,probs = ticThreshold))
 #plot(xraw@tic,tic)
 plot(tic)
 abline(h = qth)
 spectra <-spectra[tic>qth]
+tic<-sapply(spectra,totalIonCurrent)
+rt<-sapply(spectra,function(.x)metaData(.x)$retentionTime)
+num<-sapply(spectra,function(.x)metaData(.x)$number)
+intRT<-findInterval(rt,protocol$rt)
+mdL<-lapply(1:length(intRT),function(.x)list(number=num[.x],Polarity=as.character(protocol$Polarity[intRT[.x]]),
+                                   Detector=as.character(protocol$Detector[intRT[.x]]),
+                                   Range=as.character(protocol$Range[intRT[.x]]),
+                                   protocol=paste(protocol$Polarity[intRT[.x]],
+                                                  protocol$Detector[intRT[.x]],
+                                                  protocol$Range[intRT[.x]],sep = '.')))
+mnum<-sapply(mdL,function(.x).x$number)
 tic<-sapply(spectra,totalIonCurrent)
 #spectra <- trim(spectra,range = mzrange)
 imTIC<-which.max(tic)
 plot(spectra[[imTIC]])
 ```
 
+
 ```{r save.sig}
-save(spectra,ncMD,devID,solID,isID,resID,smplID,stID,stpID,rangeID,nMode,cdf.file,cdf.fname,file = 'spectra.RData')
+save(spectra,intRT,ncMD,mdL,solID,isID,smplID,stID,stpID,cdf.file,cdf.fname,exData,protocol,file = 'spectra.RData')
 
 ```
 
@@ -257,13 +270,6 @@ plot(spectra[[imTIC]], type="b",xlim=c(-1,1)+spectra[[imTIC]]@mass[imTICmax])
 ```
 
 
-
-```
-{r prepare.signal.file, eval=proceedFile}
-sigFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_signal.tsv'))
-system.time(res<-sapply(spectra,writeDTsignal,specID=basename(cdf.file),fname=sigFname))
-```
-
 ## Peaks
 
 Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC, пики группируются с отностительной точностью 2e-5 и исключаются пики, встречающиеся менее чем в 25% сканов. 
@@ -273,7 +279,18 @@ spectra <- calibrateIntensity(spectra, method="TIC")
 calibrSpectra<-spectra
 peaks0<-detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
                        method="SuperSmoother")
-spectra <- alignSpectra(spectra,reference = spectra[[imTIC]], halfWindowSize = halfWindowSize,tolerance = tolerance)
+pr<-sapply(mdL,function(.x).x$protocol)
+l<-list()
+for(p in unique(pr)){
+  idx<-which(pr==p)
+  k<-length(l)+1
+l[[k]]<-alignSpectra(spectra[idx],reference = spectra[[which.max(tic[idx])]], halfWindowSize = halfWindowSize,tolerance = tolerance)
+names(l)[k]<-p
+}
+al<-unlist(l)
+snum<-sapply(al,function(.x)metaData(.x)$number)
+spectra<-al[order(snum)]
+#spectra <- alignSpectra(spectra,reference = spectra[[imTIC]], halfWindowSize = halfWindowSize,tolerance = tolerance)
 alSpectra<-spectra
 
 ```
@@ -283,19 +300,22 @@ peaks <- detectPeaks(spectra, SNR=1, halfWindowSize=halfWindowSize,
                        method="SuperSmoother")
 idx<-which(sapply(peaks,length)>10)
 peaks2 <- binPeaks(peaks[idx],method = 'strict',tolerance = tolerance)
-fpeaks2 <- filterPeaks(peaks2, minNumber = 10)
+pnum<-sapply(peaks2,function(.x)metaData(.x)$number)
+idx<-match(pnum,mnum)
+mdLspectra<-mdL
+mdL<-mdL[idx]
+ticSpectra<-tic
+tic2<-tic[idx]
+pr<-sapply(mdL,function(.x).x$protocol)
+fpeaks2 <- filterPeaks(peaks2, minNumber = 10,labels=pr,mergeWhitelists=FALSE)
 featureMatrix2 <- intensityMatrix(fpeaks2, spectra)
 
 ```
 
-```{r prepare.peak.file}
-peakFname<-normalizePath(paste0(dirname(knitr::current_input(dir = TRUE)),'/tmp_peak.tsv'))
-system.time(res<-sapply(c(1:length(fpeaks2)),writeDTpeak,specID=cdf.fname,tic=tic,peak=fpeaks2,fname=peakFname))
-```
 
 # Save data
 ```{r save.data}
-save(spectra,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,devID,solID,isID,resID,smplID,stID,stpID,rangeID,nMode,cdf.file,cdf.fname,file = 'spectra.RData')
+save(spectra,intRT,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,tic2,mdL,mdLspectra,solID,isID,smplID,stID,stpID,exData,cdf.file,cdf.fname,file = 'spectra.RData')
 ```
 
 # Appendix {.tabset}

@@ -1,0 +1,460 @@
+---
+title: "scalpelDB report"
+author: "Anatoly Sorokin"
+date: '`r format(Sys.time(), "%d.%m.%Y")`'
+output:
+  pdf_document:
+    keep_tex: yes
+    number_sections: yes
+  html_document: default
+params:
+  format: !r if(opts_knit$get("rmarkdown.pandoc.to") == 'html') c('screen', 'print')
+    else 'print'
+  version: !r if(nchar(Sys.which("git"))) system("git describe --long --dirty --abbrev=10  --tags  --always",
+    intern=TRUE) else date()
+header-includes:
+- \usepackage[T2A]{fontenc}
+- \usepackage[utf8]{inputenc}
+- \usepackage[english,russian]{babel}
+- \usepackage{grffile}
+- \usepackage{rotating}
+- \usepackage{caption}
+- \usepackage{longtable}
+- \usepackage{lscape}
+---
+```{r loadPackages, include=FALSE, cache=FALSE}
+## load additional packages in this chunk
+library(pander)
+library(knitr)
+#library('Matrix')
+library(ggplot2)
+library(data.table)
+#library(plyr)
+library(xtable)
+#library(xcms)
+#library("FactoMineR")
+#library(cluster)
+#library(dendextend)
+#library(factoextra)
+#library(corrplot)
+library(ncdf4)
+#library("PerformanceAnalytics")
+#library("pvclust")
+#library("sda")
+library(RColorBrewer)
+library(MALDIquant)
+library(MALDIquantForeign)
+library(DBI)
+library(MonetDBLite)
+ticThreshold<-0.01
+absTicThreshold<-1000
+```
+
+```{r setup, include=FALSE, cache=FALSE}
+## This chunk should contain global configuration commands.
+## Use this to set knitr options and related things. Everything
+## in this chunk will be included in an appendix to document the
+## configuration used.
+#output <- opts_knit$get("rmarkdown.pandoc.to")
+opts_knit$set(stop_on_error = 2L)
+
+## By default R code is only included in HTML versions of the report
+## (where it can be collapsed). You can generate a PDF version
+## using rmarkdown::pdf_document to get a copy for print. Extensive
+## chunks of R code may or may not be desired in /hat setting. If you
+## want them simply change the following arguments to `echo = TRUE`.
+## In either case the default can be overwritten for individual chunks.
+#opts_chunk$set(echo = output=="html")
+#opts_chunk$set(warning = output=="html")
+#opts_chunk$set(message = output=="html")
+
+## Cache options
+opts_chunk$set(cache=FALSE)
+
+## Figure options
+## Set default figure format
+#options(reportmd.figure.format=params$format)
+
+## Set 'hide.fig.code' to FALSE to include code chunks that
+## produce Figures in the output. Note that this affects all chunks
+## that provide a figure caption.
+opts_chunk$set(hold=TRUE, hide.fig.code=FALSE)
+
+## Set up default plotting options for different formats.
+## These can be overwritten for individual chunks
+#interactiveFig()
+#screenFig()
+#printFig()
+
+## Pander options
+panderOptions("digits", 3)
+panderOptions("table.split.table", 160)
+#panderOptions("table.style", "grid")
+
+## Configure Figure and Table lables
+#options(figcap.prefix = "Figure", figcap.sep = ":", figcap.prefix.highlight = "**")
+#options(tabcap.prefix = "Table", tabcap.sep = ":", tabcap.prefix.highlight = "**")
+
+## Install required knitr hooks
+#installHooks()
+```
+
+```{r functions, include=FALSE}
+## Custom functions used in the analysis should go into this chunk.
+## They will be listed in their own section of the appendix.
+
+##==================== Functions ====================##
+panderDict<-function(d){
+  w<-dim(d)[2]
+  pander(d, justify = c('right', rep('left', w-1)))
+}
+panderCnt<-function(d){
+  w<-dim(d)[2]
+  inCol<-sapply(d,is.numeric)
+  j<-rep('left',w)
+  j[inCol]<-'right'
+  pander(d, justify = j)
+}
+plotPie<-function(x,label,main='',th=1){
+  pr<-100*x/sum(x)
+  idx<-which(pr>=th)
+  xx<-x[idx]
+  lx<-label[idx]
+  ord<-order(xx,decreasing = TRUE)
+  xx<-xx[ord]
+  lx<-lx[ord]
+  xx<-c(xx,sum(x[-idx]))
+  lx<-c(lx,'Other')
+  graphics::pie(xx,lx,main=main)
+}
+```
+
+```{r queries, include=FALSE}
+##===================== Queries =====================##
+diagnosisQ<-paste('select diagnosis,diagnosis.name as diagname,',
+'       count(distinct tissue.patientid) cntpat,',
+'       count(distinct s.id) cntsamp, count(distinct p.id) cntspec ',
+'    from tissue join diagnosis on tissue.diagnosis=diagnosis.id ',
+'                left join smpl s on s.tumorid=tissue.id left ',
+'                join spectrum p on p.sampletumorid=tissue.id ',
+'    where p.dt>? ',
+'    group by diagnosis,diagname ',
+'    order by cntspec desc;')
+expTypeQ<-paste('select  exptype,e.name as expname',
+'      ,count(distinct tissue.patientid) cntpat',
+'      ,count(distinct s.id) cntsamp ',
+'      ,count(distinct p.id) cntspec ',
+'   from tissue left join smpl s on',
+'      s.tumorid=tissue.id left join spectrum p on',
+'      p.sampletumorid=tissue.id join exptype e on',
+'      p.exptype=e.id',
+'    where p.dt>? ',
+'   group by exptype,expname order by cntspec desc')
+ionSourceQ<-paste('select  ionsource,e.name as name',
+'      ,count(distinct tissue.patientid) cntpat',
+'      ,count(distinct s.id) cntsamp ',
+'      ,count(distinct p.id) cntspec ',
+'   from tissue left join smpl s on',
+'      s.tumorid=tissue.id left join spectrum p on',
+'      p.sampletumorid=tissue.id join ionsource e on',
+'      p.ionsource=e.id',
+'    where p.dt>? ',
+'   group by ionsource,name order by cntspec desc')
+resQ<-paste('select  resolutionid,e.name as name',
+'      ,count(distinct tissue.patientid) cntpat',
+'      ,count(distinct s.id) cntsamp ',
+'      ,count(distinct p.id) cntspec ',
+'   from tissue left join smpl s on',
+'      s.tumorid=tissue.id left join spectrum p on',
+'      p.sampletumorid=tissue.id join resolution e on',
+'      p.resolutionid=e.id',
+'    where p.dt>? ',
+'   group by resolutionid,name order by cntspec desc')
+specTotQ<-paste('select s.id,sampletumorid,sampletumorpatientid,sampleid,',
+'diagnosis.name as diagname,r.name as res,i.name as ionsource, ',
+'m.name as mode, e.name as exptype',
+'from spectrum s join tissue on sampletumorid=tissue.id ',
+'join diagnosis on tissue.diagnosis=diagnosis.id',
+'join ionsource i on s.ionsource=i.id ',
+'join resolution r on r.id=resolutionid ',
+'join mode m on m.id=s.mode ',
+'join exptype e on e.id=s.exptype',
+'    where s.dt>? ')
+
+emptyPeaksQ0<-paste('select s.id,filename,',
+                    'count(distinct c.id) scn,',
+                    'count(distinct p.id) pnt ',
+                    'from spectrum s left join scan c on s.id=c.spectrumid ',
+                    'left join peak p on p.scan=c.id ',
+                    '    where s.dt>? ',
+                    'group by s.id,filename',
+                    'having count(distinct p.id)=0',
+                    'order by s.id asc;')
+emptyPeaksQ<-paste('select s.id,filename, ',
+                   'count(distinct c.id) scn  ',
+                   'from spectrum s join scan c ',
+                   'on s.id=c.spectrumid ',
+                   'where s.dt>? and c.id in ',
+                   '(select id as scan from scan ',
+                   'except select scan from peak) ',
+                   'group by s.id,filename ',
+                   'order by filename')
+emptyScansQ<-paste('select s.id,filename,count(distinct c.id) scans',
+                   'from spectrum s left join scan c on s.id=c.spectrumid ',
+                   '    where s.dt>? ',
+                   'group by s.id,filename having count(distinct c.id)=0;')
+########### NULL-IN queries #############
+ni.diag<-'select id,label,grade,dt,histdiag from tissue where diagnosis=1'
+ni.mzrange<-'select id,mzrange,dt,filename  from spectrum where dt>? and  mzrange is null'
+ni.mode<-'select id,mode,dt,filename  from spectrum where dt>? and mode is null'
+ni.exptype<-'select id,exptype,dt,filename  from spectrum where dt>? and exptype is null'
+```
+
+```{r echo=FALSE, include=FALSE}
+dbname<-'msinvent'
+usr<-'msinvent'
+pwd<-'msinvent'
+host<-'192.168.5.133'
+defDate<-'2019-01-01'
+```
+
+# Read data
+
+```{r check.values}
+if(!(exists('dbname')&
+     exists('host')&
+     exists('usr')&
+     exists('pwd'))){
+  stop('not all obligatory parameters are provided\n')
+}
+if(!exists('repDate')){
+  repDate<-defDate
+}
+```
+
+Before running the code a number of variables should be setted for appropriate data loading:
+ 
+ 3. the name of the database *dbname*
+ 4. user/password for teh database: *usr* and *pwd*
+ 
+Report is prepared for all spectra measured after `r repDate`.
+
+
+# Connect to the database
+
+```{r db.connect}
+conn <- dbConnect(MonetDBLite::MonetDB.R(),
+dbname = dbname,host=host,
+user=usr,password=pwd,timeout=2400)
+```
+
+# Dictionaries
+```{r load.dictionaries,cache=FALSE}
+devices<-dbReadTable(conn,'device')
+solvents<-dbReadTable(conn,'solvent')
+ionSources<-dbReadTable(conn,'ionsource')
+resolutions<-dbReadTable(conn,'resolution')
+modes<-dbReadTable(conn,'mode')
+ranges<-dbReadTable(conn,'mzrange')
+spectrum<-dbReadTable(conn,'spectrum')
+```
+
+## Devices
+```{r devices.tbl}
+panderDict(devices)
+```
+
+
+## Solvents
+```{r solvents.tbl}
+panderDict(solvents)
+```
+
+## Ion Sources
+```{r ionSources.tbl}
+panderDict(ionSources)
+```
+
+## resolutions
+```{r resolutions.tbl}
+panderDict(resolutions)
+```
+
+
+## Modes
+```{r modes.tbl}
+panderDict(modes)
+```
+
+
+## ranges
+```{r ranges.tbl}
+panderDict(ranges)
+```
+
+# Basic statistics
+## Counts
+```{r diag, cache=FALSE}
+dCnt<-dbGetQuery(conn,diagnosisQ,repDate)
+cntpat=sum(dCnt$cntpat)
+cntsamp=sum(dCnt$cntsamp)
+cntspec=sum(dCnt$cntspec)
+dCntT<-rbind(dCnt,
+            data.frame(diagnosis=NA,
+                       diagname='Total',
+                       cntpat=sum(dCnt$cntpat),
+                       cntsamp=sum(dCnt$cntsamp),
+                       cntspec=sum(dCnt$cntspec)))
+panderCnt(dCntT)
+```
+
+## Percent
+```{r diag.perc}
+dPerc<-dCntT
+dPerc$cntpat<-100*dCntT$cntpat/cntpat
+dPerc$cntsamp<-100*dCntT$cntsamp/cntsamp
+dPerc$cntspec<-100*dCntT$cntspec/cntspec
+panderCnt(dPerc)
+```
+
+
+## Diagnosis over Patients
+```{r diag.cntpat.pie,fig.width=11,fig.height=11}
+plotPie(dCnt$cntpat,dCnt$diagname,main='Patients')
+```
+
+## Diagnosis over Samples
+```{r diag.cntsmpl.pie,fig.width=11,fig.height=11}
+plotPie(dCnt$cntsamp,dCnt$diagname,main='Samples')
+```
+
+## Diagnosis over Spectra
+```{r diag.cntspec.pie,fig.width=11,fig.height=11}
+plotPie(dCnt$cntspec,dCnt$diagname,main='Spectra')
+```
+
+
+
+```{r exT, cache=FALSE}
+etCnt<-dbGetQuery(conn,expTypeQ,repDate)
+panderCnt(etCnt)
+```
+
+```{r is, cache=FALSE}
+isCnt<-dbGetQuery(conn,ionSourceQ,repDate)
+panderCnt(isCnt)
+```
+
+```{r res, cache=FALSE}
+resCnt<-dbGetQuery(conn,resQ,repDate)
+panderCnt(resCnt)
+```
+
+
+```{r specT, cache=FALSE}
+spec<-dbGetQuery(conn,specTotQ,repDate)
+qplot(diagname,data = spec,facets = .~res)+coord_flip()
+qplot(diagname,data = spec,facets = .~ionsource)+coord_flip()
+qplot(diagname,data = spec,facets = .~exptype)+coord_flip()
+qplot(diagname,data = spec,facets = .~mode)+coord_flip()
+qplot(diagname,data = spec,facets = res~mode)+coord_flip()
+```
+
+## Pie charts
+### LTQ
+```{r spect.ltq.pie,fig.height=11,fig.width=11}
+x<-table(subset(spec,res=='LTQ',select = 'diagname'));plotPie(x,names(x),main='LTQ')
+x<-table(subset(spec,res=='LTQ'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative LTQ')
+x<-table(subset(spec,res=='LTQ'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive LTQ')
+x<-table(subset(spec,res=='LTQ'&exptype=='fresh',select = 'diagname'));plotPie(x,names(x),main='Fresh LTQ')
+x<-table(subset(spec,res=='LTQ'&exptype=='frozen',select = 'diagname'));plotPie(x,names(x),main='Frozen LTQ')
+```
+
+### FT
+```{r spect.ft.pie,fig.height=11,fig.width=11}
+x<-table(subset(spec,res=='FT',select = 'diagname'));plotPie(x,names(x),main='FT')
+x<-table(subset(spec,res=='FT'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative FT')
+x<-table(subset(spec,res=='FT'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive FT')
+```
+
+### FT
+
+
+```{r spec.pie,fig.height=11,fig.width=11}
+orig<-par(mfrow = c(2,2))
+x<-table(subset(spec,res=='FT'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative FT',th=2)
+x<-table(subset(spec,res=='FT'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive FT',th=2)
+x<-table(subset(spec,res=='LTQ'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative LTQ',th=2)
+x<-table(subset(spec,res=='LTQ'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive LTQ',th=2)
+par(orig)
+```
+
+
+# Possible errors and data inconsistencies
+
+## Empty spectra
+```{r empty.spectra}
+resNI<-dbGetQuery(conn,emptyScansQ,repDate)
+panderCnt(resNI)
+```
+
+## Empty scans
+```{r empty.scans}
+resNI<-dbGetQuery(conn,emptyPeaksQ,repDate)
+resNI$fn<-sub('_[0-9]+$','',resNI$filename)
+panderCnt(as.data.table(resNI)[,.(N=length(id),cnt=length(unique(id)),scn=sum(scn)),by=.(fn)])
+panderCnt(resNI)
+```
+
+## Missing data
+
+### Null in Diagnosis
+```{r ni.diag}
+resNI<-dbGetQuery(conn,ni.diag)
+panderCnt(resNI)
+```
+
+### Null in MZrange
+```{r ni.mzrange}
+resNI<-dbGetQuery(conn,ni.mzrange,repDate)
+panderCnt(resNI)
+```
+
+### Null in Mode
+```{r ni.mode}
+resNI<-dbGetQuery(conn,ni.mode,repDate)
+panderCnt(resNI)
+```
+
+### Null in Type Experiment
+```{r ni.expt}
+resNI<-dbGetQuery(conn,ni.exptype,repDate)
+panderCnt(resNI)
+```
+
+# Appendix {.tabset}
+## Functions
+```{r functions, eval=FALSE, include=TRUE}
+```
+```{r queries, eval=FALSE, include=TRUE}
+```
+
+## Setup R
+```{r setup, eval=FALSE}
+```
+
+## Versions
+### Document version
+```{r docVersion, echo=FALSE, results='asis', cache=FALSE}
+cat(params$version)
+```
+
+### Session Info
+```{r sessionInfo, echo=FALSE, results='asis', class='text', warning=FALSE}
+si<-devtools::session_info()
+cat('Platform\n\n')
+pander::pander(si$platform)
+cat('Packages\n\n')
+knitr::kable(as.data.frame(si$packages)[,c('ondiskversion','loadedversion','date','source')],align = c('l','l'))
+```
+
