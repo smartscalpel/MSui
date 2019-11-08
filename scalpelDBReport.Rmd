@@ -438,6 +438,10 @@ cat(params$version)
 
 ### Session Info
 ```{r sessionInfo, echo=FALSE, results='asis', class='text', warning=FALSE}
-pander(devtools::session_info())
+si<-devtools::session_info()
+cat('Platform\n\n')
+pander::pander(si$platform)
+cat('Packages\n\n')
+knitr::kable(as.data.frame(si$packages)[,c('ondiskversion','loadedversion','date','source')],align = c('l','l'))
 ```
 
