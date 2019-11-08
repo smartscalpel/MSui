@@ -48,7 +48,6 @@ library(DBI)
 library(MonetDBLite)
 ticThreshold<-0.01
 absTicThreshold<-1000
-date<-'2019-01-01'
 ```
 
 ```{r setup, include=FALSE, cache=FALSE}
@@ -216,15 +215,10 @@ dbname<-'msinvent'
 usr<-'msinvent'
 pwd<-'msinvent'
 host<-'192.168.5.133'
+defDate<-'2019-01-01'
 ```
 
 # Read data
-Before running the code a number of variables should be setted for appropriate data loading:
- 
- 3. the name of the database *dbname*
- 4. user/password for teh database: *usr* and *pwd*
- 
-Report is prepared for all spectra measured after `r date`.
 
 ```{r check.values}
 if(!(exists('dbname')&
@@ -233,7 +227,18 @@ if(!(exists('dbname')&
      exists('pwd'))){
   stop('not all obligatory parameters are provided\n')
 }
+if(!exists('repDate')){
+  repDate<-defDate
+}
 ```
+
+Before running the code a number of variables should be setted for appropriate data loading:
+ 
+ 3. the name of the database *dbname*
+ 4. user/password for teh database: *usr* and *pwd*
+ 
+Report is prepared for all spectra measured after `r repDate`.
+
 
 # Connect to the database
 
@@ -290,7 +295,7 @@ panderDict(ranges)
 # Basic statistics
 ## Counts
 ```{r diag, cache=FALSE}
-dCnt<-dbGetQuery(conn,diagnosisQ,date)
+dCnt<-dbGetQuery(conn,diagnosisQ,repDate)
 cntpat=sum(dCnt$cntpat)
 cntsamp=sum(dCnt$cntsamp)
 cntspec=sum(dCnt$cntspec)
@@ -331,23 +336,23 @@ plotPie(dCnt$cntspec,dCnt$diagname,main='Spectra')
 
 
 ```{r exT, cache=FALSE}
-etCnt<-dbGetQuery(conn,expTypeQ,date)
+etCnt<-dbGetQuery(conn,expTypeQ,repDate)
 panderCnt(etCnt)
 ```
 
 ```{r is, cache=FALSE}
-isCnt<-dbGetQuery(conn,ionSourceQ,date)
+isCnt<-dbGetQuery(conn,ionSourceQ,repDate)
 panderCnt(isCnt)
 ```
 
 ```{r res, cache=FALSE}
-resCnt<-dbGetQuery(conn,resQ,date)
+resCnt<-dbGetQuery(conn,resQ,repDate)
 panderCnt(resCnt)
 ```
 
 
 ```{r specT, cache=FALSE}
-spec<-dbGetQuery(conn,specTotQ,date)
+spec<-dbGetQuery(conn,specTotQ,repDate)
 qplot(diagname,data = spec,facets = .~res)+coord_flip()
 qplot(diagname,data = spec,facets = .~ionsource)+coord_flip()
 qplot(diagname,data = spec,facets = .~exptype)+coord_flip()
@@ -389,13 +394,13 @@ par(orig)
 
 ## Empty spectra
 ```{r empty.spectra}
-resNI<-dbGetQuery(conn,emptyScansQ,date)
+resNI<-dbGetQuery(conn,emptyScansQ,repDate)
 panderCnt(resNI)
 ```
 
 ## Empty scans
 ```{r empty.scans}
-resNI<-dbGetQuery(conn,emptyPeaksQ,date)
+resNI<-dbGetQuery(conn,emptyPeaksQ,repDate)
 resNI$fn<-sub('_[0-9]+$','',resNI$filename)
 panderCnt(as.data.table(resNI)[,.(N=length(id),cnt=length(unique(id)),scn=sum(scn)),by=.(fn)])
 panderCnt(resNI)
@@ -411,19 +416,19 @@ panderCnt(resNI)
 
 ### Null in MZrange
 ```{r ni.mzrange}
-resNI<-dbGetQuery(conn,ni.mzrange)
+resNI<-dbGetQuery(conn,ni.mzrange,repDate)
 panderCnt(resNI)
 ```
 
 ### Null in Mode
 ```{r ni.mode}
-resNI<-dbGetQuery(conn,ni.mode)
+resNI<-dbGetQuery(conn,ni.mode,repDate)
 panderCnt(resNI)
 ```
 
 ### Null in Type Experiment
 ```{r ni.expt}
-resNI<-dbGetQuery(conn,ni.exptype)
+resNI<-dbGetQuery(conn,ni.exptype,repDate)
 panderCnt(resNI)
 ```
 
