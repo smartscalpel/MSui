@@ -176,7 +176,7 @@ prepareMatrix<-function(pl,gropId,tolerance=2e-3,minFrequency=0.25, mergeWhiteli
   featureMatrix <- intensityMatrix(fpeaks)
   idNA<-which(is.na(featureMatrix),arr.ind =TRUE)
   featureMatrix[idNA]<-0
-  colnames(featureMatrix)<-paste0('MZ',
+  colnames(featureMatrix)<-paste0('MZ_',
                                   as.character(round(as.double(colnames(featureMatrix)),
                                                      digits)))
   return(featureMatrix)
