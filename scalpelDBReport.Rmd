@@ -286,21 +286,21 @@ dCnt<-dbGetQuery(conn,diagnosisQ)
 cntpat=sum(dCnt$cntpat)
 cntsamp=sum(dCnt$cntsamp)
 cntspec=sum(dCnt$cntspec)
-dCnt<-rbind(dCnt,
+dCntT<-rbind(dCnt,
             data.frame(diagnosis=NA,
                        diagname='Total',
                        cntpat=sum(dCnt$cntpat),
                        cntsamp=sum(dCnt$cntsamp),
                        cntspec=sum(dCnt$cntspec)))
-panderCnt(dCnt)
+panderCnt(dCntT)
 ```
 
 ## Percent
 ```{r diag.perc}
-dPerc<-dCnt
-dPerc$cntpat<-100*dCnt$cntpat/cntpat
-dPerc$cntsamp<-100*dCnt$cntsamp/cntsamp
-dPerc$cntspec<-100*dCnt$cntspec/cntspec
+dPerc<-dCntT
+dPerc$cntpat<-100*dCntT$cntpat/cntpat
+dPerc$cntsamp<-100*dCntT$cntsamp/cntsamp
+dPerc$cntspec<-100*dCntT$cntspec/cntspec
 panderCnt(dPerc)
 ```
 
