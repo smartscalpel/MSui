@@ -1,0 +1,288 @@
+---
+title: "scalpelDB report"
+author: "Anatoly Sorokin"
+date: '`r format(Sys.time(), "%d.%m.%Y")`'
+output:
+  pdf_document:
+    keep_tex: yes
+    number_sections: yes
+  html_document: default
+params:
+  format: !r if(opts_knit$get("rmarkdown.pandoc.to") == 'html') c('screen', 'print')
+    else 'print'
+  version: !r if(nchar(Sys.which("git"))) system("git describe --long --dirty --abbrev=10  --tags  --always",
+    intern=TRUE) else date()
+header-includes:
+- \usepackage[T2A]{fontenc}
+- \usepackage[utf8]{inputenc}
+- \usepackage[english,russian]{babel}
+- \usepackage{grffile}
+- \usepackage{rotating}
+- \usepackage{caption}
+- \usepackage{longtable}
+- \usepackage{lscape}
+---
+```{r loadPackages, include=FALSE, cache=FALSE}
+## load additional packages in this chunk
+library(pander)
+library(knitr)
+library(scalpeldb)
+library(ggplot2)
+library(data.table)
+library(plyr)
+library(xtable)
+#library(xcms)
+library("FactoMineR")
+#library(cluster)
+library(dendextend)
+library(factoextra)
+library(corrplot)
+library(ncdf4)
+library("PerformanceAnalytics")
+library("pvclust")
+library("sda")
+library(RColorBrewer)
+ticThreshold<-0.01
+absTicThreshold<-1000
+```
+
+```{r setup, include=FALSE, cache=FALSE}
+## This chunk should contain global configuration commands.
+## Use this to set knitr options and related things. Everything
+## in this chunk will be included in an appendix to document the
+## configuration used.
+#output <- opts_knit$get("rmarkdown.pandoc.to")
+opts_knit$set(stop_on_error = 2L)
+
+## By default R code is only included in HTML versions of the report
+## (where it can be collapsed). You can generate a PDF version
+## using rmarkdown::pdf_document to get a copy for print. Extensive
+## chunks of R code may or may not be desired in /hat setting. If you
+## want them simply change the following arguments to `echo = TRUE`.
+## In either case the default can be overwritten for individual chunks.
+#opts_chunk$set(echo = output=="html")
+#opts_chunk$set(warning = output=="html")
+#opts_chunk$set(message = output=="html")
+
+## Cache options
+opts_chunk$set(cache=FALSE)
+
+## Figure options
+## Set default figure format
+#options(reportmd.figure.format=params$format)
+
+## Set 'hide.fig.code' to FALSE to include code chunks that
+## produce Figures in the output. Note that this affects all chunks
+## that provide a figure caption.
+opts_chunk$set(hold=TRUE, hide.fig.code=FALSE)
+
+## Set up default plotting options for different formats.
+## These can be overwritten for individual chunks
+#interactiveFig()
+#screenFig()
+#printFig()
+
+## Pander options
+panderOptions("digits", 3)
+panderOptions("table.split.table", 160)
+#panderOptions("table.style", "grid")
+
+## Configure Figure and Table lables
+#options(figcap.prefix = "Figure", figcap.sep = ":", figcap.prefix.highlight = "**")
+#options(tabcap.prefix = "Table", tabcap.sep = ":", tabcap.prefix.highlight = "**")
+
+## Install required knitr hooks
+#installHooks()
+```
+
+```{r functions, include=FALSE}
+## Custom functions used in the analysis should go into this chunk.
+## They will be listed in their own section of the appendix.
+
+##==================== Functions ====================##
+```
+
+```{r echo=FALSE, include=FALSE}
+pathDef<-'~/Dropbox/Скальпель/DBData/peaks/'
+flDef<-c("peak2019.diag_32.expt_1.res_1.mode_1.dev_2.mz_1.tsv.gz",
+        "peak2019.diag_6.expt_1.res_1.mode_1.dev_2.mz_1.tsv.gz" )
+```
+
+# Read data
+Before running the code a number of variables should be setted for appropriate data loading:
+ 
+ 3. the path to folder with data files *path*
+ 4. names of files to build dataset from *fl*
+ 
+
+
+```{r check.values}
+if(!(exists('fl')&
+     exists('path'))){
+  warning('not all obligatory parameters are provided\nUsing defaults.\n')
+  fl<-flDef
+  path<-pathDef
+  cacheDef<-TRUE
+}else{
+  cacheDef<-FALSE
+}
+```
+
+```{r makeFeatureMatrix,cache=cacheDef}
+fm<-getIntensityMatrix(fl,path)
+dim(fm)
+length(grep('MZ_',names(fm)))
+```
+
+```{r extract.md.from.fm}
+idxMZ<-grep('MZ_',names(fm))
+diag<-fm$diagnosis
+featureMatrix<-fm[,idxMZ]
+```
+
+# Data visualisation
+
+## PCA
+```{r raw.pca.nosc,fig.width=8.5,fig.height=8.5}
+pca<-prcomp(featureMatrix,scale. = FALSE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag,
+addEllipses=TRUE, ellipse.level=0.95)
+```
+
+```{r raw.pca.sc,fig.width=8.5,fig.height=8.5}
+pca<-prcomp(featureMatrix,scale. = TRUE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag,
+addEllipses=TRUE, ellipse.level=0.95)
+```
+
+
+
+## tSNE
+
+## UMAP
+
+### UMAP 2D
+
+### UMAP nD+PCA
+
+# Feature selection
+
+## SDA
+
+```{r sda}
+ddar2 <- sda.ranking(Xtrain=featureMatrix, L=diag,
+                     fdr=FALSE, diagonal=TRUE)
+plot(ddar2)
+
+```
+
+### PCA 10 SDA
+
+```{r raw.pca.nosc.10sda,fig.width=8.5,fig.height=8.5}
+top <- ddar2[1:10, "idx"]
+pca<-prcomp(featureMatrix[,top],scale. = FALSE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag,
+addEllipses=TRUE, ellipse.level=0.95)
+```
+
+```{r raw.pca.sc.10sda,fig.width=8.5,fig.height=8.5}
+top <- ddar2[1:10, "idx"]
+pca<-prcomp(featureMatrix[,top],scale. = TRUE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag,
+addEllipses=TRUE, ellipse.level=0.95)
+```
+
+
+### PCA 20 SDA
+```{r raw.pca.nosc.20sda,fig.width=8.5,fig.height=8.5}
+top <- ddar2[1:20, "idx"]
+pca<-prcomp(featureMatrix[,top],scale. = FALSE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag,
+addEllipses=TRUE, ellipse.level=0.95)
+```
+
+```{r raw.pca.sc.20sda,fig.width=8.5,fig.height=8.5}
+top <- ddar2[1:20, "idx"]
+pca<-prcomp(featureMatrix,scale. = TRUE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag,
+addEllipses=TRUE, ellipse.level=0.95)
+```
+
+
+### PCA 50 SDA
+```{r raw.pca.nosc.50sda,fig.width=8.5,fig.height=8.5}
+top <- ddar2[1:50, "idx"]
+pca<-prcomp(featureMatrix,scale. = FALSE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag,
+addEllipses=TRUE, ellipse.level=0.95)
+```
+
+```{r raw.pca.sc.50sda,fig.width=8.5,fig.height=8.5}
+top <- ddar2[1:50, "idx"]
+pca<-prcomp(featureMatrix,scale. = TRUE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag,
+addEllipses=TRUE, ellipse.level=0.95)
+```
+
+
+## mrt 
+
+# Classification
+
+# Interpretable ML analysis
+
+## Shapley
+
+
+
+#
+# Appendix {.tabset}
+## Functions
+```{r functions, eval=FALSE, include=TRUE}
+```
+```{r queries, eval=FALSE, include=TRUE}
+```
+
+## Setup R
+```{r setup, eval=FALSE}
+```
+
+## Versions
+### Document version
+```{r docVersion, echo=FALSE, results='asis', cache=FALSE}
+cat(params$version)
+```
+
+### Session Info
+```{r sessionInfo, echo=FALSE, results='asis', class='text', warning=FALSE}
+si<-devtools::session_info()
+cat('Platform\n\n')
+pander::pander(si$platform)
+cat('Packages\n\n')
+knitr::kable(as.data.frame(si$packages)[,c('ondiskversion','loadedversion','date','source')],align = c('l','l'))
+```
+
