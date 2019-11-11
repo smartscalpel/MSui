@@ -41,6 +41,8 @@ library(ncdf4)
 library("PerformanceAnalytics")
 library("pvclust")
 library("sda")
+library(Rtsne)
+library(uwot)
 library(RColorBrewer)
 ticThreshold<-0.01
 absTicThreshold<-1000
@@ -100,6 +102,26 @@ panderOptions("table.split.table", 160)
 ## They will be listed in their own section of the appendix.
 
 ##==================== Functions ====================##
+tsne_plot <- function(perpl=30,iterations=500,learning=200,pca=TRUE,verbose=FALSE,matrix,class){
+  #set.seed(1) # for reproducibility
+  tsne <- Rtsne(matrix, 
+                pca=pca, 
+                dims = 2, 
+                perplexity=perpl, 
+                verbose=verbose, 
+                max_iter=iterations, 
+                eta=learning,
+                theta=0.1, 
+                num_threads = 2)
+  plot(tsne$Y, t='p', 
+       main = print(paste0("perplexity = ",perpl, 
+                           ", max_iter = ",iterations, 
+                           ", learning rate = ",learning)), 
+       xlab="tSNE dimension 1", 
+       ylab="tSNE dimension 2",  asp=1,col=class)
+  legend('topright',col=unique(class),legend=unique(class),pch=1)
+}
+
 ```
 
 ```{r echo=FALSE, include=FALSE}
@@ -136,8 +158,8 @@ length(grep('MZ_',names(fm)))
 
 ```{r extract.md.from.fm}
 idxMZ<-grep('MZ_',names(fm))
-diag<-fm$diagnosis
-featureMatrix<-fm[,idxMZ]
+diag<-factor(fm$diagnosis)
+featureMatrix<-as.matrix(fm[,idxMZ])
 ```
 
 # Data visualisation
@@ -165,9 +187,24 @@ addEllipses=TRUE, ellipse.level=0.95)
 
 ## tSNE
 
+```{r tsne.cycle}
+perplexity_values <- c(2,5,30,50,100)
+sapply(perplexity_values,function(i){tsne_plot(perpl=i,matrix = featureMatrix,class = diag)})
+```
+
+
 ## UMAP
 
 ### UMAP 2D
+```{r umap.2d}
+fm.umap<-umap(featureMatrix, n_neighbors = 50,
+              min_dist = 1e-3, 
+              n_threads =2, 
+              learning_rate = 0.5, init = "random")
+qplot(fm.umap[,1],fm.umap[,2],color=diag,
+      main = 'UMAP neighb=50, mdist=1e-3')
+```
+
 
 ### UMAP nD+PCA
 
@@ -247,6 +284,41 @@ addEllipses=FALSE)
 fviz_pca_ind(pca, habillage=diag,
 addEllipses=TRUE, ellipse.level=0.95)
 ```
+
+
+### tSNE 10 SDA
+
+```{r tsne.10sda}
+top <- ddar2[1:10, "idx"]
+perplexity_values <- c(2,5,30,50,100)
+sapply(perplexity_values,function(i){tsne_plot(perpl=i,
+                                               matrix = unique(featureMatrix[,top]),
+                                               class = diag,
+                                               pca = FALSE)})
+```
+
+### tSNE 20 SDA
+
+```{r tsne.20sda}
+top <- ddar2[1:20, "idx"]
+perplexity_values <- c(2,5,30,50,100)
+sapply(perplexity_values,function(i){tsne_plot(perpl=i,
+                                               matrix = unique(featureMatrix[,top]),
+                                               class = diag,
+                                               pca = FALSE)})
+```
+
+### tSNE 50 SDA
+
+```{r tsne.50sda}
+top <- ddar2[1:50, "idx"]
+perplexity_values <- c(2,5,30,50,100)
+sapply(perplexity_values,function(i){tsne_plot(perpl=i,
+                                               matrix = unique(featureMatrix[,top]),
+                                               class = diag,
+                                               pca = FALSE)})
+```
+
 
 
 ## mrt 
