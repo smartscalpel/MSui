@@ -24,12 +24,12 @@ for(f in fl){
   cat('fname',rmd.fname,'\npdf',pdf.fname,'\n')
   file.copy('./load2scalpelDB.Rmd',rmd.fname)
   rmd.fname<-normalizePath(rmd.fname)
-  if(!file.exists(sub('Rmd','pdf',rmd.fname))){
+#  if(!file.exists(sub('Rmd','tex',rmd.fname))){
+  if(!file.exists(sub('Rmd','knit.md',rmd.fname))){
     cdf.file<-normalizePath(paste0(path,f))
     cdf.fname<-paste0(ifelse(protocolName=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file))
     expType<-ifelse(protocolName=='190130',2,1)
-    try(rmarkdown::render(rmd.fname,'pdf_document',clean = FALSE),FALSE,outFile=sub('Rmd$','try.out',rmd.fname))
-    rm(spectra,intRT,origSpectra,ncMD,peaks,peaks0,peaks2,fpeaks2,featureMatrix2,tic2,mdL,mdLspectra,solID,isID,smplID,stID,stpID,exData,cdf.file,cdf.fname)
+    try(rmarkdown::render(rmd.fname,'pdf_document',clean=FALSE),FALSE,outFile=sub('Rmd$','try.out',rmd.fname))
   }
 }
 
