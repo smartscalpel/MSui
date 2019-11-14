@@ -1,4 +1,15 @@
 #!/bin/bash
+
+check_exit_code() {
+  code=$1
+  if [ $code != 0 ]; then
+    echo "last command code = $code. Stopping now..."
+    exit $code
+  else
+    echo "OK"
+fi  
+}
+
  wd=`pwd`
  dbdir=/var/workspaceR/dataloading
 echo $dbdir
@@ -16,17 +27,22 @@ echo $dbdir
      cd "$dbdir/Burdenko" 
      touch $tmpPrep
      ./prep4db.R >> dbprep.out 2>&1
+     check_exit_code $?
+     if
     touch $tmpLoad
      ./load2db.R >> dbload.out 2>&1
      touch $tmpClean
      ./cleanAfter.R >> dbclean.out 2>&1
+     check_exit_code $?
      cd "$dbdir/Neurosurgery"
      touch $tmpPrep
      ./prep4db.R >> dbprep.out 2>&1
+     check_exit_code $?
     touch $tmpLoad
      ./load2db.R >> dbload.out 2>&1
      touch $tmpClean
      ./cleanAfter.R >> dbclean.out 2>&1
+     check_exit_code $?
      cd $dbdir
      ./makeReport.R >> dbreport.out 2>&1
      # Remove lockdir when the script finishes, or when it receives a signal
