@@ -482,38 +482,38 @@ printTable(specT,main="Loaded spectra",landscape = TRUE,digits=0,align = 'llllll
 scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
 specdx<-match(specT$id,scanDF$spectrumid)
 if(dim(scanDF)[1]==0){
-df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
-for(sidx in unique(intRT)){
-  cdf.fid<-paste0(cdf.fname,'_',sidx)
-  spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
-  for(sp in origSpectra[intRT==sidx]){
-    md<-metaData(sp)
-    rs<-dbSendStatement(conn,insertScan,
-                        spectrumID$id,
-                        md$number,
-                        md$retentionTime,totalIonCurrent(sp))
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
+  df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
+  for(sidx in unique(intRT)){
+    cdf.fid<-paste0(cdf.fname,'_',sidx)
+    spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
+    for(sp in origSpectra[intRT==sidx]){
+      md<-metaData(sp)
+      rs<-dbSendStatement(conn,insertScan,
+                          spectrumID$id,
+                          md$number,
+                          md$retentionTime,totalIonCurrent(sp))
+      dbHasCompleted(rs)
+      dbGetRowsAffected(rs)
+      dbClearResult(rs)
+    }
   }
-}
-scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
+  scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
 }else if(any(is.na(specdx))){
   for(sidx in which(is.na(specdx))){
-  cdf.fid<-paste0(cdf.fname,'_',sidx)
-  spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
-  for(sp in origSpectra[intRT==sidx]){
-    md<-metaData(sp)
-    rs<-dbSendStatement(conn,insertScan,
-                        spectrumID$id,
-                        md$number,
-                        md$retentionTime,totalIonCurrent(sp))
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
+    cdf.fid<-paste0(cdf.fname,'_',sidx)
+    spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
+    for(sp in origSpectra[intRT==sidx]){
+      md<-metaData(sp)
+      rs<-dbSendStatement(conn,insertScan,
+                          spectrumID$id,
+                          md$number,
+                          md$retentionTime,totalIonCurrent(sp))
+      dbHasCompleted(rs)
+      dbGetRowsAffected(rs)
+      dbClearResult(rs)
+    }
   }
-}
-scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
+  scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
 }
 #spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 ```
@@ -529,11 +529,11 @@ printTable(scanDF,main="Loaded scans",landscape = FALSE,digits=2,align = 'lrrrrr
 
 ### Disable referential constraints and indices
 
-```{r drop.peak.constraints}
-rs<-dbSendStatement(conn,'alter table peak drop CONSTRAINT "peak_featureFK";')
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
+```{r drop.peak.constraints, eval=FALSE}
+# rs<-dbSendStatement(conn,'alter table peak drop CONSTRAINT "peak_featureFK";')
+#     dbHasCompleted(rs)
+#     dbGetRowsAffected(rs)
+#     dbClearResult(rs)
 rs<-dbSendStatement(conn,'alter table peak drop CONSTRAINT "peak_scanFK";')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
@@ -581,7 +581,7 @@ wcn
 
 ### Enable referential constraints
 
-```{r add.peak.constraints}
+```{r add.peak.constraints, eval=FALSE}
 rs<-dbSendStatement(conn,'ALTER TABLE "ms"."peak" ADD CONSTRAINT "peak_featureFK" FOREIGN KEY ("feature") REFERENCES "ms"."features" ("id");')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
