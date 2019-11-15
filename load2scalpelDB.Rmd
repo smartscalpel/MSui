@@ -567,7 +567,7 @@ system.time(res<-sapply(c(1:dim(featureMatrix2)[1]),writeDTpeak,scanDF,tic=tic2,
 system(paste0('mclient  -d msinvent  -s  "COPY INTO ',
               ' ms.peak(scan,mz,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)',
               '  FROM ',"'",peakFname,
-              "'(scan,mz,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)",';"'),
+              "'(scan,mz,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)",' ON CLIENT;"'),
        intern = TRUE)->mcOut
 mcOut
 system2('wc', peakFname,stdout=TRUE)->wc
