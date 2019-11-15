@@ -5,11 +5,14 @@ check_exit_code() {
   if [ $code != 0 ]; then
     echo "last command code = $code. Stopping now..."
     exit $code
-  else
-    echo "OK"
-fi  
+  fi  
 }
 
+timestamp() {
+  date +"%Y_%m_%d_%H_%M"
+}
+
+cur_time_stamp=$(timestamp)
  wd=`pwd`
  dbdir=/var/workspaceR/dataloading
 echo $dbdir
@@ -28,7 +31,6 @@ echo $dbdir
      touch $tmpPrep
      ./prep4db.R >> dbprep.out 2>&1
      check_exit_code $?
-     if
     touch $tmpLoad
      ./load2db.R >> dbload.out 2>&1
      touch $tmpClean
@@ -48,9 +50,12 @@ echo $dbdir
      # Remove lockdir when the script finishes, or when it receives a signal
      trap 'rm -rf "$lockdir"' 0    # remove directory when script finishes
      sudo -u monetdb monetdb lock msinvent
-     tar cvf msinvent.scalpel.backup.tar /var/monetdb5/dbfarm/msinvent
+     tar cvf msinvent.$cur_time_stamp.backup.tar /var/monetdb5/dbfarm/msinvent
      sudo -u monetdb monetdb release msinvent
-     gzip msinvent.scalpel.backup.tar
+     gzip msinvent.$cur_time_stamp.backup.tar
+     check_exit_code $?
+     ./move_archives.sh >> move_archives.out 2>&1
+
  else
      echo >&2 "cannot acquire lock, giving up on $lockdir"
      exit 0

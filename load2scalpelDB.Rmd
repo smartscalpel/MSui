@@ -335,11 +335,21 @@ if(dim(spectrumID)[1]>0){
 ```
 
 ```{r emptyScans}
-panderCnt(scID)
+if (exists("scID")) {
+  panderCnt(scID)  
+} else {
+  cat(paste("There is no empty scans for the file", cdf.fname, "\n"))
+}
+
 ```
 
 ```{r emptyPeaks}
-panderCnt(pID)
+if (exists("pID")) {
+  panderCnt(pID)  
+} else {
+  cat(paste("There is no empty peaks for the file", cdf.fname, "\n"))
+}
+
 ```
 
 # Загрузка данных с помощью MALDIquant
@@ -356,6 +366,7 @@ abline(h = qth)
 ```
 
 # Load data to DB
+
 ```{r db.fetch, eval=proceedFile}
 devices<-dbReadTable(conn,'device')
 idxDev<-which(devices$id==devID)
@@ -419,6 +430,7 @@ cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
  
 
 ## Spectrum
+
 ```{r insert.spectrums, eval=proceedFile}
 for(sidx in unique(intRT)){
   cdf.fid<-paste0(cdf.fname,'_',sidx)
@@ -516,8 +528,8 @@ printTable(scanDF,main="Loaded scans",landscape = FALSE,digits=2,align = 'lrrrrr
 Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC, пики группируются с отностительной точностью 2e-5 и исключаются пики, встречающиеся менее чем в 25% сканов. 
 
 ### Disable referential constraints and indices
-```
-{r drop.peak.constraints}
+
+```{r drop.peak.constraints}
 rs<-dbSendStatement(conn,'alter table peak drop CONSTRAINT "peak_featureFK";')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
@@ -568,8 +580,8 @@ wcn
 
 
 ### Enable referential constraints
-```
-{r add.peak.constraints}
+
+```{r add.peak.constraints}
 rs<-dbSendStatement(conn,'ALTER TABLE "ms"."peak" ADD CONSTRAINT "peak_featureFK" FOREIGN KEY ("feature") REFERENCES "ms"."features" ("id");')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
