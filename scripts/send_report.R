@@ -7,7 +7,7 @@ sender <- "dataloader@scalpeldb.mipt.ru"  # Replace with a valid address
 recipients <- c("denis.zavorotnyuk@gmail.com")  # Replace with one or more valid addresses
 rfn <- paste0('scalpelReportDT.', format(Sys.time(), "%Y.%m.%d.%H"), '*.pdf')
 rfPath <- '/var/workspaceR/scalpelData/archive/loaded_data'
-files <- list.files(rfPath, pattern = rfn, full.names = FALSE)
+files <- list.files(rfPath, pattern = rfn, full.names = TRUE)
 body <- paste0('<html>',
                '<head>',
                '<style>.error {color: red; font-weight: bold;} .ok {color: green; font-weight: bold;}</style>',
@@ -20,7 +20,7 @@ body <- paste0('<html>',
 
 if (length(files) > 0) {
   body <- stringr::str_replace(body, "verd", '<span class="ok">successfully</span>')
-  body <- stringr::str_replace(body, "report", '<p>The report is attached</p>')
+  body <- stringr::str_replace(body, "report", '<p>The reports are attached</p>')
   email <- send.mail(from = sender,
                      to = recipients,
                      subject="Nightly dataloading",
@@ -29,7 +29,7 @@ if (length(files) > 0) {
                      authenticate = FALSE,
                      send = FALSE,
                      html = TRUE,
-                     attach.files	= paste(rfPath, files[[1]], sep='/'))
+                     attach.files	= files)
 } else {
   body <- stringr::str_replace(body, "verd", '<span class="error">with errors</span>')
   body <- stringr::str_replace(body, "report", '')
