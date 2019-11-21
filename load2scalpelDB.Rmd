@@ -574,6 +574,10 @@ system2('wc', peakFname,stdout=TRUE)->wc
 wc
 wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
 wcn
+mcOutn <- as.numeric(unlist(strsplit(trimws(mcOut), ' ')))
+if (mcOutn[[1]] < wcn[[1]]){
+  stop(paste('Number of affected rows is not equal to the number of rows in ', peakFname, sep = ''))
+}
 #system(paste0('gzip ',peakFname))
 ```
 
