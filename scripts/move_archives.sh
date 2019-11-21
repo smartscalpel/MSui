@@ -4,9 +4,14 @@ echo "Move archives is started"
 
 TARGET_DIR=/var/workspaceR/scalpelData/archive/loaded_data
 FOLDER_TO_MONITOR=( Burdenko Neurosurgery )
-LIMP_STORAGE=/mnt/limpstorage/monetdb5
+LIMP_STORAGE=/mnt/limpstorage
 
 wd=$(pwd)
+
+do_rsync() {
+  echo "Synchronization of DataBase backup"
+  rsync -avhcEt --remove-source-files --include="msinvent.*.tar" --include="msinvent.*.tar.gz" --exclude="*" "$wd/" "$LIMP_STORAGE/monetdb5"
+}
 
 # shellcheck disable=SC2068
 for m_dir in ${FOLDER_TO_MONITOR[@]}; do
@@ -24,9 +29,15 @@ done
 
 rsync -avhcEt --remove-source-files --include="*.pdf" --exclude="*" "$wd/" "$TARGET_DIR"
 
-if [ -d ${LIMP_STORAGE} ]; then
-  echo "Synchronization of DataBase backup"
-  rsync -avhcEt --remove-source-files --include="msinvent.*.tar" --include="msinvent.*.tar.gz" --exclude="*" "$wd/" "$LIMP_STORAGE"
+if [ ! -d "${LIMP_STORAGE}/monetdb5" ]; then
+  if [ ! $(mount "${LIMP_STORAGE}") ]; then
+    echo "Failed to mount ${LIMP_STORAGE}"
+    exit 1
+  else
+    do_rsync
+  fi
 else
-  echo "${LIMP_STORAGE} is not accessible!"
+  do_rsync
 fi
+echo "Archive moving is finished"
+exit 0
