@@ -7,7 +7,9 @@ rfn <- paste0('scalpelReportDT.', format(Sys.time(), "%Y.%m.%d.%H"), '*.pdf')
 rfPath <- '/var/workspaceR/scalpelData/archive/loaded_data'
 files <- list.files(dtPath, pattern = rfn, full.names = FALSE)
 body <- paste0('<html>',
-               '<head></head>',
+               '<head>',
+               '<style>.error {color: red; font-weight: bold;} .ok {color: green; font-weight: bold;}</style>',
+               '</head>',
                '<body>',
                '<p>',
                'Data loading into DataBase has been finished verd at ',
@@ -15,8 +17,8 @@ body <- paste0('<html>',
                '.</p>report</body></html>')
 
 if (length(files) > 0) {
-  body <- stringi::stri_replace(body, "verd", '<span color="green">successfully</span>')
-  body <- stringi::stri_replace(body, "report", '<p>The report is attached</p>')
+  body <- stringr::str_replace(body, "verd", '<span class="ok">successfully</span>')
+  body <- stringr::str_replace(body, "report", '<p>The report is attached</p>')
   email <- send.mail(from = sender,
                      to = recipients,
                      subject="Nightly dataloading",
@@ -24,16 +26,18 @@ if (length(files) > 0) {
                      smtp = list(host.name = "smtp.mipt.ru", port = 25),
                      authenticate = FALSE,
                      send = FALSE,
-                     attach.files	= files[[1]])
+                     html = TRUE,
+                     attach.files	= paste(rfPath, files[[1]], sep='/'))
 } else {
-  body <- stringi::stri_replace(body, "verd", '<span color="red">with errors</span>')
-  body <- stringi::stri_replace(body, "report", '')
+  body <- stringr::str_replace(body, "verd", '<span class="error">with errors</span>')
+  body <- stringr::str_replace(body, "report", '')
   email <- send.mail(from = sender,
                      to = recipients,
                      subject="Nightly dataloading",
                      body = body,
                      smtp = list(host.name = "smtp.mipt.ru", port = 25),
                      authenticate = FALSE,
+                     html = TRUE,
                      send = FALSE)
 }
 

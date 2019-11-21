@@ -60,6 +60,7 @@ if mkdir "$lockdir"
     gzip msinvent.$cur_time_stamp.backup.tar
     check_exit_code $?
     ./move_archives.sh >> move_archives.out 2>&1
+    ./send_report.R >> send.out 2>&1
   else
     echo >&2 "cannot acquire lock, giving up on $lockdir"
     exit 0
