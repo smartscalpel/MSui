@@ -1,11 +1,13 @@
 #!/usr/bin/Rscript
 
+library(mailR)
+
 dt <- format(Sys.time(), "%d.%m.%Y %H:%M")
 sender <- "dataloader@scalpeldb.mipt.ru"  # Replace with a valid address
 recipients <- c("denis.zavorotnyuk@gmail.com")  # Replace with one or more valid addresses
 rfn <- paste0('scalpelReportDT.', format(Sys.time(), "%Y.%m.%d.%H"), '*.pdf')
 rfPath <- '/var/workspaceR/scalpelData/archive/loaded_data'
-files <- list.files(dtPath, pattern = rfn, full.names = FALSE)
+files <- list.files(rfPath, pattern = rfn, full.names = FALSE)
 body <- paste0('<html>',
                '<head>',
                '<style>.error {color: red; font-weight: bold;} .ok {color: green; font-weight: bold;}</style>',
