@@ -4,12 +4,14 @@
 \alias{makeMassPeak}
 \title{makeMassPeak.}
 \usage{
-makeMassPeak(peakDT, metadata = NULL)
+makeMassPeak(peakDT, metadata = NULL, align = FALSE)
 }
 \arguments{
 \item{peakDT}{data.table to take data from}
 
 \item{metadata}{dataFrame with scan-specific metadata.}
+
+\item{align}{logical, should peaks in peakList be aligned.}
 }
 \value{
 list of MassPeaks objects corresponding th data in peakDT
