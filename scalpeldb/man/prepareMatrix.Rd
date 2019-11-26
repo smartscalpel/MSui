@@ -20,6 +20,9 @@ prepareMatrix(pl, gropId, tolerance = 0.002, minFrequency = 0.25,
 
 \item{digits}{number of digits in the Feature matrix column names}
 }
+\value{
+matrix of peaks intensity.
+}
 \description{
 Prepare Feature Matrix from peak list.
 }

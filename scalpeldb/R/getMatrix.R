@@ -26,6 +26,38 @@
 #'
 #' 
 getIntensityMatrix<-function(files,path,round=FALSE,digits=0){
+  res<-getPeakList(files,path,round,digits)
+  mdt<-plyr::ldply(res,function(.x){as.data.frame(metaData(.x))})
+  fm<-prepareMatrix(res,gropId = mdt$diagnosis)
+  fm<-cbind(mdt,as.data.frame(fm))
+}
+
+#' Create peak list from the set of files
+#'
+#' @param files list of file names to be combined into matrix
+#' @param path path to the directory where files are located
+#' @param round where to round the MZ values and aggregate intensities
+#' @param digits number of digits to round mz to 
+#' 
+#' @details 
+#' We assume that files were created by the query from this package and contains
+#' following columns:
+#' * id
+#' * scan
+#' * spectrumid
+#' * diagnosis
+#' * num
+#' * rt
+#' * tic
+#' * mz
+#' * intensity
+#' * norm2tic
+#' * snr
+#' 
+#' @import data.table
+#' @return matrix of peaks intensity.
+#' @export
+getPeakList<-function(files,path,round=FALSE,digits=0,snrT=1.5,align=FALSE){
   if(!dir.exists(path)){
     stop('Folder [',path,'] does not exists.\n')
   }
@@ -47,12 +79,10 @@ getIntensityMatrix<-function(files,path,round=FALSE,digits=0){
     p<-makeMassPeak(dt,metadata = md)
     res<-c(res,p)
   }
-  mdt<-plyr::ldply(res,function(.x){as.data.frame(metaData(.x))})
-  fm<-prepareMatrix(res,gropId = mdt$diagnosis)
-  fm<-cbind(mdt,as.data.frame(fm))
+  return(res)
 }
 
-#' Create intensity matrix from the database
+#' Create peak list from the database
 #'
 #' @param con connection to the database
 #' @param sql query to take peaks
@@ -71,7 +101,7 @@ getIntensityMatrix<-function(files,path,round=FALSE,digits=0){
 #' @export
 #'
 #' 
-getIntensityMatrixSQL<-function(con,sql,round=FALSE,digits=0){
+getPeakListSQL<-function(con,sql,round=FALSE,digits=0){
     res<-
     data.table::data.table(
       DBI::dbGetQuery(con,
