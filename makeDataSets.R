@@ -16,6 +16,7 @@ df<-ldply(l,.fun = function(l1)
              dev=sub('dev_', '',l1[6]),
              mz=sub('mz_', '',l1[7])))
 df$fname<-flst
+saveRDS(df,file='metaFL.rds')
 diagt<-unique(df$diag[df$diag!=32])
 res<-unique(df$res)
 mode<-unique(df$mode)

@@ -5,6 +5,7 @@ d=args[1]
 r=args[2]
 m=args[3]
 z=args[4]
+path<-'~/peaks/'
 dname<-paste0('diag_',d,'.res_',r,'.mode_',m,'.mz_',z)
 cat(format(Sys.time(), "%b %d %X"),d,r,m,z,'\n',dname,'\n')
 df<-readRDS('../metaFL.rds')
