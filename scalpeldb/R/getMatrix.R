@@ -38,6 +38,8 @@ getIntensityMatrix<-function(files,path,round=FALSE,digits=0){
 #' @param path path to the directory where files are located
 #' @param round where to round the MZ values and aggregate intensities
 #' @param digits number of digits to round mz to 
+#' @param snrT minimal Signal-to-Noise ratio for peak to be included in the output.
+#' @param align should result peaklist be aligned 
 #' 
 #' @details 
 #' We assume that files were created by the query from this package and contains
@@ -72,11 +74,12 @@ getPeakList<-function(files,path,round=FALSE,digits=0,snrT=1.5,align=FALSE){
   for(f in files){
     dt<-fread(paste0(path,'/',f))
     names(dt)<-c('id','scan','spectrumid','diagnosis','num','rt','tic','mz','intensity','norm2tic','snr')
+    dtSNR<-dt[snr>snrT]
     #dt<-setDT(dt)
     #mdt<-dt[,.(N=length(id)),by=.(scan,spectrumid,num,rt,diagnosis,tic)]
-    mdt<-dt[,.(scan,spectrumid,num,rt,diagnosis,tic)]
+    mdt<-dtSNR[,.(scan,spectrumid,num,rt,diagnosis,tic)]
     md<-unique(mdt)
-    p<-makeMassPeak(dt,metadata = md)
+    p<-makeMassPeak(dtSNR,metadata = md,align = align)
     res<-c(res,p)
   }
   return(res)
@@ -130,12 +133,13 @@ getPeakListSQL<-function(con,sql,round=FALSE,digits=0){
 #' 
 #' @param peakDT data.table to take data from
 #' @param metadata dataFrame with scan-specific metadata.
+#' @param align logical, should peaks in peakList be aligned.
 #'
 #' @import MALDIquant
 #' @return list of MassPeaks objects corresponding th data in peakDT
 #' @export
 #'
-makeMassPeak<-function(peakDT,metadata=NULL){
+makeMassPeak<-function(peakDT,metadata=NULL,align=FALSE){
   idx<-match(c('mz','scan','intensity'),names(peakDT))
   if(any(is.na(idx))){
     stop('Data.table should have three columns in any order: mz, scan, intensity.\n')
@@ -175,11 +179,16 @@ makeMassPeak<-function(peakDT,metadata=NULL){
   }
   pl<-lapply(scans,makeP)
   ln<-sapply(pl,length)
+  if(align){
   wf<-determineWarpingFunctions(pl,
                                 method="lowess",
                                 plot=FALSE,
-                                reference = pl[[which.max(ln)]])
+                                minFrequency=0.05)
   aPeaks<-warpMassPeaks(pl,wf)
+  return(aPeaks)
+  }else{
+    return(pl)
+  }
 }
 
 
@@ -192,7 +201,7 @@ makeMassPeak<-function(peakDT,metadata=NULL){
 #' @param mergeWhitelists wether to merge white lists for the filterPeaks
 #' @param digits number of digits in the Feature matrix column names
 #'
-#' @return
+#' @return matrix of peaks intensity.
 #' @export
 #'
 prepareMatrix<-function(pl,gropId,tolerance=2e-3,minFrequency=0.25, mergeWhitelists=TRUE,digits=3){
