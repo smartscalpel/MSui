@@ -1207,8 +1207,8 @@ cs<-lsa::cosine(t(fm))
 ```
 
 ```{r datasetname.raw.cluster,fig.width=8.5,fig.height=8.5,dev='png',dev='png',cache=FALSE}
-corrplot(cv,main='CorrMatrix Diag 5/35', method="color",tl.pos='n',tl.cex=0.5,order ='original')
-corrplot(cs,main='CosMatrix Diag 5/35', method="color",tl.pos='n',tl.cex=0.5,order ='original')
+corrplot(cv,main='CorrMatrix Diag/32', method="color",tl.pos='n',tl.cex=0.5,order ='original')
+corrplot(cs,main='CosMatrix Diag/32', method="color",tl.pos='n',tl.cex=0.5,order ='original')
 ```
 ```{r datasetname.save.models}
 save(path,fl,dda.res.full,dda.res.top20,dda.res.top10,
@@ -1475,8 +1475,8 @@ cs<-lsa::cosine(t(fm))
 ```
 
 ```{r datasetname.mi.raw.cluster,fig.width=8.5,fig.height=8.5,dev='png',dev='png',cache=FALSE}
-corrplot(cv,main='CorrMatrix Diag 5/35 MI', method="color",tl.pos='n',tl.cex=0.5,order ='original')
-corrplot(cs,main='CosMatrix Diag 5/35 MI', method="color",tl.pos='n',tl.cex=0.5,order ='original')
+corrplot(cv,main='CorrMatrix Diag/32 MI', method="color",tl.pos='n',tl.cex=0.5,order ='original')
+corrplot(cs,main='CosMatrix Diag/32 MI', method="color",tl.pos='n',tl.cex=0.5,order ='original')
 ```
 ```{r datasetname.mi.save.models}
 save(path,fl,dda.res.full,dda.res.top20,dda.res.top10,
