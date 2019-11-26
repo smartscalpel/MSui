@@ -243,6 +243,7 @@ ionSources<-dbReadTable(conn,'ionsource')
 resolutions<-dbReadTable(conn,'resolution')
 modes<-dbReadTable(conn,'mode')
 ranges<-dbReadTable(conn,'mzrange')
+exptype<-dbReadTable(conn,'exptype')
 spectrum<-dbReadTable(conn,'spectrum')
 ```
 
@@ -274,9 +275,14 @@ panderDict(modes)
 ```
 
 
-## ranges
+## Ranges
 ```{r ranges.tbl}
 panderDict(ranges)
+```
+
+## ExpTyues
+```{r exptype.tbl}
+panderDict(exptype)
 ```
 
 # Basic statistics
