@@ -610,7 +610,21 @@ if(!(exists('fl')&
 }
 lipids<-read.csv('DetectedLipids.csv')
 lipids<-lipids[order(lipids$PEAK),]
-cat(format(Sys.time(), "%b %d %X"),"'",wd,"','",path,"'",'\n\t',
+lfl<-strsplit(x = fl,split = '\\.')
+dfl<-unique(ldply(lfl,.fun = function(l1)
+  data.frame(diag=sub('diag_', '',l1[2]),
+             res=sub('res_', '',l1[4]),
+             mode=sub('mode_', '',l1[5]),
+             mz=sub('mz_', '',l1[7]))))
+idx<-which(dfl$diag!=32)
+if(length(idx)!=1){
+  stop('there is more than one experimental setup in the datafiles\n')
+}
+dname<-paste0('diag_',dfl$diag[idx],
+              '.res_',dfl$res[idx],
+              '.mode_',dfl$mode[idx],
+              '.mz_',dfl$mz[idx])
+cat(format(Sys.time(), "%b %d %X"),dname,"'",wd,"','",path,"'",'\n\t',
     fl,'\n',file = logFile,append = TRUE)
 ```
 
@@ -639,6 +653,7 @@ qplot(ln,bins=100,log = 'x')
 idx<-which(ln>Npeaks)
 ff<-factor(spectrumid)
 ```
+
 ```{r datasetname.mi.dataSet}
 mpeaks<-.myPeakList(peaks,tolerance = 1e-3)
 mln<-sapply(mpeaks,length)
@@ -697,6 +712,7 @@ featureMatrixMI[idNA]<-0
 
 
 ```{r datasetname.raw.spectra.facet,fig.width=8.5,fig.height=8.5,dev='png'}
+cat(format(Sys.time(), "%b %d %X"),dname,'Feature matrces are ready\n',file = logFile,append = TRUE)
 mz<-as.double(colnames(featureMatrix))
 df<-cbind(data.frame(diag=diag[idx]),as.data.frame(featureMatrix))
 pldf<-melt(df,id=c('diag'))
@@ -864,6 +880,7 @@ save(fl,path,mddarTotMI,dfddarTotMI,file = 'SDAfilesReport.sdaTot.MI.Rdata')
 #### Non-scaled data
 
 ```{r datasetname.raw.pca.nosc.full,fig.width=8.5,fig.height=8.5}
+cat(format(Sys.time(), "%b %d %X"),dname,'PCA starts\n',file = logFile,append = TRUE)
 pca<-try(prcomp(featureMatrix,scale. = FALSE),silent=TRUE)
 if(class(pca)!="try-error"){
   fviz_screeplot(pca, ncp=15)
@@ -936,6 +953,7 @@ fviz_pca_ind(pcaMI, habillage=diag[idxMI],axes=c(1,3),
 
 ### Total spectra
 ```{r datasetname.fm5}
+cat(format(Sys.time(), "%b %d %X"),dname,'Classification has started. Full data.\n',file = logFile,append = TRUE)
 idx5<-which(diag[idx]%in% unique(diag))
 ```
 
@@ -969,6 +987,7 @@ save(path,fl,mddar,dfddar,file = 'SDAfilesReport.sda.Rdata')
 
 
 ```{r datasetname.class.sda.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'SDA classification. Full data.\n',file = logFile,append = TRUE)
 # set seed to get reproducible results
 #set.seed(1234)
 lasso.res<-list()
@@ -1026,6 +1045,7 @@ dim(featureMatrix[idx5,top])
 ```
 
 ```{r datasetname.class.lda.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'LDA classification. Full data.\n',file = logFile,append = TRUE)
 # set seed to get reproducible results
 #set.seed(1234)
 cv.out <- mycrossval(predfun.lda,
@@ -1079,6 +1099,7 @@ dim(featureMatrix[idx5,top])
 ```
 
 ```{r datasetname.class.lasso.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'LASSO classification. Full data.\n',file = logFile,append = TRUE)
 # set seed to get reproducible results
 #set.seed(1234)
 Y=factor(as.character(diag[idx[idx5]]))
@@ -1142,6 +1163,7 @@ dim(featureMatrix[idx5,top])
 
 
 ```{r datasetname.raw.pca.nosc,fig.width=8.5,fig.height=8.5,cache=FALSE}
+cat(format(Sys.time(), "%b %d %X"),dname,'Second round of PCA. Full data.\n',file = logFile,append = TRUE)
 pca<-prcomp(featureMatrix[idx5,],scale. = FALSE)
 fviz_screeplot(pca, ncp=15)
 fviz_pca_ind(pca, habillage='none',label = 'none',
@@ -1199,6 +1221,7 @@ save(path,fl,bestMod,file = 'SDAfilesReport.model.rda')
 ### Monoisotopic
 
 ```{r datasetname.mi.fm5}
+cat(format(Sys.time(), "%b %d %X"),dname,'Classification has started. Monoisotopic data.\n',file = logFile,append = TRUE)
 idx5<-which(diag[idxMI]%in% c(35,5))
 ```
 
@@ -1232,6 +1255,7 @@ save(path,fl,mddar,dfddar,file = 'SDAfilesReport.mi.sda.Rdata')
 
 
 ```{r datasetname.mi.class.sda.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'SDA classification. Monoisotopic data.\n',file = logFile,append = TRUE)
 # set seed to get reproducible results
 #set.seed(1234)
 lasso.res<-list()
@@ -1289,6 +1313,7 @@ dim(featureMatrixMI[idx5,top])
 ```
 
 ```{r datasetname.mi.class.lda.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'LDA classification. Monoisotopic data.\n',file = logFile,append = TRUE)
 # set seed to get reproducible results
 #set.seed(1234)
 cv.out <- mycrossval(predfun.lda,
@@ -1342,6 +1367,7 @@ dim(featureMatrixMI[idx5,top])
 ```
 
 ```{r datasetname.mi.class.lasso.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'LASSO classification. Monoisotopic data.\n',file = logFile,append = TRUE)
 # set seed to get reproducible results
 #set.seed(1234)
 Y=factor(as.character(diag[idxMI[idx5]]))
@@ -1405,6 +1431,7 @@ dim(featureMatrixMI[idx5,top])
 
 
 ```{r datasetname.mi.raw.pca.nosc,fig.width=8.5,fig.height=8.5,cache=FALSE}
+cat(format(Sys.time(), "%b %d %X"),dname,'Second round of PCA. Monoisotopic data.\n',file = logFile,append = TRUE)
 pca<-prcomp(featureMatrixMI[idx5,],scale. = FALSE)
 fviz_screeplot(pca, ncp=15)
 fviz_pca_ind(pca, habillage='none',label = 'none',
@@ -1456,7 +1483,7 @@ save(path,fl,dda.res.full,dda.res.top20,dda.res.top10,
      lasso.res.full,lasso.res.top20,lasso.res.top10,
      file = 'SDAfilesReport.mi.models.RData')
 save(path,fl,bestMod,file = 'SDAfilesReport.mi.model.rda')
-
+cat(format(Sys.time(), "%b %d %X"),dname,'Completed.\n',file = logFile,append = TRUE)
 ```
 
 
