@@ -1189,7 +1189,7 @@ addEllipses=TRUE, ellipse.level=0.95)
 ```
 
 ```{r datasetname.raw.clusterO.data,cache=TRUE}
-fm<-featureMatrix[diag[idx]==5,]
+fm<-featureMatrix[diag[idx]!=32,]
 cv<-cor(t(fm))
 cs<-lsa::cosine(t(fm))
 ```
@@ -1457,7 +1457,7 @@ addEllipses=TRUE, ellipse.level=0.95)
 ```
 
 ```{r datasetname.mi.raw.clusterO.data,cache=TRUE}
-fm<-featureMatrixMI[diag[idxMI]==5,]
+fm<-featureMatrixMI[diag[idxMI]!=32,]
 cv<-cor(t(fm))
 cs<-lsa::cosine(t(fm))
 ```
