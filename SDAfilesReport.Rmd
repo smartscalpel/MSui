@@ -999,7 +999,7 @@ cv.out <- mycrossval(predfun.dda,
                    X=featureMatrix[idx5,],
                    Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1017,7 +1017,7 @@ cv.out <- mycrossval(predfun.dda,
                    X=featureMatrix[idx5,top],
                    Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1035,7 +1035,7 @@ cv.out <- mycrossval(predfun.dda,
                    X=featureMatrix[idx5,top],
                    Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1053,7 +1053,7 @@ cv.out <- mycrossval(predfun.lda,
                    X=featureMatrix[idx5,],
                    Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1071,7 +1071,7 @@ cv.out <- mycrossval(predfun.lda,
                    X=featureMatrix[idx5,top],
                    Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1089,7 +1089,7 @@ cv.out <- mycrossval(predfun.lda,
                    X=featureMatrix[idx5,top],
                    Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1108,7 +1108,7 @@ cv.out <- mycrossval(predfun.lasso,
                    X=featureMatrix[idx5,],
                    Y=Y,smpl=smpl,ff=ff[idx[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    labels=levels(Y),
                    verbose=FALSE)
 cv.out$stat
@@ -1131,7 +1131,7 @@ cv.out <- mycrossval(predfun.lasso,
                    X=featureMatrix[idx5,top],
                    Y=Y,smpl=smpl,ff=ff[idx[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    labels=levels(Y),
                    verbose=FALSE)
 cv.out$stat
@@ -1151,7 +1151,7 @@ cv.out <- mycrossval(predfun.lasso,
                    X=featureMatrix[idx5,top],
                    Y=Y,smpl=smpl,ff=ff[idx[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    labels=levels(Y),
                    verbose=FALSE)
 cv.out$stat
@@ -1267,7 +1267,7 @@ cv.out <- mycrossval(predfun.dda,
                    X=featureMatrixMI[idx5,],
                    Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1285,7 +1285,7 @@ cv.out <- mycrossval(predfun.dda,
                    X=featureMatrixMI[idx5,top],
                    Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1303,7 +1303,7 @@ cv.out <- mycrossval(predfun.dda,
                    X=featureMatrixMI[idx5,top],
                    Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1321,7 +1321,7 @@ cv.out <- mycrossval(predfun.lda,
                    X=featureMatrixMI[idx5,],
                    Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1339,7 +1339,7 @@ cv.out <- mycrossval(predfun.lda,
                    X=featureMatrixMI[idx5,top],
                    Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1357,7 +1357,7 @@ cv.out <- mycrossval(predfun.lda,
                    X=featureMatrixMI[idx5,top],
                    Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    verbose=FALSE)
 cv.out$stat
 cv.out$stat.se
@@ -1376,7 +1376,7 @@ cv.out <- mycrossval(predfun.lasso,
                    X=featureMatrixMI[idx5,],
                    Y=Y,smpl=smpl,ff=ff[idxMI[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    labels=levels(Y),
                    verbose=FALSE)
 cv.out$stat
@@ -1399,7 +1399,7 @@ cv.out <- mycrossval(predfun.lasso,
                    X=featureMatrixMI[idx5,top],
                    Y=Y,smpl=smpl,ff=ff[idxMI[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    labels=levels(Y),
                    verbose=FALSE)
 cv.out$stat
@@ -1419,7 +1419,7 @@ cv.out <- mycrossval(predfun.lasso,
                    X=featureMatrixMI[idx5,top],
                    Y=Y,smpl=smpl,ff=ff[idxMI[idx5]],
                    K=6, B=20,
-                   negative="35",
+                   negative="32",
                    labels=levels(Y),
                    verbose=FALSE)
 cv.out$stat
