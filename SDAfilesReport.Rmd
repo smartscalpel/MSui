@@ -1188,28 +1188,6 @@ fviz_pca_ind(pca, habillage=ff[idx[idx5]],
 addEllipses=TRUE, ellipse.level=0.95)
 ```
 
-```{r datasetname.raw.clusterO.data,cache=TRUE}
-fm<-featureMatrix[diag[idx]!=32,]
-cv<-cor(t(fm))
-cs<-lsa::cosine(t(fm))
-```
-
-```{r datasetname.raw.clusterO,fig.width=8.5,fig.height=8.5,dev='png',cache=FALSE}
-corrplot(cv,main='CorrMatrix Diag 5 only', method="color",tl.pos='n',tl.cex=0.5,order ='original')
-corrplot(cs,main='CosMatrix Diag 5 only', method="color",tl.pos='n',tl.cex=0.5,order ='original')
-```
-
-
-```{r datasetname.raw.cluster.data,cache=TRUE}
-fm<-featureMatrix[idx5,]
-cv<-cor(t(fm))
-cs<-lsa::cosine(t(fm))
-```
-
-```{r datasetname.raw.cluster,fig.width=8.5,fig.height=8.5,dev='png',dev='png',cache=FALSE}
-corrplot(cv,main='CorrMatrix Diag/32', method="color",tl.pos='n',tl.cex=0.5,order ='original')
-corrplot(cs,main='CosMatrix Diag/32', method="color",tl.pos='n',tl.cex=0.5,order ='original')
-```
 ```{r datasetname.save.models}
 save(path,fl,dda.res.full,dda.res.top20,dda.res.top10,
      lda.res.full,lda.res.top20,lda.res.top10,
@@ -1456,28 +1434,6 @@ fviz_pca_ind(pca, habillage=ff[idxMI[idx5]],
 addEllipses=TRUE, ellipse.level=0.95)
 ```
 
-```{r datasetname.mi.raw.clusterO.data,cache=TRUE}
-fm<-featureMatrixMI[diag[idxMI]!=32,]
-cv<-cor(t(fm))
-cs<-lsa::cosine(t(fm))
-```
-
-```{r datasetname.mi.raw.clusterO,fig.width=8.5,fig.height=8.5,dev='png',cache=FALSE}
-corrplot(cv,main='CorrMatrix Diag 5 only MI', method="color",tl.pos='n',tl.cex=0.5,order ='original')
-corrplot(cs,main='CosMatrix Diag 5 only MI', method="color",tl.pos='n',tl.cex=0.5,order ='original')
-```
-
-
-```{r datasetname.mi.raw.cluster.data,cache=TRUE}
-fm<-featureMatrixMI[idx5,]
-cv<-cor(t(fm))
-cs<-lsa::cosine(t(fm))
-```
-
-```{r datasetname.mi.raw.cluster,fig.width=8.5,fig.height=8.5,dev='png',dev='png',cache=FALSE}
-corrplot(cv,main='CorrMatrix Diag/32 MI', method="color",tl.pos='n',tl.cex=0.5,order ='original')
-corrplot(cs,main='CosMatrix Diag/32 MI', method="color",tl.pos='n',tl.cex=0.5,order ='original')
-```
 ```{r datasetname.mi.save.models}
 save(path,fl,dda.res.full,dda.res.top20,dda.res.top10,
      lda.res.full,lda.res.top20,lda.res.top10,
