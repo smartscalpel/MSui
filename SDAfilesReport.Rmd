@@ -1201,7 +1201,7 @@ save(path,fl,bestMod,file = 'SDAfilesReport.model.rda')
 
 ```{r datasetname.mi.fm5}
 cat(format(Sys.time(), "%b %d %X"),dname,'Classification has started. Monoisotopic data.\n',file = logFile,append = TRUE)
-idx5<-which(diag[idxMI]%in% c(35,5))
+idx5<-which(diag[idxMI]%in% unique(diag))
 ```
 
 ```{r datasetname.mi.raw.sda,fig.width=8.5,fig.height=10.5,results='asis',cache=FALSE}
