@@ -13,6 +13,20 @@ do_rsync() {
   rsync -avhcEt --remove-source-files --include="msinvent.*.tar" --include="msinvent.*.tar.gz" --exclude="*" "$wd/" "$LIMP_STORAGE/monetdb5"
 }
 
+if [ "$1" = "monthly" ]
+then
+  mount "${LIMP_STORAGE}"
+
+  if ($? > 0) {
+    mount "${LIMP_STORAGE}"
+  }
+  tar -cvjf /var/backups/monetdb/msinvent/monthly/$(date +%Y_%m_%d).tar.bz2 /var/backups/monetdb/msinvent/daily/
+  rsync -avhcEt --remove-source-files --include="*.tar.bz2" --exclude="*" "/var/backups/monetdb/msinvent/monthly/" "$LIMP_STORAGE/monetdb"
+  
+  echo "Moving monthly backup has been finished at $(date +%Y_%m_%d)"
+  exit 0
+fi
+
 # shellcheck disable=SC2068
 for m_dir in ${FOLDER_TO_MONITOR[@]}; do
   cur_target_dir=$TARGET_DIR/$m_dir
@@ -29,15 +43,5 @@ done
 
 rsync -avhcEt --remove-source-files --include="*.pdf" --exclude="*" "$wd/" "$TARGET_DIR"
 
-if [ ! -d "${LIMP_STORAGE}/monetdb5" ]; then
-  if [ ! $(mount "${LIMP_STORAGE}") ]; then
-    echo "Failed to mount ${LIMP_STORAGE}"
-    exit 1
-  else
-    do_rsync
-  fi
-else
-  do_rsync
-fi
 echo "Archive moving is finished"
 exit 0

@@ -55,10 +55,11 @@ if mkdir "$lockdir"
     # Remove lockdir when the script finishes, or when it receives a signal
     trap 'rm -rf "$lockdir"' 0    # remove directory when script finishes
     sudo -u monetdb monetdb lock msinvent
-    tar cvf msinvent.$cur_time_stamp.backup.tar /var/monetdb5/dbfarm/msinvent
+    
+    # perform daily backup
+    rsync -av /var/monetdb5/dbfarm/msinvent /var/backups/monetdb/msinvent/daily
+    
     sudo -u monetdb monetdb release msinvent
-    gzip msinvent.$cur_time_stamp.backup.tar
-    check_exit_code $?
     ./move_archives.sh >> move_archives.out 2>&1
     ./send_report.R >> send.out 2>&1
   else
