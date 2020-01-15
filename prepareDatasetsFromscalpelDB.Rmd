@@ -226,7 +226,7 @@ getMZRangeDistrib<-paste("select mzrange,",
 
 
 
-q1<-paste("COPY select p.id,p.scan,c.spectrumid,t.diagnosis,t.patientid, ",
+q1<-paste("COPY select p.id,p.scan,c.spectrumid,t.diagnosis,t.patientid, s.sampleid, ",
 "c.num,c.rt,c.tic,p.mz,p.intensity,p.norm2tic,p.snr ",
 "from  ms.scan c join ms.peak p on c.id=p.scan ",
 "join ms.spectrum s on s.id=c.spectrumid ",
