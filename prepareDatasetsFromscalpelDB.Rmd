@@ -1,0 +1,417 @@
+---
+title: "load2scalpelDB"
+author: "Anatoly Sorokin"
+date: '`r format(Sys.time(), "%d.%m.%Y")`'
+output:
+  pdf_document:
+    keep_tex: yes
+    number_sections: yes
+  html_document: default
+params:
+  format: !r if(opts_knit$get("rmarkdown.pandoc.to") == 'html') c('screen', 'print')
+    else 'print'
+  version: !r if(nchar(Sys.which("git"))) system("git describe --long --dirty --abbrev=10  --tags  --always",
+    intern=TRUE) else date()
+header-includes:
+- \usepackage[T2A]{fontenc}
+- \usepackage[utf8]{inputenc}
+- \usepackage[english,russian]{babel}
+- \usepackage{grffile}
+- \usepackage{rotating}
+- \usepackage{caption}
+- \usepackage{longtable}
+- \usepackage{lscape}
+---
+```{r loadPackages, include=FALSE, cache=FALSE}
+## load additional packages in this chunk
+library(pander)
+library(knitr)
+#library('Matrix')
+library(ggplot2)
+library(data.table)
+library(plyr)
+library(xtable)
+#library(xcms)
+#library("FactoMineR")
+#library(cluster)
+#library(dendextend)
+#library(factoextra)
+#library(corrplot)
+library(ncdf4)
+#library("PerformanceAnalytics")
+#library("pvclust")
+#library("sda")
+library(RColorBrewer)
+library(MALDIquant)
+library(MALDIquantForeign)
+library(DBI)
+library(MonetDB.R)
+ticThreshold<-0.01
+absTicThreshold<-1000
+startDate<-'2019-01-01'
+```
+
+```{r setup, include=FALSE, cache=FALSE}
+## This chunk should contain global configuration commands.
+## Use this to set knitr options and related things. Everything
+## in this chunk will be included in an appendix to document the
+## configuration used.
+#output <- opts_knit$get("rmarkdown.pandoc.to")
+opts_knit$set(stop_on_error = 2L)
+
+## By default R code is only included in HTML versions of the report
+## (where it can be collapsed). You can generate a PDF version
+## using rmarkdown::pdf_document to get a copy for print. Extensive
+## chunks of R code may or may not be desired in /hat setting. If you
+## want them simply change the following arguments to `echo = TRUE`.
+## In either case the default can be overwritten for individual chunks.
+#opts_chunk$set(echo = output=="html")
+#opts_chunk$set(warning = output=="html")
+#opts_chunk$set(message = output=="html")
+
+## Cache options
+opts_chunk$set(cache=FALSE)
+
+## Figure options
+## Set default figure format
+#options(reportmd.figure.format=params$format)
+
+## Set 'hide.fig.code' to FALSE to include code chunks that
+## produce Figures in the output. Note that this affects all chunks
+## that provide a figure caption.
+opts_chunk$set(hold=TRUE, hide.fig.code=FALSE)
+
+## Set up default plotting options for different formats.
+## These can be overwritten for individual chunks
+#interactiveFig()
+#screenFig()
+#printFig()
+
+## Pander options
+panderOptions("digits", 3)
+panderOptions("table.split.table", 160)
+
+## Configure Figure and Table lables
+#options(figcap.prefix = "Figure", figcap.sep = ":", figcap.prefix.highlight = "**")
+#options(tabcap.prefix = "Table", tabcap.sep = ":", tabcap.prefix.highlight = "**")
+
+## Install required knitr hooks
+#installHooks()
+```
+
+```{r functions, include=FALSE}
+## Custom functions used in the analysis should go into this chunk.
+## They will be listed in their own section of the appendix.
+printTable <-
+  function(mat,main,landscape = TRUE,digits = 0,sig = 0.01,align= 'lllrr') {
+    addtorow          <- list()
+    addtorow$pos      <- list()
+    addtorow$pos[[1]] <- c(0)
+    addtorow$command  <- c(
+      paste(
+        "\\hline \n",
+        "\\endhead \n",
+        "\\hline \n",
+        "\\multicolumn{3}{l}{\\footnotesize Continued on next page} \n",
+        "\\endfoot \n",
+        "\\endlastfoot \n",sep = ""
+      )
+    )
+    subset <- 'anode'
+    if (landscape) {
+      cat(
+        sprintf(
+          "\\newpage\n  \\begin{landscape} \n\\begin{center}\n\\captionof{table}{Table, %s (%d OTUs)}\n\\scriptsize",
+          main,dim(mat)[1]
+        )
+      )
+    }else{
+      cat(
+        sprintf(
+          "\\begin{center}\n\\captionof{table}{Table, %s (%d OTUs)}\n\\scriptsize",
+          main,dim(mat)[1]
+        )
+      )
+    }
+    #cat(dim(mat),names(mat),'\n')
+    matU<-mat
+    # matU$name<-sanitizestr(mat$name)
+    # matU$description<-sanitizestr(mat$description)
+    # cat(dim(matU),names(matU),'\n')
+    print(
+      xtable(
+        matU,
+        align = align,#paste(align,collapse = ''),
+        digits = digits)
+      ,size = "small",include.colnames = TRUE,
+      tabular.environment = "longtable", sanitize.text.function=NULL,#function(.x)sanitizestr(stri_escape_unicode(.x)),
+      floating = FALSE,include.rownames = FALSE,add.to.row = addtorow,hline.after =
+        c(-1)
+    )
+    if (landscape) {
+      cat("\\end{center}\n \\end{landscape}")
+    }else{
+      cat("\\end{center}\n ")
+    }
+    
+  }
+##==================== Functions ====================##
+
+
+panderCnt<-function(d){
+  w<-dim(d)[2]
+  inCol<-sapply(d,is.numeric)
+  j<-rep('left',w)
+  j[inCol]<-'right'
+  pander(d, justify = j)
+}
+
+```
+
+```{r queries, include=FALSE}
+##==================== SQL queries ====================##
+getSpecID<-"SELECT ID FROM spectrum where filename like ?";
+getPatient<-'select id,emsid,yob,sex from patient where emsid like ?'
+getTissue<-'select t.id,t.patientid,t.label,t.dt from tissue t join patient p on p.id=t.patientid where p.id=? and t.label like ?' 
+getSpectrum<-paste('select id,emsid,dt,diagnosis,',
+                   'filename,device,min,max,exptype,',
+                   'mode,resolution ',
+                   'from files ',
+                   'where filename like ?')
+
+getSpecDistrib<-paste("select diagnosis,d.name,exptype,resolutionid,mode,device,mzrange,",
+"count(*) numspec from spectrum s join tissue t on t.id=s.sampletumorid ",
+"join diagnosis d on t.diagnosis=d.id where s.dt > ? ",
+"group by diagnosis,name,exptype,resolutionid,mode,device,mzrange",
+" having count(*) >10 ",
+"order by numspec desc;")
+
+getDiagDistrib<-paste("select diagnosis,d.name,",
+"count(*) numspec from spectrum s join tissue t on t.id=s.sampletumorid ",
+"join diagnosis d on t.diagnosis=d.id where s.dt > ? ",
+"group by diagnosis,name",
+"order by numspec desc;")
+
+getExpTypeDistrib<-paste("select exptype,",
+"count(*) numspec from spectrum s join tissue t on t.id=s.sampletumorid ",
+"join diagnosis d on t.diagnosis=d.id where s.dt > ? ",
+"group by exptype",
+"order by numspec desc;")
+
+getResolutionDistrib<-paste("select resolutionid,",
+"count(*) numspec from spectrum s join tissue t on t.id=s.sampletumorid ",
+"join diagnosis d on t.diagnosis=d.id where s.dt > ? ",
+"group by resolutionid",
+"order by numspec desc;")
+
+getModeDistrib<-paste("select mode,",
+"count(*) numspec from spectrum s join tissue t on t.id=s.sampletumorid ",
+"join diagnosis d on t.diagnosis=d.id where s.dt > ? ",
+"group by mode",
+"order by numspec desc;")
+
+getDeviceDistrib<-paste("select device,",
+"count(*) numspec from spectrum s join tissue t on t.id=s.sampletumorid ",
+"join diagnosis d on t.diagnosis=d.id where s.dt > ? ",
+"group by device",
+"order by numspec desc;")
+
+
+getMZRangeDistrib<-paste("select mzrange,",
+"count(*) numspec from spectrum s join tissue t on t.id=s.sampletumorid ",
+"join diagnosis d on t.diagnosis=d.id where s.dt > ? ",
+"group by mzrange",
+"order by numspec desc;")
+
+
+
+
+q1<-paste("COPY select p.id,p.scan,c.spectrumid,t.diagnosis,t.patientid, ",
+"c.num,c.rt,c.tic,p.mz,p.intensity,p.norm2tic,p.snr ",
+"from  ms.scan c join ms.peak p on c.id=p.scan ",
+"join ms.spectrum s on s.id=c.spectrumid ",
+"join ms.tissue t on t.id=s.sampletumorid ")
+q2<- paste("INTO '/Volumes/AS_Elements/Scalpel/DBData/peaks.2019.6_32_mipt_snr2.tsv.gz'")
+
+```
+
+```{r oblig.par, include=FALSE}
+dbname = "msinvent"
+usr='msinvent'
+pwd='msinvent'
+host<-'192.168.5.133'
+dtPath = '/Volumes/AS_Elements/Scalpel/DBData/peaks/'
+devID<-1 #Device
+solID<-6 #Solvent
+isID<-1 # ionsource
+resID<-1 #ResolutionID
+smplID<-1 #SampleID
+stID<-1 #SampleTumorID
+stpID<-1 #SampleTumorPatientID
+nMode<-1 #Negative mode
+```
+
+# Read data
+Before running the code a number of variables should be setted for appropriate data loading:
+ 
+ 1. the path to the folder where data will be moved after upload *dtPath* 
+ 3. the name of the database *dbname*
+ 4. user/password for teh database: *usr* and *pwd*
+ 
+
+
+```{r check.values}
+if(!(exists('dbname')&
+     exists('usr')&
+     exists('pwd')&
+     exists('dtPath'))){
+  stop('not all obligatory parameters are provided\n')
+}
+if(!exists('halfWindowSize')){
+  halfWindowSize<-3 # best suited for centroided data
+}
+```
+
+
+# Connect to the database
+
+```{r db.connect}
+conn <- dbConnect(MonetDB.R::MonetDB(), 
+                  dbname = dbname,host=host,
+                  user=usr,password=pwd,timeout=2400)
+```
+
+
+# Spectrum statistics
+
+## Diagnosis
+
+```{r diag}
+diagD<-dbGetQuery(conn,getDiagDistrib,startDate)
+panderCnt(diagD)
+```
+
+## ExpType
+```{r exptype}
+exptypeD<-dbGetQuery(conn,getExpTypeDistrib,startDate)
+panderCnt(exptypeD)
+```
+
+## Resolution
+```{r resolution}
+resolutionD<-dbGetQuery(conn,getResolutionDistrib,startDate)
+panderCnt(resolutionD)
+```
+
+## Mode
+```{r mode}
+modeD<-dbGetQuery(conn,getModeDistrib,startDate)
+panderCnt(modeD)
+```
+
+## Device
+```{r device}
+devD<-dbGetQuery(conn,getDeviceDistrib,startDate)
+panderCnt(devD)
+```
+
+## MZ range
+```{r mzrange}
+mzrangeD<-dbGetQuery(conn,getMZRangeDistrib,startDate)
+panderCnt(mzrangeD)
+```
+
+## Spectra count
+```{r show.spectra,results='asis'}
+specT<-dbGetQuery(conn,getSpecDistrib,startDate)
+printTable(specT,main="Distribution of spectra",landscape = TRUE,digits=0,align = 'lllllllll')
+```
+
+# Load peaks
+
+```{r process.peak}
+for(i in 1:dim(specT)[1]){
+  cat(format(Sys.time(), "%b %d %X"),i,
+      specT$name[i],
+      specT$exptype[i],
+      specT$resolutionid[i],
+      specT$mode[i],
+      specT$device[i],
+      specT$mzrange[i],
+      '\n',file = 'prepDS.log',append = TRUE)
+  fname<-paste0(dtPath,'peak2019',
+                '.diag_',specT$diagnosis[i],
+                '.expt_',specT$exptype[i],
+                '.res_',specT$resolutionid[i],
+                '.mode_',specT$mode[i],
+                '.dev_',specT$device[i],
+                '.mz_',specT$mzrange[i],
+                '.tsv.gz')
+  cat(fname,'\n',file = 'prepDS.log',append = TRUE)
+  q<-paste0(q1,
+           ' where diagnosis=',specT$diagnosis[i],
+                ' and exptype=',specT$exptype[i],
+                ' and resolutionid=',specT$resolutionid[i],
+                ' and mode=',specT$mode[i],
+                ' and device=',specT$device[i],
+                ' and mzrange=',specT$mzrange[i],
+                " and s.dt > '",startDate,"'",
+                " and snr >=2 ",
+           " INTO '",fname,"';")
+  cat(paste0('mclient -d msinvent -h ',host,' -s  "',q,'"'),'\n',
+      file = 'prepDS.log',append = TRUE)
+  system(paste0('mclient -d msinvent -h ',host,' -s  "',q,'"'),
+       intern = TRUE)->mcOut
+ cat(format(Sys.time(), "%b %d %X"),i,mcOut,'\n',file = 'prepDS.log',append = TRUE)
+}
+
+```
+
+```
+{r load.peak.file, eval=proceedFile}
+system(paste0('mclient  -d msinvent  -s  "COPY INTO ',
+              ' ms.peak(scan,mz,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)',
+              '  FROM ',"'",peakFname,
+              "'(scan,mz,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)",';"'),
+       intern = TRUE)->mcOut
+mcOut
+system2('wc', peakFname,stdout=TRUE)->wc
+wc
+wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
+wcn
+#system(paste0('gzip ',peakFname))
+```
+
+
+## Features
+
+# Save data
+```
+{r prepare.fname}
+res.afname<-paste0(dtPath,spectrumID$id,'.peaks.RData')
+cdf.afname<-paste0(dtPath,spectrumID$id,'.cdf')
+```
+
+# Appendix {.tabset}
+## Functions
+```{r functions, eval=FALSE, include=TRUE}
+```
+
+```{r queries, eval=FALSE, include=TRUE}
+```
+
+## Setup R
+```{r setup, eval=FALSE}
+```
+
+## Versions
+### Document version
+```{r docVersion, echo=FALSE, results='asis', cache=FALSE}
+cat(params$version)
+```
+
+### Session Info
+```{r sessionInfo, echo=FALSE, results='asis', class='text', warning=FALSE}
+pander(devtools::session_info())
+```
+
