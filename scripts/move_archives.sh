@@ -17,9 +17,10 @@ if [ "$1" = "monthly" ]
 then
   mount "${LIMP_STORAGE}"
 
-  if ($? > 0) {
+  if [ $? -gt 0 ]
+  then
     mount "${LIMP_STORAGE}"
-  }
+  fi
   tar -cvjf /var/backups/monetdb/msinvent/monthly/$(date +%Y_%m_%d).tar.bz2 /var/backups/monetdb/msinvent/daily/
   rsync -avhcEt --remove-source-files --include="*.tar.bz2" --exclude="*" "/var/backups/monetdb/msinvent/monthly/" "$LIMP_STORAGE/monetdb"
   
