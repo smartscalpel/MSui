@@ -85,3 +85,73 @@ dtTable <- function(dataFromDB, editable, hideColumns, height) {
                 editable = editable
         )
 }
+
+patientsDtTable <- function(dataFromDB, editable, hideColumns, height) {
+  DT::datatable(
+    data = dataFromDB,
+    rownames = FALSE,
+    
+    extensions = list(
+      # Bottons
+      'Buttons'= NULL,
+      
+      # The Scroller extension makes it possible to only render
+      # the visible portion of the table.
+      'Scroller' = NULL
+    ),
+    
+    options = list(
+      #initComplete = JS(js),
+      columnDefs = list(      
+        list(
+          targets = c(0:(length(colnames(dataFromDB)) - 1)),
+          render = JS(
+            "function(data, type, row, meta) {",
+            "",
+            "return type === 'display' && !!data && data.length >= 15 ?",
+            "'<span title=\"' + data + '\">' + data.substr(0, 14) + '..</span>' : data;",
+            "}"
+          ),
+          className = "td"
+        ),
+        list(
+          visible = FALSE,
+          targets = hideColumns
+        )
+      ),
+      editType = list(
+        "1" = "text",
+        "2" = "text",
+        "3" = "text",
+        "4" = "text"
+      ),
+      editAttribs = list(
+        "1" = list(placeholder = colnames(dataFromDB)[1]),
+        "2" = list(placeholder = colnames(dataFromDB)[2]),
+        "3" = list(placeholder = colnames(dataFromDB)[3]),
+        "4" = list(placeholder = colnames(dataFromDB)[4])
+      ),
+      # Bottons
+      dom = 'Bfrtip',
+      buttons = list(
+        'colvis',
+        list(
+          extend = 'collection',
+          buttons = c('csv', 'excel', 'pdf'),
+          text = 'Download'
+        )
+      ),
+      
+      # The Scroller extension makes it possible to only render
+      # the visible portion of the table.
+      deferRender = TRUE,
+      scrollX = TRUE,
+      scrollCollapse = TRUE,
+      paging = FALSE,
+      scrollY = height
+    ),
+    
+    selection = "none",
+    editable = editable
+  )
+}

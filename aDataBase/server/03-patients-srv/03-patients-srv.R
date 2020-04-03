@@ -32,28 +32,34 @@ patientsSexSelector <- shiny::callModule(patientsSexSelector, "patientsSexSelect
 patientsAgeSelector <- shiny::callModule(patientsAgeSelector, "patientsAgeSelector")
 patientsYobSelector <- shiny::callModule(patientsYobSelector, "patientsYobSelector")
 
-shiny::callModule(
+patientsTableEditableClickedData <- shiny::callModule(
         editable,
         id = "patientsEditable",
-        dtTable = dtTable,
+        dtTable = patientsDtTable,
         reactiveDataFromDB = patientsReactiveDataFromDB,
         hideColumns = c(0),
         checkModification = patientsCheckTableModification,
         saveUpdated = patientsSaveModifiedTable(pool),
         dataModal = dataModal,
-        trigger = patientsTriggerUpdateTableReadOnly
+        trigger = patientsTriggerUpdateTableEditable
 )
 
-shiny::callModule(
+patientsTableReadOnlyClickedData <- shiny::callModule(
         readOnly,
-        dtTable = dtTable,
+        dtTable = patientsDtTable,
         id = "patientsReadOnly",
         reactiveDataFromDB = patientsReactiveDataFromDB,
         hideColumns = c(0),
         trigger = patientsTriggerUpdateTableReadOnly
 )
 
-
+patientClickedEmsId <- reactive({
+        if (patientsReactiveValues$editableTable) {
+                patientsReactiveDataFromDB()[patientsTableEditableClickedData()$row, ]$emsid
+        } else {
+                patientsReactiveDataFromDB()[patientsTableReadOnlyClickedData()$row, ]$emsid
+        }
+})
 
 # Load data from DB
 shiny::observeEvent(input$patientsSelect, {

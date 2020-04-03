@@ -66,22 +66,7 @@ patientsLoadDataFromDB <- function(pool,
                 return(list(FALSE, 'Failed to load data from DataBase!', out[[2]]))
                 #dataFromDB$errordescr <-      
         }
-        out <- tryCatch(
-                {
-                        dataFromDB <- dplyr::as_data_frame(dataFromDB)
-                        dataFromDB <- data.frame(dataFromDB)
-                },
-                error = function(c) {
-                        return(list('error', paste(c[[1]])))
-                }
-        )
-        #browser()
-        if (
-                length(out) > 0 & isTRUE(out[[1]] == 'error')
-        ){
-                return(list(FALSE, 'Failed to load data from DataBase!', out[[2]]))
-                #dataFromDB$errordescr <-      
-        }
+        
         return(list(TRUE, dataFromDB))
         # Recive data from DB
         #dataFromDB <- dplyr::as_data_frame(dataFromDB)

@@ -30,7 +30,7 @@ patientsCheckTableModification <- function(dataFromDB, j, newValue) {
         
         if (columnNames[j] == "sex") {
                 if (is.character(newValue)) {
-                        if (newValue != "М" & newValue != "Ж") {
+                        if (newValue != "M" & newValue != "F") {
                                 checkOutput <- FALSE
                                 checkOutputMessage <- "Incorrect value of sex."
                         }
