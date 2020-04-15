@@ -4,6 +4,7 @@
 #' @param path path to the directory where files are located
 #' @param round where to round the MZ values and aggregate intensities
 #' @param digits number of digits to round mz to 
+#' @param snrT minimal Signal-to-Noise ratio for peak to be included in the output.
 #' 
 #' @details 
 #' We assume that files were created by the query from this package and contains
@@ -25,8 +26,8 @@
 #' @export
 #'
 #' 
-getIntensityMatrix<-function(files,path,round=FALSE,digits=0){
-  res<-getPeakList(files,path,round,digits)
+getIntensityMatrix<-function(files,path,round=FALSE,digits=0,snrT=1.5){
+  res<-getPeakList(files,path,round,digits,align = TRUE)
   mdt<-plyr::ldply(res,function(.x){as.data.frame(metaData(.x))})
   fm<-prepareMatrix(res,gropId = mdt$diagnosis)
   fm<-cbind(mdt,as.data.frame(fm))
@@ -73,11 +74,22 @@ getPeakList<-function(files,path,round=FALSE,digits=0,snrT=1.5,align=FALSE){
   res<-list()
   for(f in files){
     dt<-fread(paste0(path,'/',f))
-    names(dt)<-c('id','scan','spectrumid','diagnosis','num','rt','tic','mz','intensity','norm2tic','snr')
+    if(dim(dt)[2]==12){
+      names(dt)<-c('id','scan','spectrumid',
+                   'diagnosis','patientid','num',
+                   'rt','tic','mz','intensity',
+                   'norm2tic','snr')
+    }else if( dim(dt)[2]==11){
+      names(dt)<-c('id','scan','spectrumid',
+                   'diagnosis','num',
+                   'rt','tic','mz','intensity',
+                   'norm2tic','snr')
+      dt$patientid<-NA
+    }
     dtSNR<-dt[snr>snrT]
     #dt<-setDT(dt)
     #mdt<-dt[,.(N=length(id)),by=.(scan,spectrumid,num,rt,diagnosis,tic)]
-    mdt<-dtSNR[,.(scan,spectrumid,num,rt,diagnosis,tic)]
+    mdt<-dtSNR[,.(scan,spectrumid,patientid,num,rt,diagnosis,tic)]
     md<-unique(mdt)
     p<-makeMassPeak(dtSNR,metadata = md,align = align)
     res<-c(res,p)

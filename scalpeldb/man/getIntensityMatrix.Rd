@@ -4,7 +4,8 @@
 \alias{getIntensityMatrix}
 \title{Create intensity matrix from the set of files}
 \usage{
-getIntensityMatrix(files, path, round = FALSE, digits = 0)
+getIntensityMatrix(files, path, round = FALSE, digits = 0,
+  snrT = 1.5)
 }
 \arguments{
 \item{files}{list of file names to be combined into matrix}
@@ -14,6 +15,8 @@ getIntensityMatrix(files, path, round = FALSE, digits = 0)
 \item{round}{where to round the MZ values and aggregate intensities}
 
 \item{digits}{number of digits to round mz to}
+
+\item{snrT}{minimal Signal-to-Noise ratio for peak to be included in the output.}
 }
 \value{
 matrix of peaks intensity.
