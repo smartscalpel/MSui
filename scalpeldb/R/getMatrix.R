@@ -151,7 +151,7 @@ getPeakListSQL<-function(con,sql,round=FALSE,digits=0){
 #' @return list of MassPeaks objects corresponding th data in peakDT
 #' @export
 #'
-makeMassPeak<-function(peakDT,metadata=NULL,align=FALSE){
+makeMassPeak<-function(peakDT,metadata=NULL,align=FALSE,min_peaks=10){
   idx<-match(c('mz','scan','intensity'),names(peakDT))
   if(any(is.na(idx))){
     stop('Data.table should have three columns in any order: mz, scan, intensity.\n')
@@ -191,6 +191,7 @@ makeMassPeak<-function(peakDT,metadata=NULL,align=FALSE){
   }
   pl<-lapply(scans,makeP)
   ln<-sapply(pl,length)
+  pl<-pl[ln>min_peaks]
   if(align){
   wf<-determineWarpingFunctions(pl,
                                 method="lowess",
