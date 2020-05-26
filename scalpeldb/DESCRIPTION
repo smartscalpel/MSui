@@ -1,7 +1,7 @@
 Package: scalpeldb
 Type: Package
 Title: Set of functions to work with ScalpelDB
-Version: 0.0.6
+Version: 0.0.7
 Date: 2019-10-13
 Author: Anatoly Sorokin 
 Maintainer: Anatoly Sorokin <lptolik@gmail.com>
