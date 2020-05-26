@@ -4,7 +4,7 @@
 \alias{makeMassPeak}
 \title{makeMassPeak.}
 \usage{
-makeMassPeak(peakDT, metadata = NULL, align = FALSE)
+makeMassPeak(peakDT, metadata = NULL, align = FALSE, min_peaks = 10)
 }
 \arguments{
 \item{peakDT}{data.table to take data from}
