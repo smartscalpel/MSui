@@ -195,7 +195,7 @@ makeMassPeak<-function(peakDT,metadata=NULL,align=FALSE,min_peaks=10){
   if(align){
   wf<-determineWarpingFunctions(pl,
                                 method="lowess",
-                                plot=FALSE,
+                                plot=FALSE,allowNoMatches=TRUE,
                                 minFrequency=0.05)
   aPeaks<-warpMassPeaks(pl,wf)
   return(aPeaks)
