@@ -204,10 +204,17 @@ emptyScansQ<-paste('select s.id,filename,count(distinct c.id) scans',
                    '    where s.dt>? ',
                    'group by s.id,filename having count(distinct c.id)=0;')
 ########### NULL-IN queries #############
-ni.diag<-'select id,label,grade,dt,histdiag from tissue where diagnosis=1'
+ni.diag<-'select distinct tissue.id, tissue.label, \'\' | grade as grade,tissue.dt,histdiag from tissue inner join smpl on smpl.tumorid = tissue.id	inner join spectrum s on s.sampleid = smpl.id where s.dt > ? and (diagnosis=1 or histdiag = \'\') '
 ni.mzrange<-'select id,mzrange,dt,filename  from spectrum where dt>? and  mzrange is null'
 ni.mode<-'select id,mode,dt,filename  from spectrum where dt>? and mode is null'
 ni.exptype<-'select id,exptype,dt,filename  from spectrum where dt>? and exptype is null'
+ni.yob.sex <- 'select distinct p.emsid, p.sex, p.yob from patient p 
+  join tissue t on t.patientid = p.id	
+  join diagnosis d on t.diagnosis = d.id 
+  join smpl on smpl.tumorid = t.id	
+  left join smpl s on s.tumorid=t.id
+  join spectrum s on smpl.id = s.sampleid 
+where (p.sex is null or p.yob = -1) and s.dt > ?'
 ```
 
 ```{r echo=FALSE, include=FALSE}
@@ -410,7 +417,14 @@ panderCnt(resNI)
 
 ### Null in Diagnosis
 ```{r ni.diag}
-resNI<-dbGetQuery(conn,ni.diag)
+
+resNI<-dbGetQuery(conn,ni.diag, repDate)
+panderCnt(resNI)
+```
+
+### Null in YOB or Sex
+```{r ni.yob.sex}
+resNI<-dbGetQuery(conn, ni.yob.sex, repDate)
 panderCnt(resNI)
 ```
 
