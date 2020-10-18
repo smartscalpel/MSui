@@ -15,8 +15,7 @@ cat('Report:',format(Sys.time(), "%b %d %X"),'\n')
 file.copy('./scalpelDBReport.Rmd',rmd.fname)
 try(rmarkdown::render(rmd.fname,
                       'pdf_document',
-                      clean=TRUE,
-                      intermediates_dir = 'scalpeldb_report_files'),
+                      clean=TRUE),
     FALSE,
     outFile=sub('Rmd$','try.out',rmd.fname))
 cat('Report over',format(Sys.time(), "%b %d %X"),'\n')
@@ -26,8 +25,7 @@ cat('Report:',format(Sys.time(), "%b %d %X"),'\n')
 file.copy('./scalpelDBReportDT.Rmd',rmd.fname)
 try(rmarkdown::render(rmd.fname,
                       'pdf_document',
-                      clean=TRUE,
-                      intermediates_dir = 'scalpeldb_report_files'),
+                      clean=TRUE),
     FALSE,
     outFile=sub('Rmd$','try.out',rmd.fname))
 cat('Dated Report over',format(Sys.time(), "%b %d %X"),'\n')
@@ -38,7 +36,6 @@ file.copy('./scalpelDBReportDT.Rmd', weekly.rmd.fname)
 try(rmarkdown::render(weekly.rmd.fname,
                       'pdf_document',
                       clean = TRUE,
-                      intermediates_dir = 'scalpeldb_report_files',
                       params = list(defDate = format(defDate, "%Y-%m-%d"))),
     FALSE,
     outFile=sub('Rmd$','try.out', weekly.rmd.fname))
