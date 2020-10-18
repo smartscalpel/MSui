@@ -12,6 +12,7 @@ params:
     else 'print'
   version: !r if(nchar(Sys.which("git"))) system("git describe --long --dirty --abbrev=10  --tags  --always",
     intern=TRUE) else date()
+  defDate: '2019-01-01'
 header-includes:
 - \usepackage[T2A]{fontenc}
 - \usepackage[utf8]{inputenc}
@@ -222,7 +223,7 @@ dbname<-'msinvent'
 usr<-'msinvent'
 pwd<-'msinvent'
 host<-'192.168.5.133'
-defDate<-'2019-01-01'
+
 ```
 
 # Read data
@@ -235,7 +236,7 @@ if(!(exists('dbname')&
   stop('not all obligatory parameters are provided\n')
 }
 if(!exists('repDate')){
-  repDate<-defDate
+  repDate<-params$defDate
 }
 ```
 
