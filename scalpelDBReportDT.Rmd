@@ -245,7 +245,7 @@ Before running the code a number of variables should be set for appropriate data
  3. the name of the database *dbname*
  4. user/password for teh database: *usr* and *pwd*
  
-Report is prepared for all spectra measured after `r format(repDate, "%a, %d %b %Y")`.
+Report is prepared for all spectra measured after `r repDate`.
 
 
 # Connect to the database
