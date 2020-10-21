@@ -26,7 +26,7 @@ if (length(files_all) > 0) {
   body <- stringr::str_replace(body, "verd", '<span class="ok">successfully</span>')
   body <- stringr::str_replace(body, "report", paste0('<p>The reports are attached</p>',
                                                       '<ul><li>',
-                                                      paste(basename(files_all), sep = '</li><li>'),
+                                                      paste(basename(files_all), collapse = '</li><li>'),
                                                       '</li>'))
   email <- send.mail(from = sender,
                      to = recipients,
