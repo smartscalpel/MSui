@@ -390,11 +390,16 @@ if (length(spec$res) > 0){
 ### LTQ
 ```{r spect.ltq.pie,fig.height=11,fig.width=11}
 if (length(spec$res) > 0) {
-  x<-table(subset(spec,res=='LTQ',select = 'diagname'));plotPie(x,names(x),main='LTQ')
-  x<-table(subset(spec,res=='LTQ'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative LTQ')
-  x<-table(subset(spec,res=='LTQ'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive LTQ')
-  x<-table(subset(spec,res=='LTQ'&exptype=='fresh',select = 'diagname'));plotPie(x,names(x),main='Fresh LTQ')
-  x<-table(subset(spec,res=='LTQ'&exptype=='frozen',select = 'diagname'));plotPie(x,names(x),main='Frozen LTQ')
+  x<-table(subset(spec,res=='LTQ',select = 'diagname'));
+  if (nrow(x) > 0) {plotPie(x,names(x),main='LTQ')}
+  x<-table(subset(spec,res=='LTQ'&mode=='negative',select = 'diagname'))
+  if (nrow(x) > 0) {plotPie(x,names(x),main='Negative LTQ')}
+  x<-table(subset(spec,res=='LTQ'&mode=='positive',select = 'diagname'))
+  if (nrow(x) > 0) {plotPie(x,names(x),main='Positive LTQ')}
+  x<-table(subset(spec,res=='LTQ'&exptype=='fresh',select = 'diagname'))
+  if (nrow(x) > 0) {plotPie(x,names(x),main='Fresh LTQ')}
+  x<-table(subset(spec,res=='LTQ'&exptype=='frozen',select = 'diagname'))
+  if (nrow(x) > 0) {plotPie(x,names(x),main='Frozen LTQ')}
 } else {
   print("There is no spectra")
 }
@@ -403,9 +408,12 @@ if (length(spec$res) > 0) {
 ### FT
 ```{r spect.ft.pie, eval=length(spec$res)>0, fig.height=11, fig.width=11}
 if (length(spec$res)>0){
-  x<-table(subset(spec,res=='FT',select = 'diagname'));plotPie(x,names(x),main='FT')
-  x<-table(subset(spec,res=='FT'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative FT')
-  x<-table(subset(spec,res=='FT'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive FT')
+  x<-table(subset(spec,res=='FT',select = 'diagname'))
+  if (nrow(x) > 0) {plotPie(x,names(x),main='FT')}
+  x<-table(subset(spec,res=='FT'&mode=='negative',select = 'diagname'))
+  if (nrow(x) > 0) {plotPie(x,names(x),main='Negative FT')}
+  x<-table(subset(spec,res=='FT'&mode=='positive',select = 'diagname'))
+  if (nrow(x) > 0) {plotPie(x,names(x),main='Positive FT')}
 } else {
   print("There is no spectra")
 }
@@ -417,10 +425,14 @@ if (length(spec$res)>0){
 ```{r spec.pie,fig.height=11,fig.width=11}
 if (length(spec$res)>0){
   orig<-par(mfrow = c(2,2))
-  x<-table(subset(spec,res=='FT'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative FT',th=2)
-  x<-table(subset(spec,res=='FT'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive FT',th=2)
-  x<-table(subset(spec,res=='LTQ'&mode=='negative',select = 'diagname'));plotPie(x,names(x),main='Negative LTQ',th=2)
-  x<-table(subset(spec,res=='LTQ'&mode=='positive',select = 'diagname'));plotPie(x,names(x),main='Positive LTQ',th=2)
+  x<-table(subset(spec,res=='FT'&mode=='negative',select = 'diagname'))
+  if (nrow(x) > 0) {plotPie(x,names(x),main='Negative FT',th=2)}
+  x<-table(subset(spec,res=='FT'&mode=='positive',select = 'diagname'))
+  if (nrow(x) > 0) {plotPie(x,names(x),main='Positive FT',th=2)}
+  x<-table(subset(spec,res=='LTQ'&mode=='negative',select = 'diagname'))
+  if (nrow(x) > 0) {plotPie(x,names(x),main='Negative LTQ',th=2)}
+  x<-table(subset(spec,res=='LTQ'&mode=='positive',select = 'diagname'))
+  if (nrow(x) > 0) {plotPie(x,names(x),main='Positive LTQ',th=2)}
   par(orig)
 } else {
   print("There is no spectra")
