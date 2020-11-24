@@ -108,6 +108,31 @@ panderOptions("table.split.table", 160)
 ```{r functions, include=FALSE}
 ## Custom functions used in the analysis should go into this chunk.
 ## They will be listed in their own section of the appendix.
+##==================== CAT score ====================##
+getCorrStruct<-function(X,cutoff=0.85){
+  cm<-cor(X)
+  h<-hclust(as.dist(1-abs(cm)),method = 'ward.D2')
+  c<-cutree(h,h=1)
+  ncl<-max(c);ncl
+  mmm<-min(sapply(1:ncl,function(k){j<-which(c==k);return(min(min(abs(cm[j,j]))))}))
+  while(mmm<cutoff){
+    ccl<-ncl+1
+    c<-cutree(h,k=ccl)
+    ncl<-max(c);ncl
+    mmm<-min(sapply(1:ncl,function(k){j<-which(c==k);return(min(min(abs(cm[j,j]))))}))
+  }
+  return(c)
+}
+
+groupCATscore<-function(X,class,cutoff=0.85){
+  tstat = catscore(as.matrix(X), class)
+  c<-getCorrStruct(X,cutoff)
+  laply(c,function(jj){j<-which(c==jj);tmp<-sign(tstat[j,])*sqrt(sum(tstat[j,]^2));tmp[j==j[1]]})->tmp
+colnames(tmp)<-paste0('g',colnames(tmp))
+res<-cbind(as.data.frame(tstat[TRUE,]),tmp)
+return(res[order(abs(tmp[,1]),decreasing = TRUE),])
+
+}
 
 ##==================== Functions ====================##
 data(isotopes)
@@ -581,13 +606,16 @@ get.folds = function(ygrouped, K)
 
   return( folds )
 }
+getMD<-function(p){
+  as.data.frame(metaData(p))
+}
 
 ```
 
 ```{r echo=FALSE, include=FALSE}
 pathDef<-'~/Dropbox/Скальпель/DBData/peaks/'
-flDef<-c("peak2019.diag_32.expt_1.res_1.mode_1.dev_2.mz_1.tsv.gz",
-        "peak2019.diag_6.expt_1.res_1.mode_1.dev_2.mz_1.tsv.gz" )
+flDef<-c("peak2019.diag_32.expt_1.res_1.mode_2.dev_2.mz_2.tsv.gz",
+        "peak2019.diag_6.expt_1.res_1.mode_2.dev_2.mz_2.tsv.gz" )
 ```
 
 # Read data
@@ -602,12 +630,13 @@ Before running the code a number of variables should be setted for appropriate d
 if(!(exists('fl')&
      exists('path'))){
   warning('not all obligatory parameters are provided\nUsing defaults.\n')
+  cat(format(Sys.time(), "%b %d %X"),'not all obligatory parameters are provided\nUsing defaults.\n',file = logFile,append = TRUE)
   fl<-flDef
   path<-pathDef
   wd<-getwd()
   cacheDef<-TRUE
 }else{
-  cacheDef<-FALSE
+  cacheDef<-TRUE #FALSE
 }
 lipids<-read.csv('DetectedLipids.csv')
 lipids<-lipids[order(lipids$PEAK),]
@@ -639,6 +668,9 @@ path
 
 ```{r makePeakList,cache=cacheDef}
 peaks<-getPeakList(fl,path)
+dl<-lapply(peaks, getMD)
+md<-do.call(rbind,dl)
+
 ```
 
 # Анализ сырых данных **datasetname**
@@ -674,6 +706,7 @@ wf<-determineWarpingFunctions(peaks[idx],
                               plot=FALSE,minFrequency=0.05)
 aPeaks<-warpMassPeaks(peaks[idx],wf)
 rff<-ff[idx]
+mdfm<-md[idx,]
 ```
 
 ```{r datasetname.mi.align.peaks,cache=TRUE}
@@ -682,6 +715,7 @@ mwf<-determineWarpingFunctions(mpeaks[idxMI],
                                plot=FALSE,minFrequency=0.05)
 aPeaksMI<-warpMassPeaks(mpeaks[idxMI],mwf)
 miff<-ff[idxMI]
+mdmi<-md[idxMI,]
 ```
 
 
@@ -958,9 +992,18 @@ cat(format(Sys.time(), "%b %d %X"),dname,'Classification has started. Full data.
 idx5<-which(diag[idx]%in% unique(diag))
 ```
 
+```{r datasetname.save.fm5}
+fm<-featureMatrix[idx5,]
+mdf<-mdfm[idx5,]
+cls<-diag[idx[idx5]]
+save(path,fl,fm,cls,mdf,file = 'SDAfilesReport.fm.Rdata')
+```
+
+
+
 ```{r datasetname.raw.sda,fig.width=8.5,fig.height=10.5,results='asis',cache=FALSE}
 ddar5 <- sda.ranking(Xtrain=featureMatrix[idx5,], L=diag[idx[idx5]],
-                     fdr=FALSE, diagonal=TRUE)
+                     fdr=TRUE, diagonal=FALSE)
 plot(ddar5)
 
 ```
@@ -977,9 +1020,27 @@ qplot(score,int,data=dfddar,colour=intR)
 idxDdar<-match.closest(dfddar$mz,lipids$PEAK,tolerance = 0.05)
 #cbind(dfddar,lipids[idxDdar,])
 rownames(dfddar)<-round(as.numeric(rownames(dfddar)),4)
-pander(cbind(dfddar,lipids[idxDdar,c('NAME')])[1:50,],caption = "datasetname.raw")
+dfddar$lipids<-lipids[idxDdar,c('NAME')]
+pander(dfddar[1:50,],caption = "datasetname.raw")
 #pander(dfddar[1:20,])
 ```
+
+```{r datasetname.raw.sda_topR,fig.width=8.5,fig.height=10.5,results='asis',cache=FALSE}
+mddar5_topR<-mddar5[which(dfddar$intR> dim(dfddar)[1]/2),]
+ddar5_topR<-mddar5_topR
+class(ddar5_topR)<-class(ddar5)
+attr(ddar5_topR,'diagonal')<-attr(ddar5,'diagonal')
+attr(ddar5_topR,'cl.count')<-attr(ddar5,'cl.count')
+plot(ddar5_topR,main='The 40 Top Ranking Features above 50% of intensity')
+
+```
+
+```{r datasetname.raw.sda_byInt,fig.width=8.5,fig.height=10.5,cache=FALSE}
+d<-dfddar[which(dfddar$intR> dim(dfddar)[1]/2),]
+pander(d[1:50,],caption = "datasetname.raw Top 50% of intensity")
+
+```
+
 ```{r datasetname.save.sda}
 mddar<-mddar5
 dfddar<-dfddar
@@ -1171,8 +1232,8 @@ fviz_pca_ind(pca, habillage='none',label = 'none',
 addEllipses=FALSE)
 fviz_pca_ind(pca, habillage=diag[idx[idx5]],
 addEllipses=TRUE, ellipse.level=0.95)
-fviz_pca_ind(pca, habillage=ff[idx[idx5]],
-addEllipses=TRUE, ellipse.level=0.95)
+col.ff<-as.numeric(ff[idx[idx5]])
+fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
 ```
 
 
@@ -1184,8 +1245,8 @@ fviz_pca_ind(pca, habillage='none',label = 'none',
 addEllipses=FALSE)
 fviz_pca_ind(pca, habillage=diag[idx[idx5]],
 addEllipses=TRUE, ellipse.level=0.95)
-fviz_pca_ind(pca, habillage=ff[idx[idx5]],
-addEllipses=TRUE, ellipse.level=0.95)
+col.ff<-as.numeric(ff[idx[idx5]])
+fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
 ```
 
 ```{r datasetname.save.models}
@@ -1204,9 +1265,17 @@ cat(format(Sys.time(), "%b %d %X"),dname,'Classification has started. Monoisotop
 idx5<-which(diag[idxMI]%in% unique(diag))
 ```
 
+```{r datasetname.save.mi.fm5}
+fm<-featureMatrixMI[idx5,]
+mdf<-mdmi[idx5,]
+cls<-diag[idxMI[idx5]]
+save(path,fl,fm,mdf,cls,file = 'SDAfilesReport.fm.mi.Rdata')
+```
+
+
 ```{r datasetname.mi.raw.sda,fig.width=8.5,fig.height=10.5,results='asis',cache=FALSE}
 ddar5 <- sda.ranking(Xtrain=featureMatrixMI[idx5,], L=diag[idxMI[idx5]],
-                     fdr=FALSE, diagonal=TRUE)
+                     fdr=TRUE, diagonal=FALSE)
 plot(ddar5)
 
 ```
@@ -1417,8 +1486,8 @@ fviz_pca_ind(pca, habillage='none',label = 'none',
 addEllipses=FALSE)
 fviz_pca_ind(pca, habillage=diag[idxMI[idx5]],
 addEllipses=TRUE, ellipse.level=0.95)
-fviz_pca_ind(pca, habillage=ff[idxMI[idx5]],
-addEllipses=TRUE, ellipse.level=0.95)
+col.ff<-as.numeric(ff[idxMI[idx5]])
+fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
 ```
 
 
@@ -1430,8 +1499,8 @@ fviz_pca_ind(pca, habillage='none',label = 'none',
 addEllipses=FALSE)
 fviz_pca_ind(pca, habillage=diag[idxMI[idx5]],
 addEllipses=TRUE, ellipse.level=0.95)
-fviz_pca_ind(pca, habillage=ff[idxMI[idx5]],
-addEllipses=TRUE, ellipse.level=0.95)
+col.ff<-as.numeric(ff[idxMI[idx5]])
+fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
 ```
 
 ```{r datasetname.mi.save.models}
