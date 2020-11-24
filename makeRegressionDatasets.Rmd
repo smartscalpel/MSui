@@ -221,8 +221,10 @@ usr<-'msinvent'
 pwd<-'msinvent'
 #host<-'127.0.0.1'
 host<-'192.168.5.133'
-fname<-'/Volumes/AS_Elements/Scalpel/DBData/peaks/RegressionMetaData.tsv'
-logname<-'/Volumes/AS_Elements/Scalpel/DBData/peaks/RegressionMetaData.log'
+fname<-'/Users/lptolik/Dropbox/Скальпель/DBData/RegressionMetaData.csv'
+logname<-'/Users/lptolik/Dropbox/Скальпель/DBData/RegressionMetaData.log'
+#fname<-'/Volumes/AS_Elements/Scalpel/DBData/peaks/RegressionMetaData.tsv'
+#logname<-'/Volumes/AS_Elements/Scalpel/DBData/peaks/RegressionMetaData.log'
 ```
 
 # Read data
