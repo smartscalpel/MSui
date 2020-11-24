@@ -202,7 +202,8 @@ ni.mzrange<-'select id,mzrange,dt,filename  from spectrum where mzrange is null'
 ni.mode<-'select id,mode,dt,filename  from spectrum where mode is null'
 ni.exptype<-'select id,exptype,dt,filename  from spectrum where exptype is null'
 ########### metadata queries #############
-tis.diag<-'select id,label,diagnosis from tissue where label=?'
+tis.diag<-'select t.id,label,d.id diagid,d.name diagnosis from tissue t join diagnosis d on t.diagnosis=d.id  where label=?'
+  #'select id,label,diagnosis from tissue where label=?'
 smplQ<-paste('select s.tumorid,s.id as smplid,',
                    't.label as tlab,s.label as slab ',
                    'from tissue t join smpl s on t.id=s.tumorid ',
@@ -251,9 +252,28 @@ user=usr,password=pwd,timeout=2400)
 
 # Read table
 ```{r read.tbl}
-tbl<-fread(fname,dec = ',')
-pander(tbl[,c(1:2,4:7)])
+metadata<-fread(fname,stringsAsFactors = FALSE)
+pander(metadata[,c(1:2,4:7)])
 ```
+
+```{r get.healthy.tbl}
+q<-"select p.id as tid,s.id as sid,p.label as tlbl,s.label as slbl,location  from patisue p join smpl s on s.tumorid=p.id where diagnosis='Brain'"
+t<-dbGetQuery(conn,q)
+healthy<-data.frame(tissue.lbl=t$tlbl,
+smpl.lbl=t$slbl,
+location="",
+norm.p=100,
+tumor.p=0,
+necro.p=0,
+othr.p=0,
+norm.type='brain',
+diagid=32,
+diagnosis='Brain',
+histdiag=t$location )
+pander(healthy[,c(1:2,4:7)])
+tbl<-rbind(metadata,healthy)
+```
+
 
 # Get diagnoses
 ```{r get.diag}
@@ -268,12 +288,21 @@ pander(tis.diagDF)
 ```
 
 ```{r update.diag}
+tis.diagDF$diagnosis<-as.character(tis.diagDF$diagnosis)
 idx<-match(tbl$tissue.lbl,tis.diagDF$label)
 jdx<-which(!is.na(idx))
-tbl$diagnosis[jdx]<-tis.diagDF$diagnosis[idx[jdx]]
+tbl.j<-tbl[jdx]
+jjdx<-match(tbl.j$tissue.lbl,tis.diagDF$label)
+tbl.j$diagnosis<-as.character(tis.diagDF$diagnosis)[idx[jdx]]
+tbl.j$diagid<-tis.diagDF$diagid[jjdx]
+tbl.j$t.id<-tis.diagDF$id[jjdx]
+tbl$diagnosis<-""
+tbl$diagnosis[jdx]<-as.character(tis.diagDF$diagnosis)[idx[jdx]]
+tbl$diagid[jdx]<-tis.diagDF$diagid[idx[jdx]]
 tbl$t.id[jdx]<-tis.diagDF$id[idx[jdx]]
 tblOrig<-tbl
-tbl<-tbl[jdx]
+tbl<-tbl.j
+pander(tbl[,.(t.id,diagid,diagnosis)])
 ```
 
 ```{r get.smpl}
@@ -306,9 +335,9 @@ sdf<-cbind(tbl[idx,],specDF[,-c(2,4)])
 ```
 
 ```{r save.spectrum}
-rdatfile<-sub('tsv$','RData',fname)
-rdsfile<-sub('tsv$','rds',fname)
-tsvfile<-sub('tsv$','spec.tsv',fname)
+rdatfile<-sub('csv$','RData',fname)
+rdsfile<-sub('csv$','rds',fname)
+tsvfile<-sub('csv$','spec.tsv',fname)
 save(tbl,sdf,specDF,file=rdatfile)
 saveRDS(sdf,file = rdsfile)
 write.table(sdf,file = tsvfile,sep='\t',row.names = FALSE,col.names = TRUE)
