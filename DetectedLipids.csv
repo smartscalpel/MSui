@@ -1,0 +1,189 @@
+PEAK,CHEMSC,NAME,SPECIE,Class
+673.4863,H70 C37 O8 P1 ,PA [34:1],PA [16:0 / 18:1],PhosphatidicAcid
+751.5222,H76 C43 O8 P1 ,PA [40:4],PA [18:0 / 22:4],PhosphatidicAcid
+714.5131,H73 C39 N1 O8 P1 ,PE [34:2],PE [16:1 / 18:1],Phosphatidylethanolamine
+716.5297,H75 C39 N1 O8 P1 ,PE [34:1],PE [18:1 / 16:0],Phosphatidylethanolamine
+740.5293,H75 C41 N1 O8 P1 ,PE [36:3],PE [16:0 / 20:3],Phosphatidylethanolamine
+740.5293,H75 C41 N1 O8 P1 ,PE [36:3],PE [18:2 / 18:1],Phosphatidylethanolamine
+742.546,H77 C41 N1 O8 P1 ,PE [36:2],PE [20:1 / 16:1],Phosphatidylethanolamine
+742.546,H77 C41 N1 O8 P1 ,PE [36:2],PE [20:2 / 16:0],Phosphatidylethanolamine
+742.546,H77 C41 N1 O8 P1 ,PE [36:2],PE [18:2 / 18:0],Phosphatidylethanolamine
+742.546,H77 C41 N1 O8 P1 ,PE [36:2],PE [18:1 / 18:1],Phosphatidylethanolamine
+744.5618,H79 C41 N1 O8 P1 ,PE [36:1],PE [20:1 / 16:0],Phosphatidylethanolamine
+744.5618,H79 C41 N1 O8 P1 ,PE [36:1],PE [18:0 / 18:1],Phosphatidylethanolamine
+760.4911,H71 C43 N1 O8 P1 ,PE [38:7],PE [22:6 / 16:1],Phosphatidylethanolamine
+762.515,H73 C43 N1 O8 P1 ,PE [38:6],PE [22:5 / 16:1],Phosphatidylethanolamine
+762.515,H73 C43 N1 O8 P1 ,PE [38:6],PE [16:0 / 22:6],Phosphatidylethanolamine
+762.515,H73 C43 N1 O8 P1 ,PE [38:6],PE [20:4 / 18:2],Phosphatidylethanolamine
+766.5458,H77 C43 N1 O8 P1 ,PE [38:4],PE [18:1 / 20:3],Phosphatidylethanolamine
+766.5458,H77 C43 N1 O8 P1 ,PE [38:4],PE [22:3 / 16:1],Phosphatidylethanolamine
+766.5458,H77 C43 N1 O8 P1 ,PE [38:4],PE [22:4 / 16:0],Phosphatidylethanolamine
+766.5458,H77 C43 N1 O8 P1 ,PE [38:4],PE [18:0 / 20:4],Phosphatidylethanolamine
+788.5284,H75 C45 N1 O8 P1 ,PE [40:7],PE [20:4 / 20:3],Phosphatidylethanolamine
+788.5284,H75 C45 N1 O8 P1 ,PE [40:7],PE [22:6 / 18:1],Phosphatidylethanolamine
+794.574,H81 C45 N1 O8 P1 ,PE [40:4],PE [20:2 / 20:2],Phosphatidylethanolamine
+794.574,H81 C45 N1 O8 P1 ,PE [40:4],PE [20:0 / 20:4],Phosphatidylethanolamine
+794.574,H81 C45 N1 O8 P1 ,PE [40:4],PE [22:3 / 18:1],Phosphatidylethanolamine
+794.574,H81 C45 N1 O8 P1 ,PE [40:4],PE [22:4 / 18:0],Phosphatidylethanolamine
+794.574,H81 C45 N1 O8 P1 ,PE [40:4],PE [18:2 / 22:2],Phosphatidylethanolamine
+816.5616,H79 C47 N1 O8 P1 ,PE [42:7],PE [22:6 / 20:1],Phosphatidylethanolamine
+700.5343,H75 C39 N1 O7 P1 ,PE-O [34:2],PE-O [18:2 / 16:0],Phosphatidylethanolamineether
+700.5343,H75 C39 N1 O7 P1 ,PE-O [34:2],PE-O [18:1 / 16:1],Phosphatidylethanolamineether
+700.5343,H75 C39 N1 O7 P1 ,PE-O [34:2],PE-O [16:1 / 18:1],Phosphatidylethanolamineether
+722.5189,H73 C41 N1 O7 P1 ,PE-O [36:5],PE-O [16:1 / 20:4],Phosphatidylethanolamineether
+726.5502,H77 C41 N1 O7 P1 ,PE-O [36:3],PE-O [16:1 / 20:2],Phosphatidylethanolamineether
+726.5502,H77 C41 N1 O7 P1 ,PE-O [36:3],PE-O [18:2 / 18:1],Phosphatidylethanolamineether
+728.5669,H79 C41 N1 O7 P1 ,PE-O [36:2],PE-O [18:1 / 18:1],Phosphatidylethanolamineether
+748.5348,H75 C43 N1 O7 P1 ,PE-O [38:6],PE-O [18:2 / 20:4],Phosphatidylethanolamineether
+748.5348,H75 C43 N1 O7 P1 ,PE-O [38:6],PE-O [16:1 / 22:5],Phosphatidylethanolamineether
+750.5497,H77 C43 N1 O7 P1 ,PE-O [38:5],PE-O [20:3 / 18:2],Phosphatidylethanolamineether
+750.5497,H77 C43 N1 O7 P1 ,PE-O [38:5],PE-O [18:0 / 20:5],Phosphatidylethanolamineether
+750.5497,H77 C43 N1 O7 P1 ,PE-O [38:5],PE-O [18:1 / 20:4],Phosphatidylethanolamineether
+750.5497,H77 C43 N1 O7 P1 ,PE-O [38:5],PE-O [18:2 / 20:3],Phosphatidylethanolamineether
+750.5497,H77 C43 N1 O7 P1 ,PE-O [38:5],PE-O [16:0 / 22:5],Phosphatidylethanolamineether
+750.5497,H77 C43 N1 O7 P1 ,PE-O [38:5],PE-O [16:1 / 22:4],Phosphatidylethanolamineether
+774.5503,H77 C45 N1 O7 P1 ,PE-O [40:7],PE-O [18:2 / 22:5],Phosphatidylethanolamineether
+774.5503,H77 C45 N1 O7 P1 ,PE-O [40:7],PE-O [18:1 / 22:6],Phosphatidylethanolamineether
+776.567,H79 C45 N1 O7 P1 ,PE-O [40:6],PE-O [18:0 / 22:6],Phosphatidylethanolamineether
+776.567,H79 C45 N1 O7 P1 ,PE-O [40:6],PE-O [20:2 / 20:4],Phosphatidylethanolamineether
+776.567,H79 C45 N1 O7 P1 ,PE-O [40:6],PE-O [18:2 / 22:4],Phosphatidylethanolamineether
+776.567,H79 C45 N1 O7 P1 ,PE-O [40:6],PE-O [18:1 / 22:5],Phosphatidylethanolamineether
+778.582,H81 C45 N1 O7 P1 ,PE-O [40:5],PE-O [18:2 / 22:3],Phosphatidylethanolamineether
+778.582,H81 C45 N1 O7 P1 ,PE-O [40:5],PE-O [18:1 / 22:4],Phosphatidylethanolamineether
+802.583,H81 C47 N1 O7 P1 ,PE-O [42:7],PE-O [20:1 / 22:6],Phosphatidylethanolamineether
+773.54,H78 C42 O10 P1 ,PG [36:2],PG [20:2 / 16:0],Phosphatidylglycerol
+773.54,H78 C42 O10 P1 ,PG [36:2],PG [18:1 / 18:1],Phosphatidylglycerol
+773.54,H78 C42 O10 P1 ,PG [36:2],PG [18:0 / 18:2],Phosphatidylglycerol
+797.5392,H78 C44 O10 P1 ,PG [38:4],PG [20:3 / 18:1],Phosphatidylglycerol
+797.5392,H78 C44 O10 P1 ,PG [38:4],PG [20:4 / 18:0],Phosphatidylglycerol
+797.5392,H78 C44 O10 P1 ,PG [38:4],PG [20:2 / 18:2],Phosphatidylglycerol
+797.5392,H78 C44 O10 P1 ,PG [38:4],PG [16:0 / 22:4],Phosphatidylglycerol
+835.5412,H80 C43 O13 P1 ,PI [34:1],PI [16:0 / 18:1],Phosphatidylinositol
+865.5834,H86 C45 O13 P1 ,PI [36:0],PI [18:0 / 18:0],Phosphatidylinositol
+758.4938,H73 C40 N1 O10 P1 ,PS [34:2],PS [18:1 / 16:1],Phosphatidylserine
+758.4938,H73 C40 N1 O10 P1 ,PS [34:2],PS [18:2 / 16:0],Phosphatidylserine
+758.4938,H73 C40 N1 O10 P1 ,PS [34:2],PS [17:1 / 17:1],Phosphatidylserine
+760.5179,H75 C40 N1 O10 P1 ,PS [34:1],PS [18:0 / 16:1],Phosphatidylserine
+760.5179,H75 C40 N1 O10 P1 ,PS [34:1],PS [18:1 / 16:0],Phosphatidylserine
+760.5179,H75 C40 N1 O10 P1 ,PS [34:1],PS [20:1 / 14:0],Phosphatidylserine
+788.5502,H79 C42 N1 O10 P1 ,PS [36:1],PS [18:0 / 18:1],Phosphatidylserine
+788.5502,H79 C42 N1 O10 P1 ,PS [36:1],PS [19:1 / 17:0],Phosphatidylserine
+806.4938,H73 C44 N1 O10 P1 ,PS [38:6],PS [18:2 / 20:4],Phosphatidylserine
+806.4938,H73 C44 N1 O10 P1 ,PS [38:6],PS [16:0 / 22:6],Phosphatidylserine
+808.5097,H75 C44 N1 O10 P1 ,PS [38:5],PS [18:2 / 20:3],Phosphatidylserine
+808.5097,H75 C44 N1 O10 P1 ,PS [38:5],PS [22:4 / 16:1],Phosphatidylserine
+808.5097,H75 C44 N1 O10 P1 ,PS [38:5],PS [22:5 / 16:0],Phosphatidylserine
+808.5097,H75 C44 N1 O10 P1 ,PS [38:5],PS [18:1 / 20:4],Phosphatidylserine
+810.5364,H77 C44 N1 O10 P1 ,PS [38:4],PS [18:0 / 20:4],Phosphatidylserine
+810.5364,H77 C44 N1 O10 P1 ,PS [38:4],PS [18:1 / 20:3],Phosphatidylserine
+810.5364,H77 C44 N1 O10 P1 ,PS [38:4],PS [22:4 / 16:0],Phosphatidylserine
+810.5364,H77 C44 N1 O10 P1 ,PS [38:4],PS [19:2 / 19:2],Phosphatidylserine
+812.5526,H79 C44 N1 O10 P1 ,PS [38:3],PS [18:0 / 20:3],Phosphatidylserine
+812.5526,H79 C44 N1 O10 P1 ,PS [38:3],PS [18:1 / 20:2],Phosphatidylserine
+816.5824,H83 C44 N1 O10 P1 ,PS [38:1],PS [18:1 / 20:0],Phosphatidylserine
+816.5824,H83 C44 N1 O10 P1 ,PS [38:1],PS [18:0 / 20:1],Phosphatidylserine
+834.5369,H77 C46 N1 O10 P1 ,PS [40:6],PS [18:4 / 22:2],Phosphatidylserine
+834.5369,H77 C46 N1 O10 P1 ,PS [40:6],PS [20:2 / 20:4],Phosphatidylserine
+834.5369,H77 C46 N1 O10 P1 ,PS [40:6],PS [22:6 / 18:0],Phosphatidylserine
+834.5369,H77 C46 N1 O10 P1 ,PS [40:6],PS [22:4 / 18:2],Phosphatidylserine
+834.5369,H77 C46 N1 O10 P1 ,PS [40:6],PS [18:1 / 22:5],Phosphatidylserine
+838.5686,H81 C46 N1 O10 P1 ,PS [40:4],PS [22:3 / 18:1],Phosphatidylserine
+838.5686,H81 C46 N1 O10 P1 ,PS [40:4],PS [22:4 / 18:0],Phosphatidylserine
+844.5999,H87 C46 N1 O10 P1 ,PS [40:1],PS [18:1 / 22:0],Phosphatidylserine
+844.5999,H87 C46 N1 O10 P1 ,PS [40:1],PS [18:0 / 22:1],Phosphatidylserine
+862.5602,H81 C48 N1 O10 P1 ,PS [42:6],PS [22:6 / 20:0],Phosphatidylserine
+888.581,H83 C50 N1 O10 P1 ,PS [44:7],PS [22:4 / 22:3],Phosphatidylserine
+599.4947,H67 C35 O7 ,DAG [30:0],None,Diacylglycerol
+649.5018,H69 C39 O7 ,DAG [34:3],None,Diacylglycerol
+651.5191,H71 C39 O7 ,DAG [34:2],None,Diacylglycerol
+655.5551,H75 C39 O7 ,DAG [34:0],None,Diacylglycerol
+681.5704,H77 C41 O7 ,DAG [36:1],None,Diacylglycerol
+683.5825,H79 C41 O7 ,DAG [36:0],None,Diacylglycerol
+699.5215,H71 C43 O7 ,DAG [38:6],None,Diacylglycerol
+701.5373,H73 C43 O7 ,DAG [38:5],None,Diacylglycerol
+725.5385,H73 C45 O7 ,DAG [40:7],None,Diacylglycerol
+727.5534,H75 C45 O7 ,DAG [40:6],None,Diacylglycerol
+729.57,H77 C45 O7 ,DAG [40:5],None,Diacylglycerol
+753.5705,H77 C47 O7 ,DAG [42:7],None,Diacylglycerol
+755.5873,H79 C47 O7 ,DAG [42:6],None,Diacylglycerol
+757.6011,H81 C47 O7 ,DAG [42:5],None,Diacylglycerol
+781.6022,H81 C49 O7 ,DAG [44:7],None,Diacylglycerol
+767.5495,H75 C47 O8 ,TAG [42:7],None,Triacylglycerol
+769.5674,H77 C47 O8 ,TAG [42:6],None,Triacylglycerol
+771.5818,H79 C47 O8 ,TAG [42:5],None,Triacylglycerol
+795.5816,H79 C49 O8 ,TAG [44:7],None,Triacylglycerol
+851.6448,H87 C53 O8 ,TAG [48:7],None,Triacylglycerol
+879.6791,H91 C55 O8 ,TAG [50:7],None,Triacylglycerol
+965.7897,H105 C61 O8 ,TAG [56:6],None,Triacylglycerol
+673.4657,H136 C73 O17 P2 ,CL [64:2],None,Cardiolipin
+675.481,H140 C73 O17 P2 ,CL [64:0],None,Cardiolipin
+689.4963,H144 C75 O17 P2 ,CL [66:0],None,Cardiolipin
+699.4818,H140 C77 O17 P2 ,CL [68:4],None,Cardiolipin
+700.4847,H142 C77 O17 P2 ,CL [68:3],None,Cardiolipin
+701.4973,H144 C77 O17 P2 ,CL [68:2],None,Cardiolipin
+702.5009,H146 C77 O17 P2 ,CL [68:1],None,Cardiolipin
+703.513,H148 C77 O17 P2 ,CL [68:0],None,Cardiolipin
+724.4852,H142 C81 O17 P2 ,CL [72:7],None,Cardiolipin
+726.4997,H146 C81 O17 P2 ,CL [72:5],None,Cardiolipin
+727.5127,H148 C81 O17 P2 ,CL [72:4],None,Cardiolipin
+729.5283,H152 C81 O17 P2 ,CL [72:2],None,Cardiolipin
+738.4992,H146 C83 O17 P2 ,CL [74:7],None,Cardiolipin
+742.5303,H154 C83 O17 P2 ,CL [74:3],None,Cardiolipin
+744.5467,H158 C83 O17 P2 ,CL [74:1],None,Cardiolipin
+544.4454,H63 C32 N1 O3 Cl1 ,Cer [32:1],Cer [21:0 / 11:1],ceramidesCl
+544.4454,H63 C32 N1 O3 Cl1 ,Cer [32:1],Cer [22:0 / 10:1],ceramidesCl
+558.4607,H65 C33 N1 O3 Cl1 ,Cer [33:1],Cer [16:0 / 17:1],ceramidesCl
+558.4607,H65 C33 N1 O3 Cl1 ,Cer [33:1],Cer [20:1 / 13:0],ceramidesCl
+558.4607,H65 C33 N1 O3 Cl1 ,Cer [33:1],Cer [18:0 / 15:1],ceramidesCl
+558.4607,H65 C33 N1 O3 Cl1 ,Cer [33:1],Cer [21:0 / 12:1],ceramidesCl
+584.4864,H67 C35 N1 O3 Cl1 ,Cer [35:2],Cer [16:0 / 19:2],ceramidesCl
+584.4864,H67 C35 N1 O3 Cl1 ,Cer [35:2],Cer [18:1 / 17:1],ceramidesCl
+586.4913,H69 C35 N1 O3 Cl1 ,Cer [35:1],Cer [16:0 / 19:1],ceramidesCl
+586.4913,H69 C35 N1 O3 Cl1 ,Cer [35:1],Cer [18:1 / 17:0],ceramidesCl
+600.5157,H71 C36 N1 O3 Cl1 ,Cer [36:1],Cer [18:0 / 18:1],ceramidesCl
+600.5157,H71 C36 N1 O3 Cl1 ,Cer [36:1],Cer [15:0 / 21:1],ceramidesCl
+652.5476,H75 C40 N1 O3 Cl1 ,Cer [40:3],Cer [21:0 / 19:3],ceramidesCl
+652.5476,H75 C40 N1 O3 Cl1 ,Cer [40:3],Cer [19:3 / 21:0],ceramidesCl
+652.5476,H75 C40 N1 O3 Cl1 ,Cer [40:3],Cer [15:1 / 25:2],ceramidesCl
+652.5476,H75 C40 N1 O3 Cl1 ,Cer [40:3],Cer [20:2 / 20:1],ceramidesCl
+654.5641,H77 C40 N1 O3 Cl1 ,Cer [40:2],Cer [17:0 / 23:2],ceramidesCl
+654.5641,H77 C40 N1 O3 Cl1 ,Cer [40:2],Cer [14:1 / 26:1],ceramidesCl
+654.5641,H77 C40 N1 O3 Cl1 ,Cer [40:2],Cer [21:1 / 19:1],ceramidesCl
+654.5641,H77 C40 N1 O3 Cl1 ,Cer [40:2],Cer [19:1 / 21:1],ceramidesCl
+656.5801,H79 C40 N1 O3 Cl1 ,Cer [40:1],Cer [17:0 / 23:1],ceramidesCl
+656.5801,H79 C40 N1 O3 Cl1 ,Cer [40:1],Cer [14:1 / 26:0],ceramidesCl
+656.5801,H79 C40 N1 O3 Cl1 ,Cer [40:1],Cer [21:1 / 19:0],ceramidesCl
+656.5801,H79 C40 N1 O3 Cl1 ,Cer [40:1],Cer [19:1 / 21:0],ceramidesCl
+668.5804,H79 C41 N1 O3 Cl1 ,Cer [41:2],Cer [17:1 / 24:1],ceramidesCl
+672.6134,H83 C41 N1 O3 Cl1 ,Cer [41:0],Cer [16:0 / 25:0],ceramidesCl
+682.595,H81 C42 N1 O3 Cl1 ,Cer [42:2],Cer [18:0 / 24:2],ceramidesCl
+696.6121,H83 C43 N1 O3 Cl1 ,Cer [43:2],Cer [15:1 / 28:1],ceramidesCl
+708.6121,H83 C44 N1 O3 Cl1 ,Cer [44:3],Cer [19:0 / 25:3],ceramidesCl
+708.6121,H83 C44 N1 O3 Cl1 ,Cer [44:3],Cer [16:1 / 28:2],ceramidesCl
+708.6121,H83 C44 N1 O3 Cl1 ,Cer [44:3],Cer [17:3 / 27:0],ceramidesCl
+708.6121,H83 C44 N1 O3 Cl1 ,Cer [44:3],Cer [22:1 / 22:2],ceramidesCl
+710.6277,H85 C44 N1 O3 Cl1 ,Cer [44:2],Cer [19:0 / 25:2],ceramidesCl
+710.6277,H85 C44 N1 O3 Cl1 ,Cer [44:2],Cer [16:1 / 28:1],ceramidesCl
+710.6277,H85 C44 N1 O3 Cl1 ,Cer [44:2],Cer [22:1 / 22:1],ceramidesCl
+552.5382,H70 C35 O3 N1 ,Cer [33:0],None,ceramidesH
+564.54,H70 C36 O3 N1 ,Cer [34:1],None,ceramidesH
+592.5709,H74 C38 O3 N1 ,Cer [36:1],None,ceramidesH
+766.5235,C40 Cl1 H78 O8 N1 P1 ,PC [32:1],PC [16:0 / 16:1],Phosphatidylcholine
+768.5384,C40 Cl1 H80 O8 N1 P1 ,PC [32:0],PC [16:0 / 16:0],Phosphatidylcholine
+788.4977,C42 Cl1 H76 O8 N1 P1 ,PC [34:4],PC [20:4 / 14:0],Phosphatidylcholine
+792.5392,C42 Cl1 H80 O8 N1 P1 ,PC [34:2],PC [16:1 / 18:1],Phosphatidylcholine
+792.5392,C42 Cl1 H80 O8 N1 P1 ,PC [34:2],PC [18:2 / 16:0],Phosphatidylcholine
+794.5521,C42 Cl1 H82 O8 N1 P1 ,PC [34:1],PC [16:0 / 18:1],Phosphatidylcholine
+794.5521,C42 Cl1 H82 O8 N1 P1 ,PC [34:1],PC [16:1 / 18:0],Phosphatidylcholine
+796.5677,C42 Cl1 H84 O8 N1 P1 ,PC [34:0],PC [18:0 / 16:0],Phosphatidylcholine
+816.5395,C44 Cl1 H80 O8 N1 P1 ,PC [36:4],PC [20:4 / 16:0],Phosphatidylcholine
+816.5395,C44 Cl1 H80 O8 N1 P1 ,PC [36:4],PC [18:2 / 18:2],Phosphatidylcholine
+818.5552,C44 Cl1 H82 O8 N1 P1 ,PC [36:3],PC [16:0 / 20:3],Phosphatidylcholine
+818.5552,C44 Cl1 H82 O8 N1 P1 ,PC [36:3],PC [18:2 / 18:1],Phosphatidylcholine
+822.5857,C44 Cl1 H86 O8 N1 P1 ,PC [36:1],PC [18:1 / 18:0],Phosphatidylcholine
+824.6009,C44 Cl1 H88 O8 N1 P1 ,PC [36:0],PC [18:0 / 18:0],Phosphatidylcholine
+844.5712,C46 Cl1 H84 O8 N1 P1 ,PC [38:4],PC [18:1 / 20:3],Phosphatidylcholine
+844.5712,C46 Cl1 H84 O8 N1 P1 ,PC [38:4],PC [20:4 / 18:0],Phosphatidylcholine
+866.5524,C48 Cl1 H82 O8 N1 P1 ,PC [40:7],PC [22:6 / 18:1],Phosphatidylcholine
+872.603,C48 Cl1 H88 O8 N1 P1 ,PC [40:4],PC [22:3 / 18:1],Phosphatidylcholine
+872.603,C48 Cl1 H88 O8 N1 P1 ,PC [40:4],PC [20:2 / 20:2],Phosphatidylcholine
