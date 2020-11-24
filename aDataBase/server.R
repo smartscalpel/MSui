@@ -14,7 +14,7 @@ source("./global.R")
 # Server function
 server <- function(input, output, session) {
         
-        source("./server/generateHtmlScreenSaver.R", local = TRUE)
+        source("./server/generateHtmlScreensaver.R", local = TRUE)
         source("./server/generateErrorMessage.R",    local = TRUE)
         source("./server/dataModal.R",               local = TRUE)
         

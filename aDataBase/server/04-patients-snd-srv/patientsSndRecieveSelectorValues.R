@@ -19,10 +19,10 @@ patientsSndRecieveSelectorValues <- function(emsId, yob, sex, age) {
         # Sex Selector
         if (sex() != "null") {
                 if (sex() == "men") {
-                        patientData["sex"] <- "'М'"
+                        patientData["sex"] <- "'M'"
                 }
                 if (sex() == "women") {
-                        patientData["sex"] <- "'Ж'"
+                        patientData["sex"] <- "'F'"
                 }
         }
         

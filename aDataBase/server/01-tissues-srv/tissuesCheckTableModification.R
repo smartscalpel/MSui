@@ -41,7 +41,7 @@ tissuesCheckTableModification <- function(dataFromDB, j, newValue) {
 
         if (columnNames[j] == "diagnosis") {
                 # check if in dictionary
-                if (! newValue %in% diagnosisDictionary) {
+                if (! newValue %in% diagnosisDictionary$name) {
                         checkOutput <- FALSE
                         checkOutputMessage <- "Not in diagnosis dictionary."
                 }
@@ -51,8 +51,33 @@ tissuesCheckTableModification <- function(dataFromDB, j, newValue) {
                 # check if date
                 if (
                         tryCatch(
-                                as.Date(x, format = "%Y-%m-%d"),
-                                error = function(c) "error"
+                                {
+                                        #browser()
+                                        #newValue <- gsub('\\.', '-', newValue)
+                                        sd <- strptime(newValue, "%Y-%m-%d")
+                                        if (is.na(sd) == TRUE || length(sd) == 0) {
+                                                cat("error")
+                                                e <- simpleError("wrong format")
+                                                stop(e)
+                                        } else {
+                                        #cat(newValue, ': ', , "\n")
+                                                dd <- as.POSIXlt.Date(newValue, 
+                                                                      tryFormats = c("%y-%m-%d", "%Y-%m-%d"))
+                                                newValue
+                                        }
+                                        #as.Date(strptime(newValue, "%Y-%m-%d"))
+                                        #cat(T)
+                                }
+                                ,
+                                error = function(c) {
+                                        cat('error: ', paste(c, sep = "\n"))
+                                        return("error")
+                                }
+                                # warning = function(c) {
+                                #         cat("warning: ", paste(c, sep = "\n"))
+                                #         return("error")
+                                # }
+                                # 
                         ) == "error"
                 ) {
                         checkOutput <- FALSE

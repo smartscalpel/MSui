@@ -32,61 +32,75 @@ patientsSexSelector <- shiny::callModule(patientsSexSelector, "patientsSexSelect
 patientsAgeSelector <- shiny::callModule(patientsAgeSelector, "patientsAgeSelector")
 patientsYobSelector <- shiny::callModule(patientsYobSelector, "patientsYobSelector")
 
-shiny::callModule(
+patientsTableEditableClickedData <- shiny::callModule(
         editable,
         id = "patientsEditable",
-        dtTable = dtTable,
+        dtTable = patientsDtTable,
         reactiveDataFromDB = patientsReactiveDataFromDB,
         hideColumns = c(0),
         checkModification = patientsCheckTableModification,
         saveUpdated = patientsSaveModifiedTable(pool),
         dataModal = dataModal,
-        trigger = patientsTriggerUpdateTableReadOnly
+        trigger = patientsTriggerUpdateTableEditable
 )
 
-shiny::callModule(
+patientsTableReadOnlyClickedData <- shiny::callModule(
         readOnly,
-        dtTable = dtTable,
+        dtTable = patientsDtTable,
         id = "patientsReadOnly",
         reactiveDataFromDB = patientsReactiveDataFromDB,
         hideColumns = c(0),
         trigger = patientsTriggerUpdateTableReadOnly
 )
 
-
+patientClickedEmsId <- reactive({
+        if (patientsReactiveValues$editableTable) {
+                patientsReactiveDataFromDB()[patientsTableEditableClickedData()$row, ]$emsid
+        } else {
+                patientsReactiveDataFromDB()[patientsTableReadOnlyClickedData()$row, ]$emsid
+        }
+})
 
 # Load data from DB
 shiny::observeEvent(input$patientsSelect, {
         
         patientsCheckInputRes <- patientsCheckSelectorValues()
-        
+        patientsFromDB <- patientsLoadDataFromDB(
+                pool = pool,
+                sexSelector = patientsSexSelector,
+                ageSelector = patientsAgeSelector,
+                yobSelector = patientsYobSelector
+        )
         if (patientsCheckInputRes[[1]]) {
                 patientsReactiveValues$error <- FALSE
                 
                 # Load data from database
-                patientsReactiveDataFromDB(
-                        patientsDataFromDB <- patientsLoadDataFromDB(
-                                pool = pool,
-                                sexSelector = patientsSexSelector,
-                                ageSelector = patientsAgeSelector,
-                                yobSelector = patientsYobSelector
+                if (patientsFromDB[[1]]){
+                        patientsReactiveDataFromDB(
+                                patientsDataFromDB <- patientsFromDB[[2]]
                         )
-                )
+                        
+                        if (input$patientsEditableSelector) {
+                                patientsReactiveValues$editableTable <- TRUE
+                                
+                                patientsTriggerUpdateTableEditable(
+                                        patientsTriggerUpdateTableEditable() + 1
+                                )
+                        }
+                        if (! input$patientsEditableSelector) {
+                                patientsReactiveValues$editableTable <- FALSE
+                                
+                                patientsTriggerUpdateTableReadOnly(
+                                        patientsTriggerUpdateTableReadOnly() + 1
+                                )
+                        }
+                } else {
+                        patientsReactiveValues$error <- TRUE
+                        
+                        output$patientsScreensaver  <- generateHtmlScreenSaver(inputText = patientsFromDB[[2]])
+                        output$patientsErrorMessage <- generateErrorMessage(errorText = patientsFromDB[[3]])
+                }
                 
-                if (input$patientsEditableSelector) {
-                        patientsReactiveValues$editableTable <- TRUE
-                        
-                        patientsTriggerUpdateTableEditable(
-                                patientsTriggerUpdateTableEditable() + 1
-                        )
-                }
-                if (! input$patientsEditableSelector) {
-                        patientsReactiveValues$editableTable <- FALSE
-                        
-                        patientsTriggerUpdateTableReadOnly(
-                                patientsTriggerUpdateTableReadOnly() + 1
-                        )
-                }
         } else {
                 patientsReactiveValues$error <- TRUE
                 

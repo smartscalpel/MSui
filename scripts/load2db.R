@@ -24,8 +24,9 @@ for(f in fl){
   cat('fname',rmd.fname,'\npdf',pdf.fname,'\n')
   file.copy('./load2scalpelDB.Rmd',rmd.fname)
   rmd.fname<-normalizePath(rmd.fname)
-#  if(!file.exists(sub('Rmd','tex',rmd.fname))){
-  if(!file.exists(sub('Rmd','knit.md',rmd.fname))){
+  if(!file.exists(sub('Rmd','tex',rmd.fname))){
+#  if(!file.exists(sub('Rmd','knit.md',rmd.fname))){
+    file.copy('./load2scalpelDB.Rmd',rmd.fname, overwrite = TRUE)
     cdf.file<-normalizePath(paste0(path,f))
     cdf.fname<-paste0(ifelse(protocolName=='190130','Burdenko/','Neurosurgery/'),sub(path,'',cdf.file))
     expType<-ifelse(protocolName=='190130',2,1)

@@ -335,11 +335,21 @@ if(dim(spectrumID)[1]>0){
 ```
 
 ```{r emptyScans}
-panderCnt(scID)
+if (exists("scID")) {
+  panderCnt(scID)  
+} else {
+  cat(paste("There is no empty scans for the file", cdf.fname, "\n"))
+}
+
 ```
 
 ```{r emptyPeaks}
-panderCnt(pID)
+if (exists("pID")) {
+  panderCnt(pID)  
+} else {
+  cat(paste("There is no empty peaks for the file", cdf.fname, "\n"))
+}
+
 ```
 
 # Загрузка данных с помощью MALDIquant
@@ -356,6 +366,7 @@ abline(h = qth)
 ```
 
 # Load data to DB
+
 ```{r db.fetch, eval=proceedFile}
 devices<-dbReadTable(conn,'device')
 idxDev<-which(devices$id==devID)
@@ -419,6 +430,7 @@ cat('The file with name \n"',cdf.file,'"\n already loaded into the database\n')
  
 
 ## Spectrum
+
 ```{r insert.spectrums, eval=proceedFile}
 for(sidx in unique(intRT)){
   cdf.fid<-paste0(cdf.fname,'_',sidx)
@@ -470,38 +482,38 @@ printTable(specT,main="Loaded spectra",landscape = TRUE,digits=0,align = 'llllll
 scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
 specdx<-match(specT$id,scanDF$spectrumid)
 if(dim(scanDF)[1]==0){
-df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
-for(sidx in unique(intRT)){
-  cdf.fid<-paste0(cdf.fname,'_',sidx)
-  spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
-  for(sp in origSpectra[intRT==sidx]){
-    md<-metaData(sp)
-    rs<-dbSendStatement(conn,insertScan,
-                        spectrumID$id,
-                        md$number,
-                        md$retentionTime,totalIonCurrent(sp))
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
+  df<-data.frame(spectrumID=1,scanid=1,mz=0.01,intensity=0.01)[FALSE,]
+  for(sidx in unique(intRT)){
+    cdf.fid<-paste0(cdf.fname,'_',sidx)
+    spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
+    for(sp in origSpectra[intRT==sidx]){
+      md<-metaData(sp)
+      rs<-dbSendStatement(conn,insertScan,
+                          spectrumID$id,
+                          md$number,
+                          md$retentionTime,totalIonCurrent(sp))
+      dbHasCompleted(rs)
+      dbGetRowsAffected(rs)
+      dbClearResult(rs)
+    }
   }
-}
-scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
+  scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
 }else if(any(is.na(specdx))){
   for(sidx in which(is.na(specdx))){
-  cdf.fid<-paste0(cdf.fname,'_',sidx)
-  spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
-  for(sp in origSpectra[intRT==sidx]){
-    md<-metaData(sp)
-    rs<-dbSendStatement(conn,insertScan,
-                        spectrumID$id,
-                        md$number,
-                        md$retentionTime,totalIonCurrent(sp))
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
+    cdf.fid<-paste0(cdf.fname,'_',sidx)
+    spectrumID<-dbGetQuery(conn,getSpecID,cdf.fid)
+    for(sp in origSpectra[intRT==sidx]){
+      md<-metaData(sp)
+      rs<-dbSendStatement(conn,insertScan,
+                          spectrumID$id,
+                          md$number,
+                          md$retentionTime,totalIonCurrent(sp))
+      dbHasCompleted(rs)
+      dbGetRowsAffected(rs)
+      dbClearResult(rs)
+    }
   }
-}
-scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
+  scanDF<-dbGetQuery(conn,getScans,paste0(cdf.fname,'_%'))
 }
 #spectrumID<-dbGetQuery(conn,getSpecID,basename(cdf.file))
 ```
@@ -516,12 +528,12 @@ printTable(scanDF,main="Loaded scans",landscape = FALSE,digits=2,align = 'lrrrrr
 Таблица *Peaks* содержит выделенные из сырых данных пики, для улучшения качества данных все сканы выравниваются по отношению к скану с максимальным TIC, пики группируются с отностительной точностью 2e-5 и исключаются пики, встречающиеся менее чем в 25% сканов. 
 
 ### Disable referential constraints and indices
-```
-{r drop.peak.constraints}
-rs<-dbSendStatement(conn,'alter table peak drop CONSTRAINT "peak_featureFK";')
-    dbHasCompleted(rs)
-    dbGetRowsAffected(rs)
-    dbClearResult(rs)
+
+```{r drop.peak.constraints, eval=FALSE}
+# rs<-dbSendStatement(conn,'alter table peak drop CONSTRAINT "peak_featureFK";')
+#     dbHasCompleted(rs)
+#     dbGetRowsAffected(rs)
+#     dbClearResult(rs)
 rs<-dbSendStatement(conn,'alter table peak drop CONSTRAINT "peak_scanFK";')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)
@@ -555,21 +567,25 @@ system.time(res<-sapply(c(1:dim(featureMatrix2)[1]),writeDTpeak,scanDF,tic=tic2,
 system(paste0('mclient  -d msinvent  -s  "COPY INTO ',
               ' ms.peak(scan,mz,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)',
               '  FROM ',"'",peakFname,
-              "'(scan,mz,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)",';"'),
+              "'(scan,mz,intensity,norm2tic,sqrtnorm2tic,sqrtintensity,snr)",' ON CLIENT;"'),
        intern = TRUE)->mcOut
 mcOut
 system2('wc', peakFname,stdout=TRUE)->wc
 wc
 wcn<-as.numeric(unlist(strsplit(trimws(wc),' ')))
 wcn
+mcOutn <- as.numeric(unlist(strsplit(trimws(mcOut), ' ')))
+if (mcOutn[[1]] < wcn[[1]]){
+  stop(paste('Number of affected rows is not equal to the number of rows in ', peakFname, sep = ''))
+}
 #system(paste0('gzip ',peakFname))
 ```
 
 
 
 ### Enable referential constraints
-```
-{r add.peak.constraints}
+
+```{r add.peak.constraints, eval=FALSE}
 rs<-dbSendStatement(conn,'ALTER TABLE "ms"."peak" ADD CONSTRAINT "peak_featureFK" FOREIGN KEY ("feature") REFERENCES "ms"."features" ("id");')
     dbHasCompleted(rs)
     dbGetRowsAffected(rs)

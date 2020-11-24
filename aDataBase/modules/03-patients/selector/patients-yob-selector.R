@@ -17,9 +17,10 @@ patientsYobSelectorUI <- function(id) {
                         inputId = ns("yobrange"),
                         label = NULL,
                         min = 1900,
-                        max = 2000,
+                        max = 2030,
                         step = 1,
-                        value = c(1970, 2000)
+                        value = c(1970, 2000),
+                        sep = ''
                 )
         )
 }

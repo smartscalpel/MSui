@@ -201,6 +201,12 @@ ni.diag<-'select id,label,grade,dt,histdiag from tissue where diagnosis=1'
 ni.mzrange<-'select id,mzrange,dt,filename  from spectrum where mzrange is null'
 ni.mode<-'select id,mode,dt,filename  from spectrum where mode is null'
 ni.exptype<-'select id,exptype,dt,filename  from spectrum where exptype is null'
+ni.yob.sex <- 'select distinct p.emsid, p.sex, p.yob, d.name 
+from patient p
+	join tissue t on t.patientid = p.id	
+  join diagnosis d on t.diagnosis = d.id 
+where p.sex is null or p.yob = -1;'
+
 ```
 
 ```{r echo=FALSE, include=FALSE}
@@ -406,6 +412,14 @@ panderCnt(resNI)
 resNI<-dbGetQuery(conn,ni.diag)
 panderCnt(resNI)
 ```
+
+### Null in YOB or Sex
+```{r ni.yob.sex}
+resNI<-dbGetQuery(conn, ni.yob.sex)
+panderCnt(resNI)
+```
+
+
 
 ### Null in MZrange
 ```{r ni.mzrange}
