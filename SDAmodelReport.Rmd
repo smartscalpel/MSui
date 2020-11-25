@@ -733,7 +733,7 @@ md<-do.call(rbind,dl)
 
 ```
 
-# Анализ сырых данных **datasetname**
+# Подготовка данных к анализу
 
 
 ```{r datasetname.raw.metadata.dataSet}
@@ -747,50 +747,36 @@ idx<-which(ln>Npeaks)
 lpeaks<-peaks[idx]
 ppeaks<-lpeaks
 md<-md[idx,]
+diag<-diag[idx]
+l<-unique(md$diagnosis)
+cls<-factor(md$diagnosis,levels=c(32,l[l!=32]),ordered=TRUE)
 ff<-factor(spectrumid)
 ```
 
 
 ```{r datasetname.make.fm,cache=TRUE}
-predict.fm<-getPeaks(lpeaks,dda.res.full[[1]],
-                     tolerance=2e-4,
-                     minFrequency=0.25)
+minNum<-0.25*length(which(md$diagnosis==32))
+predict.fm<-analyzePeaks::getPeaks(lpeaks,
+                                   dda.res.full[[1]],
+                                   tolerance=2e-4,
+                                   minNumber = minNum)
 predict.tot<-predict.fm
 md.tot<-md
 if(filterTrain){
   idx.train<-which(is.na(match(md$scan,mdf$scan)))
   predict.fm<-predict.fm[idx.train,]
-  md<-md[idx.train]
+  md<-md[idx.train,]
+  cls<-cls[idx.train]
   ppeaks<-lpeaks[idx.train]
 }
 ```
 
-# Diagonal Discriminative Analysis
 
-## Full dataset
-```{r dda.full.get.predictions} 
-labM.full<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(dda.res.full))
-predL.full<-lapply(dda.res.full,
-                   function(.m)analyzePeaks::getPrediction(predict.fm,.m))
-derrL.full<-lapply(predL.full,
-                   function(.x)diagnosticErrors(
-                     confusionMatrix(md$diagnosis, 
-                                     .x$class, 
-                                     negative=32)))
-derrM.full<-do.call(rbind,derrL.full)
-probL.full<-lapply(predL.full,function(.x).x$probII)
-probM.full<-do.call(cbind,probL.full)
-```
-
-
-## Top 20
-
-## Top 10
 
 ```{r datasetname.raw.spectra.facet,fig.width=8.5,fig.height=8.5,dev='png'}
 cat(format(Sys.time(), "%b %d %X"),dname,'Feature matrces are ready\n',file = logFile,append = TRUE)
 mz<-as.double(colnames(predict.fm))
-df<-cbind(data.frame(diag=diag[idx]),as.data.frame(predict.fm))
+df<-cbind(data.frame(diag=cls),as.data.frame(predict.fm))
 pldf<-melt(df,id=c('diag'))
 pldf$mz<-round(as.numeric(as.character(pldf$variable)),4)
 
@@ -802,27 +788,10 @@ ggplot(pldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
   labs(title ='Intensity')
 ```
 
-```{r datasetname.mi.spectra.facet,fig.width=8.5,fig.height=8.5,dev='png'}
-mzMI<-as.double(colnames(featureMatrixMI))
-dfMI<-cbind(data.frame(diag=diag[idxMI]),as.data.frame(featureMatrixMI))
-pldfMI<-melt(dfMI,id=c('diag'))
-pldfMI$mz<-round(as.numeric(as.character(pldfMI$variable)),4)
-
-# pldf<-data.frame(mz=c(mz,mz),
-#                  intensity=c(high,low),
-#                  type=c(rep('high',length(mz)),rep('low',length(mz))),
-#                  scint=c(high/max(high),low/max(low)))
-labIdx<-order(pldfMI$value,decreasing = TRUE)[1:10]
-ggplot(pldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
-  labs(title ='Combined plot')
-ggplot(pldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
-  facet_grid(diag~.)+ 
-  labs(title ='Intensity')
-```
 
 ```{r datasetname.raw.spectra.sc.facet.sum,fig.width=8.5,fig.height=8.5,dev='png'}
-sfm<-t(scale(t(featureMatrix),scale = rowSums(featureMatrix)/1e6,center = FALSE))
-sdf<-cbind(data.frame(diag=diag[idx]),as.data.frame(sfm))
+sfm<-t(scale(t(predict.fm),scale = rowSums(predict.fm)/1e6,center = FALSE))
+sdf<-cbind(data.frame(diag=cls),as.data.frame(sfm))
 spldf<-melt(sdf,id=c('diag'))
 spldf$mz<-round(as.numeric(as.character(spldf$variable)),4)
 
@@ -840,28 +809,9 @@ ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
 ```
 
 
-```{r datasetname.mi.spectra.sc.facet.sum,fig.width=8.5,fig.height=8.5,dev='png'}
-sfmMI<-t(scale(t(featureMatrixMI),scale = rowSums(featureMatrixMI)/1e6,center = FALSE))
-sdfMI<-cbind(data.frame(diag=diag[idxMI]),as.data.frame(sfmMI))
-spldfMI<-melt(sdfMI,id=c('diag'))
-spldfMI$mz<-round(as.numeric(as.character(spldfMI$variable)),4)
-
-# pldf<-data.frame(mz=c(mz,mz),
-#                  intensity=c(high,low),
-#                  type=c(rep('high',length(mz)),rep('low',length(mz))),
-#                  scint=c(high/max(high),low/max(low)))
-labIdxMI<-order(spldfMI$value,decreasing = TRUE)[1:10]
-ggplot(spldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
-  labs(title ='Combined plot')
-ggplot(spldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
-  facet_grid(diag~.,scales = "free_y")+ 
-  xlim(400, 1000) + 
-  labs(title ='Intensity')
-```
-
 ```{r datasetname.raw.spectra.sc.facet.max,fig.width=8.5,fig.height=8.5,dev='png'}
-sfm<-t(scale(t(featureMatrix),scale = rowMax(featureMatrix)/1e6,center = FALSE))
-sdf<-cbind(data.frame(diag=diag[idx]),as.data.frame(sfm))
+sfm<-t(scale(t(predict.fm),scale = rowMax(predict.fm)/1e6,center = FALSE))
+sdf<-cbind(data.frame(diag=cls),as.data.frame(sfm))
 spldf<-melt(sdf,id=c('diag'))
 spldf$mz<-round(as.numeric(as.character(spldf$variable)),4)
 
@@ -879,679 +829,424 @@ ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
 ```
 
 
-```{r datasetname.mi.spectra.sc.facet.max,fig.width=8.5,fig.height=8.5,dev='png'}
-sfmMI<-t(scale(t(featureMatrixMI),scale = rowMax(featureMatrixMI)/1e6,center = FALSE))
-sdfMI<-cbind(data.frame(diag=diag[idxMI]),as.data.frame(sfmMI))
-spldfMI<-melt(sdfMI,id=c('diag'))
-spldfMI$mz<-round(as.numeric(as.character(spldfMI$variable)),4)
-
-# pldf<-data.frame(mz=c(mz,mz),
-#                  intensity=c(high,low),
-#                  type=c(rep('high',length(mz)),rep('low',length(mz))),
-#                  scint=c(high/max(high),low/max(low)))
-labIdxMI<-order(spldfMI$value,decreasing = TRUE)[1:10]
-ggplot(spldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
-  labs(title ='Combined plot')
-ggplot(spldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
-  facet_grid(diag~.)+ 
-  xlim(400, 1000) + 
-  labs(title ='Intensity')
-```
-
-
-```{r datasetname.raw.sda.full,fig.width=8.5,fig.height=10.5,results='asis'}
-ddar2 <- sda.ranking(Xtrain=featureMatrix, L=diag[idx],
-                     fdr=FALSE, diagonal=TRUE)
-plot(ddar2)
-
-```
-
-```{r datasetname.raw.plot.sda.full,fig.width=8.5,fig.height=10.5}
-mddar2<-ddar2
-class(mddar2)<-'matrix'
-dfddar<-as.data.frame(mddar2)
-dfddar$mz<-as.double(rownames(dfddar))
-dfddar<-cbind(dfddar,data.frame(int=colSums(featureMatrix)[dfddar$idx]))
-dfddar$scoreR<-rank(dfddar$score)
-dfddar$intR<-rank(dfddar$int)
-qplot(score,int,data=dfddar,colour=intR)
-
-```
-```{r datasetname.save.raw.sda}
-mddarTot<-mddar2
-dfddarTot<-dfddar
-save(fl,path,mddarTot,dfddarTot,file = 'SDAfilesReport.sdaTot.Rdata')
-```
-
-```{r datasetname.mi.sda,fig.width=8.5,fig.height=10.5,results='asis'}
-ddar2MI <- sda.ranking(Xtrain=featureMatrixMI, L=diag[idxMI],
-                       fdr=FALSE, diagonal=TRUE)
-plot(ddar2MI)
-
-```
-
-```{r datasetname.mi.plot.sda,fig.width=8.5,fig.height=10.5}
-mddar2MI<-ddar2MI
-class(mddar2MI)<-'matrix'
-dfddarMI<-as.data.frame(mddar2MI)
-dfddarMI$mz<-as.double(rownames(dfddarMI))
-dfddarMI<-cbind(dfddarMI,data.frame(int=colSums(featureMatrixMI)[dfddarMI$idx]))
-dfddarMI$scoreR<-rank(dfddarMI$score)
-dfddarMI$intR<-rank(dfddarMI$int)
-qplot(score,int,data=dfddarMI,colour=intR)
-idxDdar<-match.closest(dfddarMI$mz,lipids$PEAK,tolerance = 0.05)
-rownames(dfddarMI)<-round(as.numeric(rownames(dfddarMI)),4)
-pander(cbind(dfddarMI,lipids[idxDdar,c('NAME')])[1:20,],caption = "datasetname.mi")
-```
-```{r datasetname.save.mi.sda}
-mddarTotMI<-mddar2MI
-dfddarTotMI<-dfddarMI
-save(fl,path,mddarTotMI,dfddarTotMI,file = 'SDAfilesReport.sdaTot.MI.Rdata')
-```
-
 ## PCA
 
-### Full data
-
-#### Non-scaled data
+### Non-scaled data
 
 ```{r datasetname.raw.pca.nosc.full,fig.width=8.5,fig.height=8.5}
 cat(format(Sys.time(), "%b %d %X"),dname,'PCA starts\n',file = logFile,append = TRUE)
-pca<-try(prcomp(featureMatrix,scale. = FALSE),silent=TRUE)
+pca<-try(prcomp(predict.fm,scale. = FALSE),silent=TRUE)
 if(class(pca)!="try-error"){
   fviz_screeplot(pca, ncp=15)
   fviz_pca_ind(pca, habillage='none',label = 'none',
                addEllipses=FALSE)
   fviz_pca_ind(pca, habillage='none',label = 'none',axes=c(1,3),
                addEllipses=FALSE)
-  fviz_pca_ind(pca, habillage=diag[idx],
+  fviz_pca_ind(pca, habillage=cls,
                addEllipses=TRUE, ellipse.level=0.95)
-  fviz_pca_ind(pca, habillage=diag[idx],axes=c(1,3),
+  fviz_pca_ind(pca, habillage=cls,axes=c(1,3),
                addEllipses=TRUE, ellipse.level=0.95)
 }else{
   cat('Non-scaled data did not converge\n')
 }
 ```
 
-#### Scaled data
+### Scaled data
 
 ```{r datasetname.raw.pca.sc.full,fig.width=8.5,fig.height=8.5}
-pca<-prcomp(featureMatrix,scale. = TRUE)
+pca<-prcomp(predict.fm[,which(apply(predict.fm,2,sd)>0)],scale. = TRUE)
 fviz_screeplot(pca, ncp=15)
 fviz_pca_ind(pca, habillage='none',label = 'none',
              addEllipses=FALSE)
 fviz_pca_ind(pca, habillage='none',label = 'none',axes=c(1,3),
              addEllipses=FALSE)
-fviz_pca_ind(pca, habillage=diag[idx],
+fviz_pca_ind(pca, habillage=cls,
              addEllipses=TRUE, ellipse.level=0.95)
-fviz_pca_ind(pca, habillage=diag[idx],axes=c(1,3),
-             addEllipses=TRUE, ellipse.level=0.95)
-```
-
-### Monoisotopic
-
-#### Non-scaled data
-
-```{r datasetname.mi.pca.nosc,fig.width=8.5,fig.height=8.5}
-pcaMI<-try(prcomp(featureMatrixMI,scale. = FALSE),silent=TRUE)
-if(class(pcaMI)!="try-error"){
-  fviz_screeplot(pcaMI, ncp=15)
-  fviz_pca_ind(pcaMI, habillage='none',label = 'none',
-               addEllipses=FALSE)
-  fviz_pca_ind(pcaMI, habillage='none',label = 'none',axes=c(1,3),
-               addEllipses=FALSE)
-  fviz_pca_ind(pcaMI, habillage=diag[idxMI],
-               addEllipses=TRUE, ellipse.level=0.95)
-  fviz_pca_ind(pcaMI, habillage=diag[idxMI],axes=c(1,3),
-               addEllipses=TRUE, ellipse.level=0.95)
-}else{
-  cat('Non-scaled data did not converge\n')
-}
-```
-
-#### Scaled data
-
-```{r datasetname.mi.pca.sc,fig.width=8.5,fig.height=8.5}
-pcaMI<-prcomp(featureMatrixMI,scale. = TRUE)
-fviz_screeplot(pcaMI, ncp=15)
-fviz_pca_ind(pcaMI, habillage='none',label = 'none',
-             addEllipses=FALSE)
-fviz_pca_ind(pcaMI, habillage='none',label = 'none',axes=c(1,3),
-             addEllipses=FALSE)
-fviz_pca_ind(pcaMI, habillage=diag[idxMI],
-             addEllipses=TRUE, ellipse.level=0.95)
-fviz_pca_ind(pcaMI, habillage=diag[idxMI],axes=c(1,3),
+fviz_pca_ind(pca, habillage=cls,axes=c(1,3),
              addEllipses=TRUE, ellipse.level=0.95)
 ```
 
 
-## Diag 
+# Diagonal Discriminative Analysis
 
-### Total spectra
-```{r datasetname.fm5}
-cat(format(Sys.time(), "%b %d %X"),dname,'Classification has started. Full data.\n',file = logFile,append = TRUE)
-idx5<-which(diag[idx]%in% unique(diag))
+## Full dataset
+```{r dda.full.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(dda.res.full[[1]])
+labM.dda.full<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(dda.res.full))
+predL.dda.full<-lapply(dda.res.full,
+                   function(.m)analyzePeaks::getPrediction(predict.fm,.m))
+derrL.dda.full<-lapply(predL.dda.full,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+derrM.dda.full<-as.data.frame(do.call(rbind,derrL.dda.full))
+probL.dda.full<-lapply(predL.dda.full,function(.x).x$probII)
+probM.dda.full<-do.call(cbind,probL.dda.full)
+auc<- caTools::colAUC(probM.dda.full,cls,plotROC = TRUE)
+derrM.dda.full$AUC<-t(auc)
+derrM.dda.full<-cbind(
+  data.frame(mIdx=1:length(dda.res.full),
+             type='DDA',
+             nFeatures=length(mz)),
+  derrM.dda.full)
 ```
 
-```{r datasetname.save.fm5}
-fm<-featureMatrix[idx5,]
-mdf<-mdfm[idx5,]
-cls<-diag[idx[idx5]]
-save(path,fl,fm,cls,mdf,file = 'SDAfilesReport.fm.Rdata')
+```{r dda.full.plots}
+p1<-qplot(acc,AUC,data = derrM.dda.full)
+p2<-qplot(sens,AUC,data = derrM.dda.full)
+p3<-qplot(spec,AUC,data = derrM.dda.full)
+p4<-qplot(sens,spec,data = derrM.dda.full)
+
+multiplot(p1,p2,p3,p4,cols = 2)
 ```
 
-
-
-```{r datasetname.raw.sda,fig.width=8.5,fig.height=10.5,results='asis',cache=FALSE}
-ddar5 <- sda.ranking(Xtrain=featureMatrix[idx5,], L=diag[idx[idx5]],
-                     fdr=TRUE, diagonal=FALSE)
-plot(ddar5)
-
+```{r dda.full.table}
+ridx<-unique(c(
+  which.max(derrM.dda.full$acc),
+  which.max(derrM.dda.full$sens),
+  which.max(derrM.dda.full$spec),
+  which.max(derrM.dda.full$AUC)))
+pander(derrM.dda.full[ridx,])
 ```
 
-```{r datasetname.raw.plot.sda,fig.width=8.5,fig.height=10.5,cache=FALSE}
-mddar5<-ddar5
-class(mddar5)<-'matrix'
-dfddar<-as.data.frame(mddar5)
-dfddar$mz<-as.double(rownames(dfddar))
-dfddar<-cbind(dfddar,data.frame(int=colSums(featureMatrix)[dfddar$idx]))
-dfddar$scoreR<-rank(dfddar$score)
-dfddar$intR<-rank(dfddar$int)
-qplot(score,int,data=dfddar,colour=intR)
-idxDdar<-match.closest(dfddar$mz,lipids$PEAK,tolerance = 0.05)
-#cbind(dfddar,lipids[idxDdar,])
-rownames(dfddar)<-round(as.numeric(rownames(dfddar)),4)
-dfddar$lipids<-lipids[idxDdar,c('NAME')]
-pander(dfddar[1:50,],caption = "datasetname.raw")
-#pander(dfddar[1:20,])
+## Top 20
+```{r dda.top20.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(dda.res.top20[[1]])
+labM.dda.top20<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(dda.res.top20))
+predL.dda.top20<-lapply(dda.res.top20,
+                   function(.m)analyzePeaks::getPrediction(predict.fm,.m))
+derrL.dda.top20<-lapply(predL.dda.top20,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+derrM.dda.top20<-as.data.frame(do.call(rbind,derrL.dda.top20))
+probL.dda.top20<-lapply(predL.dda.top20,function(.x).x$probII)
+probM.dda.top20<-do.call(cbind,probL.dda.top20)
+auc<- caTools::colAUC(probM.dda.top20,cls,plotROC = TRUE)
+derrM.dda.top20$AUC<-t(auc)
+derrM.dda.top20<-cbind(    data.frame(mIdx=1:length(dda.res.top20),
+             type='DDA',
+             nFeatures=length(mz)),
+derrM.dda.top20)
 ```
 
-```{r datasetname.raw.sda_topR,fig.width=8.5,fig.height=10.5,results='asis',cache=FALSE}
-mddar5_topR<-mddar5[which(dfddar$intR> dim(dfddar)[1]/2),]
-ddar5_topR<-mddar5_topR
-class(ddar5_topR)<-class(ddar5)
-attr(ddar5_topR,'diagonal')<-attr(ddar5,'diagonal')
-attr(ddar5_topR,'cl.count')<-attr(ddar5,'cl.count')
-plot(ddar5_topR,main='The 40 Top Ranking Features above 50% of intensity')
+```{r dda.top20.plots}
+p1<-qplot(acc,AUC,data = derrM.dda.top20)
+p2<-qplot(sens,AUC,data = derrM.dda.top20)
+p3<-qplot(spec,AUC,data = derrM.dda.top20)
+p4<-qplot(sens,spec,data = derrM.dda.top20)
 
+multiplot(p1,p2,p3,p4,cols = 2)
 ```
 
-```{r datasetname.raw.sda_byInt,fig.width=8.5,fig.height=10.5,cache=FALSE}
-d<-dfddar[which(dfddar$intR> dim(dfddar)[1]/2),]
-pander(d[1:50,],caption = "datasetname.raw Top 50% of intensity")
-
+```{r dda.top20.table}
+ridx<-unique(c(
+  which.max(derrM.dda.top20$acc),
+  which.max(derrM.dda.top20$sens),
+  which.max(derrM.dda.top20$spec),
+  which.max(derrM.dda.top20$AUC)))
+pander(derrM.dda.top20[ridx,])
 ```
 
-```{r datasetname.save.sda}
-mddar<-mddar5
-dfddar<-dfddar
-save(path,fl,mddar,dfddar,file = 'SDAfilesReport.sda.Rdata')
+## Top 10
+```{r dda.top10.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(dda.res.top10[[1]])
+labM.dda.top10<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(dda.res.top10))
+predL.dda.top10<-lapply(dda.res.top10,
+                   function(.m)analyzePeaks::getPrediction(predict.fm,.m))
+derrL.dda.top10<-lapply(predL.dda.top10,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+derrM.dda.top10<-as.data.frame(do.call(rbind,derrL.dda.top10))
+probL.dda.top10<-lapply(predL.dda.top10,function(.x).x$probII)
+probM.dda.top10<-do.call(cbind,probL.dda.top10)
+auc<- caTools::colAUC(probM.dda.top10,cls,plotROC = TRUE)
+derrM.dda.top10$AUC<-t(auc)
+derrM.dda.top10<-cbind(    
+  data.frame(mIdx=1:length(dda.res.top10),
+             type='DDA',
+             nFeatures=length(mz)),             
+  derrM.dda.top10)
 ```
 
+```{r dda.top10.plots}
+p1<-qplot(acc,AUC,data = derrM.dda.top10)
+p2<-qplot(sens,AUC,data = derrM.dda.top10)
+p3<-qplot(spec,AUC,data = derrM.dda.top10)
+p4<-qplot(sens,spec,data = derrM.dda.top10)
 
-```{r datasetname.class.sda.full}
-cat(format(Sys.time(), "%b %d %X"),dname,'SDA classification. Full data.\n',file = logFile,append = TRUE)
-# set seed to get reproducible results
-#set.seed(1234)
-lasso.res<-list()
-lda.res<-list()
-dda.res<-list()
-smpl<-unique(data.frame(ff=ff[idx[idx5]],diag=diag[idx[idx5]]))
-cv.out <- mycrossval(predfun.dda,
-                   X=featureMatrix[idx5,],
-                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-dda.res.full<-dda.res
-dda.res<-list()
-dim(featureMatrix[idx5,])
+multiplot(p1,p2,p3,p4,cols = 2)
 ```
 
-```{r datasetname.class.sda.top20}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:20, "idx"]
-cv.out <- mycrossval(predfun.dda,
-                   X=featureMatrix[idx5,top],
-                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-dda.res.top20<-dda.res
-dda.res<-list()
-dim(featureMatrix[idx5,top])
-```
-
-```{r datasetname.class.sda.top10}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:10, "idx"]
-cv.out <- mycrossval(predfun.dda,
-                   X=featureMatrix[idx5,top],
-                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-dda.res.top10<-dda.res
-dda.res<-list()
-dim(featureMatrix[idx5,top])
-```
-
-```{r datasetname.class.lda.full}
-cat(format(Sys.time(), "%b %d %X"),dname,'LDA classification. Full data.\n',file = logFile,append = TRUE)
-# set seed to get reproducible results
-#set.seed(1234)
-cv.out <- mycrossval(predfun.lda,
-                   X=featureMatrix[idx5,],
-                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lda.res.full<-lda.res
-lda.res<-list()
-dim(featureMatrix[idx5,])
-```
-
-```{r datasetname.class.lda.top20}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:20, "idx"]
-cv.out <- mycrossval(predfun.lda,
-                   X=featureMatrix[idx5,top],
-                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lda.res.top20<-lda.res
-lda.res<-list()
-dim(featureMatrix[idx5,top])
-```
-
-```{r datasetname.class.lda.top10}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:10, "idx"]
-cv.out <- mycrossval(predfun.lda,
-                   X=featureMatrix[idx5,top],
-                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lda.res.top10<-lda.res
-lda.res<-list()
-dim(featureMatrix[idx5,top])
-```
-
-```{r datasetname.class.lasso.full}
-cat(format(Sys.time(), "%b %d %X"),dname,'LASSO classification. Full data.\n',file = logFile,append = TRUE)
-# set seed to get reproducible results
-#set.seed(1234)
-Y=factor(as.character(diag[idx[idx5]]))
-cv.out <- mycrossval(predfun.lasso,
-                   X=featureMatrix[idx5,],
-                   Y=Y,smpl=smpl,ff=ff[idx[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   labels=levels(Y),
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lasso.res.full<-lasso.res
-bestMod<-lasso.res[[which.min(
-  sapply(lasso.res,function(.x).x$lambda.min)
-)]]
-lasso.res<-list()
-dim(featureMatrix[idx5,])
-```
-
-```{r datasetname.class.lasso.top20}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:20, "idx"]
-Y=factor(as.character(diag[idx[idx5]]))
-cv.out <- mycrossval(predfun.lasso,
-                   X=featureMatrix[idx5,top],
-                   Y=Y,smpl=smpl,ff=ff[idx[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   labels=levels(Y),
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lasso.res.top20<-lasso.res
-lasso.res<-list()
-dim(featureMatrix[idx5,top])
-```
-
-```{r datasetname.class.lasso.top10}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:10, "idx"]
-Y=factor(as.character(diag[idx[idx5]]))
-cv.out <- mycrossval(predfun.lasso,
-                   X=featureMatrix[idx5,top],
-                   Y=Y,smpl=smpl,ff=ff[idx[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   labels=levels(Y),
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lasso.res.top10<-lasso.res
-lasso.res<-list()
-dim(featureMatrix[idx5,top])
+```{r dda.top10.table}
+ridx<-unique(c(
+  which.max(derrM.dda.top10$acc),
+  which.max(derrM.dda.top10$sens),
+  which.max(derrM.dda.top10$spec),
+  which.max(derrM.dda.top10$AUC)))
+pander(derrM.dda.top10[ridx,])
 ```
 
 
-```{r datasetname.raw.pca.nosc,fig.width=8.5,fig.height=8.5,cache=FALSE}
-cat(format(Sys.time(), "%b %d %X"),dname,'Second round of PCA. Full data.\n',file = logFile,append = TRUE)
-pca<-prcomp(featureMatrix[idx5,],scale. = FALSE)
-fviz_screeplot(pca, ncp=15)
-fviz_pca_ind(pca, habillage='none',label = 'none',
-addEllipses=FALSE)
-fviz_pca_ind(pca, habillage=diag[idx[idx5]],
-addEllipses=TRUE, ellipse.level=0.95)
-col.ff<-as.numeric(ff[idx[idx5]])
-fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
+
+
+# Shrinkage Discriminative Analysis
+
+## Full dataset
+```{r lda.full.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lda.res.full[[1]])
+labM.lda.full<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lda.res.full))
+predL.lda.full<-lapply(lda.res.full,
+                   function(.m)analyzePeaks::getPrediction(predict.fm,.m))
+derrL.lda.full<-lapply(predL.lda.full,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+derrM.lda.full<-as.data.frame(do.call(rbind,derrL.lda.full))
+probL.lda.full<-lapply(predL.lda.full,function(.x).x$probII)
+probM.lda.full<-do.call(cbind,probL.lda.full)
+auc<- caTools::colAUC(probM.lda.full,cls,plotROC = TRUE)
+derrM.lda.full$AUC<-t(auc)
+derrM.lda.full<-cbind(
+  data.frame(mIdx=1:length(lda.res.full),
+             type='SDA',
+             nFeatures=length(mz)),
+  derrM.lda.full)
+```
+
+```{r lda.full.plots}
+p1<-qplot(acc,AUC,data = derrM.lda.full)
+p2<-qplot(sens,AUC,data = derrM.lda.full)
+p3<-qplot(spec,AUC,data = derrM.lda.full)
+p4<-qplot(sens,spec,data = derrM.lda.full)
+
+multiplot(p1,p2,p3,p4,cols = 2)
+```
+
+```{r lda.full.table}
+ridx<-unique(c(
+  which.max(derrM.lda.full$acc),
+  which.max(derrM.lda.full$sens),
+  which.max(derrM.lda.full$spec),
+  which.max(derrM.lda.full$AUC)))
+pander(derrM.lda.full[ridx,])
+```
+
+## Top 20
+```{r lda.top20.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lda.res.top20[[1]])
+labM.lda.top20<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lda.res.top20))
+predL.lda.top20<-lapply(lda.res.top20,
+                   function(.m)analyzePeaks::getPrediction(predict.fm,.m))
+derrL.lda.top20<-lapply(predL.lda.top20,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+derrM.lda.top20<-as.data.frame(do.call(rbind,derrL.lda.top20))
+probL.lda.top20<-lapply(predL.lda.top20,function(.x).x$probII)
+probM.lda.top20<-do.call(cbind,probL.lda.top20)
+auc<- caTools::colAUC(probM.lda.top20,cls,plotROC = TRUE)
+derrM.lda.top20$AUC<-t(auc)
+derrM.lda.top20<-cbind(    
+  data.frame(mIdx=1:length(lda.res.top20),
+             type='SDA',
+             nFeatures=length(mz)),
+  derrM.lda.top20)
+```
+
+```{r lda.top20.plots}
+p1<-qplot(acc,AUC,data = derrM.lda.top20)
+p2<-qplot(sens,AUC,data = derrM.lda.top20)
+p3<-qplot(spec,AUC,data = derrM.lda.top20)
+p4<-qplot(sens,spec,data = derrM.lda.top20)
+
+multiplot(p1,p2,p3,p4,cols = 2)
+```
+
+```{r lda.top20.table}
+ridx<-unique(c(
+  which.max(derrM.lda.top20$acc),
+  which.max(derrM.lda.top20$sens),
+  which.max(derrM.lda.top20$spec),
+  which.max(derrM.lda.top20$AUC)))
+pander(derrM.lda.top20[ridx,])
+```
+
+## Top 10
+```{r lda.top10.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lda.res.top10[[1]])
+labM.lda.top10<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lda.res.top10))
+predL.lda.top10<-lapply(lda.res.top10,
+                   function(.m)analyzePeaks::getPrediction(predict.fm,.m))
+derrL.lda.top10<-lapply(predL.lda.top10,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+derrM.lda.top10<-as.data.frame(do.call(rbind,derrL.lda.top10))
+probL.lda.top10<-lapply(predL.lda.top10,function(.x).x$probII)
+probM.lda.top10<-do.call(cbind,probL.lda.top10)
+auc<- caTools::colAUC(probM.lda.top10,cls,plotROC = TRUE)
+derrM.lda.top10$AUC<-t(auc)
+derrM.lda.top10<-cbind(    
+  data.frame(mIdx=1:length(lda.res.top10),
+             type='SDA',
+             nFeatures=dim(predict.fm)[2]),
+  derrM.lda.top10)
+```
+
+```{r lda.top10.plots}
+p1<-qplot(acc,AUC,data = derrM.lda.top10)
+p2<-qplot(sens,AUC,data = derrM.lda.top10)
+p3<-qplot(spec,AUC,data = derrM.lda.top10)
+p4<-qplot(sens,spec,data = derrM.lda.top10)
+
+multiplot(p1,p2,p3,p4,cols = 2)
+```
+
+```{r lda.top10.table}
+ridx<-unique(c(
+  which.max(derrM.lda.top10$acc),
+  which.max(derrM.lda.top10$sens),
+  which.max(derrM.lda.top10$spec),
+  which.max(derrM.lda.top10$AUC)))
+pander(derrM.lda.top10[ridx,])
 ```
 
 
-```{r datasetname.raw.pca.sc,fig.width=8.5,fig.height=8.5,cache=FALSE}
-cidx<-which(apply(featureMatrix[idx5,],2,sd)>0)
-pca<-prcomp(featureMatrix[idx5,cidx],scale. = TRUE)
-fviz_screeplot(pca, ncp=15)
-fviz_pca_ind(pca, habillage='none',label = 'none',
-addEllipses=FALSE)
-fviz_pca_ind(pca, habillage=diag[idx[idx5]],
-addEllipses=TRUE, ellipse.level=0.95)
-col.ff<-as.numeric(ff[idx[idx5]])
-fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
+
+
+# LASSO
+
+## Full dataset
+```{r lasso.full.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lasso.res.full[[1]])
+labM.lasso.full<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lasso.res.full))
+predL.lasso.full<-lapply(lasso.res.full,
+                   function(.m)analyzePeaks::getPrediction(predict.fm,.m))
+derrL.lasso.full<-lapply(predL.lasso.full,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+derrM.lasso.full<-as.data.frame(do.call(rbind,derrL.lasso.full))
+probL.lasso.full<-lapply(predL.lasso.full,function(.x).x$probII)
+probM.lasso.full<-do.call(cbind,probL.lasso.full)
+auc<- caTools::colAUC(probM.lasso.full,cls,plotROC = TRUE)
+derrM.lasso.full$AUC<-t(auc)
+derrM.lasso.full<-cbind(
+  data.frame(mIdx=1:length(lasso.res.full),
+             type='LASSO',
+             nFeatures=length(mz)),
+  derrM.lasso.full)
 ```
 
-```{r datasetname.save.models}
-save(path,fl,dda.res.full,dda.res.top20,dda.res.top10,
-     lda.res.full,lda.res.top20,lda.res.top10,
-     lasso.res.full,lasso.res.top20,lasso.res.top10,
-     file = 'SDAfilesReport.models.RData')
-save(path,fl,bestMod,file = 'SDAfilesReport.model.rda')
+```{r lasso.full.plots}
+p1<-qplot(acc,AUC,data = derrM.lasso.full)
+p2<-qplot(sens,AUC,data = derrM.lasso.full)
+p3<-qplot(spec,AUC,data = derrM.lasso.full)
+p4<-qplot(sens,spec,data = derrM.lasso.full)
 
+multiplot(p1,p2,p3,p4,cols = 2)
 ```
 
-### Monoisotopic
-
-```{r datasetname.mi.fm5}
-cat(format(Sys.time(), "%b %d %X"),dname,'Classification has started. Monoisotopic data.\n',file = logFile,append = TRUE)
-idx5<-which(diag[idxMI]%in% unique(diag))
+```{r lasso.full.table}
+ridx<-unique(c(
+  which.max(derrM.lasso.full$acc),
+  which.max(derrM.lasso.full$sens),
+  which.max(derrM.lasso.full$spec),
+  which.max(derrM.lasso.full$AUC)))
+pander(derrM.lasso.full[ridx,])
 ```
 
-```{r datasetname.save.mi.fm5}
-fm<-featureMatrixMI[idx5,]
-mdf<-mdmi[idx5,]
-cls<-diag[idxMI[idx5]]
-save(path,fl,fm,mdf,cls,file = 'SDAfilesReport.fm.mi.Rdata')
+## Top 20
+```{r lasso.top20.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lasso.res.top20[[1]])
+labM.lasso.top20<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lasso.res.top20))
+predL.lasso.top20<-lapply(lasso.res.top20,
+                   function(.m)analyzePeaks::getPrediction(predict.fm,.m))
+derrL.lasso.top20<-lapply(predL.lasso.top20,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+derrM.lasso.top20<-as.data.frame(do.call(rbind,derrL.lasso.top20))
+probL.lasso.top20<-lapply(predL.lasso.top20,function(.x).x$probII)
+probM.lasso.top20<-do.call(cbind,probL.lasso.top20)
+auc<- caTools::colAUC(probM.lasso.top20,cls,plotROC = TRUE)
+derrM.lasso.top20$AUC<-t(auc)
+derrM.lasso.top20<-cbind(
+    data.frame(mIdx=1:length(lasso.res.top20),
+             type='LASSO',
+             nFeatures=length(mz)),
+    derrM.lasso.top20)
 ```
 
+```{r lasso.top20.plots}
+p1<-qplot(acc,AUC,data = derrM.lasso.top20)
+p2<-qplot(sens,AUC,data = derrM.lasso.top20)
+p3<-qplot(spec,AUC,data = derrM.lasso.top20)
+p4<-qplot(sens,spec,data = derrM.lasso.top20)
 
-```{r datasetname.mi.raw.sda,fig.width=8.5,fig.height=10.5,results='asis',cache=FALSE}
-ddar5 <- sda.ranking(Xtrain=featureMatrixMI[idx5,], L=diag[idxMI[idx5]],
-                     fdr=TRUE, diagonal=FALSE)
-plot(ddar5)
-
+multiplot(p1,p2,p3,p4,cols = 2)
 ```
 
-```{r datasetname.mi.raw.plot.sda,fig.width=8.5,fig.height=10.5,cache=FALSE}
-mddar5<-ddar5
-class(mddar5)<-'matrix'
-dfddar<-as.data.frame(mddar5)
-dfddar$mz<-as.double(rownames(dfddar))
-dfddar<-cbind(dfddar,data.frame(int=colSums(featureMatrixMI)[dfddar$idx]))
-dfddar$scoreR<-rank(dfddar$score)
-dfddar$intR<-rank(dfddar$int)
-qplot(score,int,data=dfddar,colour=intR)
-idxDdar<-match.closest(dfddar$mz,lipids$PEAK,tolerance = 0.05)
-#cbind(dfddar,lipids[idxDdar,])
-rownames(dfddar)<-round(as.numeric(rownames(dfddar)),4)
-pander(cbind(dfddar,lipids[idxDdar,c('NAME')])[1:50,],caption = "datasetname.mi.raw")
-#pander(dfddar[1:20,])
-```
-```{r datasetname.mi.save.sda}
-mddar<-mddar5
-dfddar<-dfddar
-save(path,fl,mddar,dfddar,file = 'SDAfilesReport.mi.sda.Rdata')
+```{r lasso.top20.table}
+ridx<-unique(c(
+  which.max(derrM.lasso.top20$acc),
+  which.max(derrM.lasso.top20$sens),
+  which.max(derrM.lasso.top20$spec),
+  which.max(derrM.lasso.top20$AUC)))
+pander(derrM.lasso.top20[ridx,])
 ```
 
-
-```{r datasetname.mi.class.sda.full}
-cat(format(Sys.time(), "%b %d %X"),dname,'SDA classification. Monoisotopic data.\n',file = logFile,append = TRUE)
-# set seed to get reproducible results
-#set.seed(1234)
-lasso.res<-list()
-lda.res<-list()
-dda.res<-list()
-smpl<-unique(data.frame(ff=ff[idxMI[idx5]],diag=diag[idxMI[idx5]]))
-cv.out <- mycrossval(predfun.dda,
-                   X=featureMatrixMI[idx5,],
-                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-dda.res.full<-dda.res
-dda.res<-list()
-dim(featureMatrixMI[idx5,])
+## Top 10
+```{r lasso.top10.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lasso.res.top10[[1]])
+labM.lasso.top10<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lasso.res.top10))
+predL.lasso.top10<-lapply(lasso.res.top10,
+                   function(.m)analyzePeaks::getPrediction(predict.fm,.m))
+derrL.lasso.top10<-lapply(predL.lasso.top10,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+derrM.lasso.top10<-as.data.frame(do.call(rbind,derrL.lasso.top10))
+probL.lasso.top10<-lapply(predL.lasso.top10,function(.x).x$probII)
+probM.lasso.top10<-do.call(cbind,probL.lasso.top10)
+auc<- caTools::colAUC(probM.lasso.top10,cls,plotROC = TRUE)
+derrM.lasso.top10$AUC<-t(auc)
+derrM.lasso.top10<-cbind(   
+  data.frame(mIdx=1:length(lasso.res.top10),
+             type='LASSO',
+             nFeatures=length(mz)),
+  derrM.lasso.top10)
 ```
 
-```{r datasetname.mi.class.sda.top20}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:20, "idx"]
-cv.out <- mycrossval(predfun.dda,
-                   X=featureMatrixMI[idx5,top],
-                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-dda.res.top20<-dda.res
-dda.res<-list()
-dim(featureMatrixMI[idx5,top])
+```{r lasso.top10.plots}
+p1<-qplot(acc,AUC,data = derrM.lasso.top10)
+p2<-qplot(sens,AUC,data = derrM.lasso.top10)
+p3<-qplot(spec,AUC,data = derrM.lasso.top10)
+p4<-qplot(sens,spec,data = derrM.lasso.top10)
+
+multiplot(p1,p2,p3,p4,cols = 2)
 ```
 
-```{r datasetname.mi.class.sda.top10}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:10, "idx"]
-cv.out <- mycrossval(predfun.dda,
-                   X=featureMatrixMI[idx5,top],
-                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-dda.res.top10<-dda.res
-dda.res<-list()
-dim(featureMatrixMI[idx5,top])
+```{r lasso.top10.table}
+ridx<-unique(c(
+  which.max(derrM.lasso.top10$acc),
+  which.max(derrM.lasso.top10$sens),
+  which.max(derrM.lasso.top10$spec),
+  which.max(derrM.lasso.top10$AUC)))
+pander(derrM.lasso.top10[ridx,])
 ```
 
-```{r datasetname.mi.class.lda.full}
-cat(format(Sys.time(), "%b %d %X"),dname,'LDA classification. Monoisotopic data.\n',file = logFile,append = TRUE)
-# set seed to get reproducible results
-#set.seed(1234)
-cv.out <- mycrossval(predfun.lda,
-                   X=featureMatrixMI[idx5,],
-                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lda.res.full<-lda.res
-lda.res<-list()
-dim(featureMatrixMI[idx5,])
-```
-
-```{r datasetname.mi.class.lda.top20}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:20, "idx"]
-cv.out <- mycrossval(predfun.lda,
-                   X=featureMatrixMI[idx5,top],
-                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lda.res.top20<-lda.res
-lda.res<-list()
-dim(featureMatrixMI[idx5,top])
-```
-
-```{r datasetname.mi.class.lda.top10}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:10, "idx"]
-cv.out <- mycrossval(predfun.lda,
-                   X=featureMatrixMI[idx5,top],
-                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lda.res.top10<-lda.res
-lda.res<-list()
-dim(featureMatrixMI[idx5,top])
-```
-
-```{r datasetname.mi.class.lasso.full}
-cat(format(Sys.time(), "%b %d %X"),dname,'LASSO classification. Monoisotopic data.\n',file = logFile,append = TRUE)
-# set seed to get reproducible results
-#set.seed(1234)
-Y=factor(as.character(diag[idxMI[idx5]]))
-cv.out <- mycrossval(predfun.lasso,
-                   X=featureMatrixMI[idx5,],
-                   Y=Y,smpl=smpl,ff=ff[idxMI[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   labels=levels(Y),
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lasso.res.full<-lasso.res
-bestMod<-lasso.res[[which.min(
-  sapply(lasso.res,function(.x).x$lambda.min)
-)]]
-lasso.res<-list()
-dim(featureMatrixMI[idx5,])
-```
-
-```{r datasetname.mi.class.lasso.top20}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:20, "idx"]
-Y=factor(as.character(diag[idxMI[idx5]]))
-cv.out <- mycrossval(predfun.lasso,
-                   X=featureMatrixMI[idx5,top],
-                   Y=Y,smpl=smpl,ff=ff[idxMI[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   labels=levels(Y),
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lasso.res.top20<-lasso.res
-lasso.res<-list()
-dim(featureMatrixMI[idx5,top])
-```
-
-```{r datasetname.mi.class.lasso.top10}
-# set seed to get reproducible results
-#set.seed(1234)
-top <- ddar5[1:10, "idx"]
-Y=factor(as.character(diag[idxMI[idx5]]))
-cv.out <- mycrossval(predfun.lasso,
-                   X=featureMatrixMI[idx5,top],
-                   Y=Y,smpl=smpl,ff=ff[idxMI[idx5]],
-                   K=6, B=20,
-                   negative="32",
-                   labels=levels(Y),
-                   verbose=FALSE)
-cv.out$stat
-cv.out$stat.se
-pander(diagnosticErrors(cv.out$stat))
-lasso.res.top10<-lasso.res
-lasso.res<-list()
-dim(featureMatrixMI[idx5,top])
-```
-
-
-```{r datasetname.mi.raw.pca.nosc,fig.width=8.5,fig.height=8.5,cache=FALSE}
-cat(format(Sys.time(), "%b %d %X"),dname,'Second round of PCA. Monoisotopic data.\n',file = logFile,append = TRUE)
-pca<-prcomp(featureMatrixMI[idx5,],scale. = FALSE)
-fviz_screeplot(pca, ncp=15)
-fviz_pca_ind(pca, habillage='none',label = 'none',
-addEllipses=FALSE)
-fviz_pca_ind(pca, habillage=diag[idxMI[idx5]],
-addEllipses=TRUE, ellipse.level=0.95)
-col.ff<-as.numeric(ff[idxMI[idx5]])
-fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
-```
-
-
-```{r datasetname.mi.raw.pca.sc,fig.width=8.5,fig.height=8.5,cache=FALSE}
-cidx<-which(apply(featureMatrixMI[idx5,],2,sd)>0)
-pca<-prcomp(featureMatrixMI[idx5,cidx],scale. = TRUE)
-fviz_screeplot(pca, ncp=15)
-fviz_pca_ind(pca, habillage='none',label = 'none',
-addEllipses=FALSE)
-fviz_pca_ind(pca, habillage=diag[idxMI[idx5]],
-addEllipses=TRUE, ellipse.level=0.95)
-col.ff<-as.numeric(ff[idxMI[idx5]])
-fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
-```
-
-```{r datasetname.mi.save.models}
-save(path,fl,dda.res.full,dda.res.top20,dda.res.top10,
-     lda.res.full,lda.res.top20,lda.res.top10,
-     lasso.res.full,lasso.res.top20,lasso.res.top10,
-     file = 'SDAfilesReport.mi.models.RData')
-save(path,fl,bestMod,file = 'SDAfilesReport.mi.model.rda')
-cat(format(Sys.time(), "%b %d %X"),dname,'Completed.\n',file = logFile,append = TRUE)
-```
 
 
 
