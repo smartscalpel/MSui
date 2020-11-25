@@ -674,27 +674,27 @@ modelDef<-'~/Dropbox/Скальпель/DBData/SDAreports2020/SDAreport.diag_6.r
 # Read data
 Before running the code a number of variables should be setted for appropriate data loading:
  
- 3. the path to folder with data files *path*
+ 3. the path to folder with data files *peak.path*
  4. names of files to build dataset from *fl*
  
 
 
 ```{r check.values}
 if(!(exists('fl')&
-     exists('path')&
+     exists('peak.path')&
      exists('modelPath'))){
   warning('not all obligatory parameters are provided\nUsing defaults.\n')
   cat(format(Sys.time(), "%b %d %X"),'not all obligatory parameters are provided\nUsing defaults.\n',file = logFile,append = TRUE)
   fl<-flDef
-  path<-pathDef
+  peak.path<-pathDef
   modelPath<-modelDef
-  wd<-getwd()
+  wdir<-getwd()
   cacheDef<-TRUE
 }else{
   cacheDef<-TRUE #FALSE
 }
-lipids<-read.csv('DetectedLipids.csv')
-lipids<-lipids[order(lipids$PEAK),]
+#lipids<-read.csv('DetectedLipids.csv')
+#lipids<-lipids[order(lipids$PEAK),]
 lfl<-strsplit(x = fl,split = '\\.')
 dfl<-unique(ldply(lfl,.fun = function(l1)
   data.frame(diag=sub('diag_', '',l1[2]),
@@ -714,7 +714,7 @@ if(filterTrain){
   trainPath<-sub('SDAfilesReport.models.RData','SDAfilesReport.fm.Rdata',modelPath)
   load(trainPath)
 }
-cat(format(Sys.time(), "%b %d %X"),dname,"'",wd,"','",path,"'",'\n\t',
+cat(format(Sys.time(), "%b %d %X"),dname,"'",wdir,"','",peak.path,"'",'\n\t',
     fl,'\n',file = logFile,append = TRUE)
 ```
 
@@ -722,12 +722,12 @@ cat(format(Sys.time(), "%b %d %X"),dname,"'",wd,"','",path,"'",'\n\t',
 fl
 ```
 
-```{r path}
-path
+```{r peak.path}
+peak.path
 ```
 
 ```{r makePeakList,cache=cacheDef}
-peaks<-getPeakList(fl,path)
+peaks<-getPeakList(fl,peak.path)
 dl<-lapply(peaks, getMD)
 md<-do.call(rbind,dl)
 
