@@ -32,24 +32,21 @@ library(ggplot2)
 library(ggrepel)
 library(data.table)
 library(plyr)
+#library(xcms)
 library(xtable)
-library(xcms)
 library("FactoMineR")
 library(cluster)
 library(dendextend)
 library(factoextra)
 library(corrplot)
-library(ncdf4)
-library("PerformanceAnalytics")
-library("pvclust")
+#library("PerformanceAnalytics")
+#library("pvclust")
 library("sda")
 library(RColorBrewer)
 library(MALDIquant)
 library(MALDIquantForeign)
-library(Vennerable)
 library("crossval")
 library(glmnet)
-library(openxlsx)
 library(analyzePeaks)
 library(crossval)
 ticThreshold<-0.01
@@ -111,6 +108,9 @@ panderOptions("table.split.table", 160)
 ```{r functions, include=FALSE}
 ## Custom functions used in the analysis should go into this chunk.
 ## They will be listed in their own section of the appendix.
+rowMax<-function(x){
+  return(apply(x,1,max))
+}
 ##==================== CAT score ====================##
 getCorrStruct<-function(X,cutoff=0.85){
   cm<-cor(X)
