@@ -739,8 +739,6 @@ md<-do.call(rbind,dl)
 ```{r datasetname.raw.metadata.dataSet}
 diag<-unlist(sapply(peaks,function(.x)metaData(.x)$diag))
 spectrumid<-unlist(sapply(peaks,function(.x)metaData(.x)$spectrumid))
-qplot(as.character(diag),log='y')
-pander(table(diag))
 ln<-sapply(peaks,length)
 qplot(ln,bins=100,log = 'x')
 idx<-which(ln>Npeaks)
@@ -770,7 +768,13 @@ if(filterTrain){
   ppeaks<-lpeaks[idx.train]
 }
 ```
+```{r base.stat.plots}
+qplot(as.character(cls),log='y')
+pander(table(cls))
+ln<-sapply(ppeaks,length)
+qplot(ln,bins=100,log = 'x')
 
+```
 
 
 ```{r datasetname.raw.spectra.facet,fig.width=8.5,fig.height=8.5,dev='png'}
