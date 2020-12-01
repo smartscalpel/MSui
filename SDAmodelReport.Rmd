@@ -49,6 +49,7 @@ library("crossval")
 library(glmnet)
 library(analyzePeaks)
 library(crossval)
+library(pROC)
 ticThreshold<-0.01
 absTicThreshold<-1000
 Npeaks<-10
@@ -762,10 +763,17 @@ predict.tot<-predict.fm
 md.tot<-md
 if(filterTrain){
   idx.train<-which(is.na(match(md$scan,mdf$scan)))
+  train.fm<-predict.fm[-idx.train,]
   predict.fm<-predict.fm[idx.train,]
+  train.md<-md[-idx.train,]
   md<-md[idx.train,]
+  train.cls<-cls[-idx.train]
   cls<-cls[idx.train]
   ppeaks<-lpeaks[idx.train]
+}else{
+    train.fm<-predict.fm
+    train.md<-md
+    train.cls<-cls
 }
 ```
 ```{r base.stat.plots}
@@ -874,6 +882,28 @@ fviz_pca_ind(pca, habillage=cls,axes=c(1,3),
 # Diagonal Discriminative Analysis
 
 ## Full dataset
+```{r dda.full.get.train,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(dda.res.full[[1]])
+labM.dda.full<-matrix(train.md$diagnosis,nrow = length(train.md$diagnosis),ncol = length(dda.res.full))
+trainL.dda.full<-lapply(dda.res.full,
+                   function(.m)analyzePeaks::getPrediction(train.fm,.m))
+terrL.dda.full<-lapply(trainL.dda.full,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(train.md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+terrM.dda.full<-as.data.frame(do.call(rbind,terrL.dda.full))
+train.probL.dda.full<-lapply(trainL.dda.full,function(.x).x$probII)
+train.probM.dda.full<-do.call(cbind,train.probL.dda.full)
+train.auc<- caTools::colAUC(train.probM.dda.full,train.cls,plotROC = TRUE)
+terrM.dda.full$AUC<-t(train.auc)
+terrM.dda.full<-cbind(
+  data.frame(mIdx=1:length(dda.res.full),
+             type='DDA',
+             nFeatures=length(mz)),
+  terrM.dda.full)
+```
+
 ```{r dda.full.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
 mz<-getReferenceMZ(dda.res.full[[1]])
 labM.dda.full<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(dda.res.full))
@@ -914,7 +944,77 @@ ridx<-unique(c(
 pander(derrM.dda.full[ridx,])
 ```
 
+```{r dda.full.analyse.best.model.train}
+idxBest<-which.max(terrM.dda.full$AUC)
+dda.full.best<-dda.res.full[[idxBest]]
+t<-trainL.dda.full[[idxBest]]
+train.best[['dda.full']]<-t$probII
+t$diag<-as.character(train.cls)
+dda.full.roc.train<-roc(t$diag,t$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bct<-coords(dda.full.roc.train,"best",
+            best.method='c',
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bct)<-'training'
+```
+
+```{r dda.full.analyse.best.model.test}
+p<-predL.dda.full[[idxBest]]
+p$diag<-as.character(cls)
+test.best[['dda.full']]<-p$probII
+dda.full.roc.pred<-roc(p$diag,p$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bcp<-coords(dda.full.roc.pred,x=bct$threshold,
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bcp)<-'validation'
+dda.full.best.threshold<-as.data.frame(t(rbind(bct,bcp)))
+pander(dda.full.best.threshold)
+```
+
 ## Top 20
+
+```{r dda.top20.get.train,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(dda.res.top20[[1]])
+labM.dda.top20<-matrix(train.md$diagnosis,nrow = length(train.md$diagnosis),ncol = length(dda.res.top20))
+trainL.dda.top20<-lapply(dda.res.top20,
+                   function(.m)analyzePeaks::getPrediction(train.fm,.m))
+terrL.dda.top20<-lapply(trainL.dda.top20,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(train.md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+terrM.dda.top20<-as.data.frame(do.call(rbind,terrL.dda.top20))
+train.probL.dda.top20<-lapply(trainL.dda.top20,function(.x).x$probII)
+train.probM.dda.top20<-do.call(cbind,train.probL.dda.top20)
+train.auc<- caTools::colAUC(train.probM.dda.top20,train.cls,plotROC = TRUE)
+terrM.dda.top20$AUC<-t(train.auc)
+terrM.dda.top20<-cbind(
+  data.frame(mIdx=1:length(dda.res.top20),
+             type='DDA',
+             nFeatures=length(mz)),
+  terrM.dda.top20)
+```
+
 ```{r dda.top20.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
 mz<-getReferenceMZ(dda.res.top20[[1]])
 labM.dda.top20<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(dda.res.top20))
@@ -954,7 +1054,77 @@ ridx<-unique(c(
 pander(derrM.dda.top20[ridx,])
 ```
 
+```{r dda.top20.analyse.best.model.train}
+idxBest<-which.max(terrM.dda.top20$AUC)
+dda.top20.best<-dda.res.top20[[idxBest]]
+t<-trainL.dda.top20[[idxBest]]
+t$diag<-as.character(train.cls)
+train.best[['dda.top20']]<-t$probII
+dda.top20.roc.train<-roc(t$diag,t$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bct<-coords(dda.top20.roc.train,"best",
+            best.method='c',
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bct)<-'training'
+```
+
+```{r dda.top20.analyse.best.model.test}
+p<-predL.dda.top20[[idxBest]]
+p$diag<-as.character(cls)
+test.best[['dda.top20']]<-p$probII
+dda.top20.roc.pred<-roc(p$diag,p$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bcp<-coords(dda.top20.roc.pred,x=bct$threshold,
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bcp)<-'validation'
+dda.top20.best.threshold<-as.data.frame(t(rbind(bct,bcp)))
+pander(dda.top20.best.threshold)
+```
+
 ## Top 10
+
+```{r dda.top10.get.train,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(dda.res.top10[[1]])
+labM.dda.top10<-matrix(train.md$diagnosis,nrow = length(train.md$diagnosis),ncol = length(dda.res.top10))
+trainL.dda.top10<-lapply(dda.res.top10,
+                   function(.m)analyzePeaks::getPrediction(train.fm,.m))
+terrL.dda.top10<-lapply(trainL.dda.top10,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(train.md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+terrM.dda.top10<-as.data.frame(do.call(rbind,terrL.dda.top10))
+train.probL.dda.top10<-lapply(trainL.dda.top10,function(.x).x$probII)
+train.probM.dda.top10<-do.call(cbind,train.probL.dda.top10)
+train.auc<- caTools::colAUC(train.probM.dda.top10,train.cls,plotROC = TRUE)
+terrM.dda.top10$AUC<-t(train.auc)
+terrM.dda.top10<-cbind(
+  data.frame(mIdx=1:length(dda.res.top10),
+             type='DDA',
+             nFeatures=length(mz)),
+  terrM.dda.top10)
+```
+
 ```{r dda.top10.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
 mz<-getReferenceMZ(dda.res.top10[[1]])
 labM.dda.top10<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(dda.res.top10))
@@ -996,11 +1166,79 @@ pander(derrM.dda.top10[ridx,])
 ```
 
 
+```{r dda.top10.analyse.best.model.train}
+idxBest<-which.max(terrM.dda.top10$AUC)
+dda.top10.best<-dda.res.top10[[idxBest]]
+t<-trainL.dda.top10[[idxBest]]
+t$diag<-as.character(train.cls)
+train.best[['dda.top10']]<-t$probII
+dda.top10.roc.train<-roc(t$diag,t$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bct<-coords(dda.top10.roc.train,"best",
+            best.method='c',
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bct)<-'training'
+```
+
+```{r dda.top10.analyse.best.model.test}
+p<-predL.dda.top10[[idxBest]]
+p$diag<-as.character(cls)
+test.best[['dda.top10']]<-p$probII
+dda.top10.roc.pred<-roc(p$diag,p$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bcp<-coords(dda.top10.roc.pred,x=bct$threshold,
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bcp)<-'validation'
+dda.top10.best.threshold<-as.data.frame(t(rbind(bct,bcp)))
+pander(dda.top10.best.threshold)
+```
 
 
 # Shrinkage Discriminative Analysis
 
 ## Full dataset
+```{r lda.full.get.train,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lda.res.full[[1]])
+labM.lda.full<-matrix(train.md$diagnosis,nrow = length(train.md$diagnosis),ncol = length(lda.res.full))
+trainL.lda.full<-lapply(lda.res.full,
+                   function(.m)analyzePeaks::getPrediction(train.fm,.m))
+terrL.lda.full<-lapply(trainL.lda.full,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(train.md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+terrM.lda.full<-as.data.frame(do.call(rbind,terrL.lda.full))
+train.probL.lda.full<-lapply(trainL.lda.full,function(.x).x$probII)
+train.probM.lda.full<-do.call(cbind,train.probL.lda.full)
+train.auc<- caTools::colAUC(train.probM.lda.full,train.cls,plotROC = TRUE)
+terrM.lda.full$AUC<-t(train.auc)
+terrM.lda.full<-cbind(
+  data.frame(mIdx=1:length(lda.res.full),
+             type='lda',
+             nFeatures=length(mz)),
+  terrM.lda.full)
+```
+
 ```{r lda.full.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
 mz<-getReferenceMZ(lda.res.full[[1]])
 labM.lda.full<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lda.res.full))
@@ -1041,7 +1279,76 @@ ridx<-unique(c(
 pander(derrM.lda.full[ridx,])
 ```
 
+```{r lda.full.analyse.best.model.train}
+idxBest<-which.max(terrM.lda.full$AUC)
+lda.full.best<-lda.res.full[[idxBest]]
+t<-trainL.lda.full[[idxBest]]
+t$diag<-as.character(train.cls)
+train.best[['lda.full']]t<-t$probII
+lda.full.roc.train<-roc(t$diag,t$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bct<-coords(lda.full.roc.train,"best",
+            best.method='c',
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bct)<-'training'
+```
+
+```{r lda.full.analyse.best.model.test}
+p<-predL.lda.full[[idxBest]]
+p$diag<-as.character(cls)
+test.best[['lda.full']]<-p$probII
+lda.full.roc.pred<-roc(p$diag,p$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bcp<-coords(lda.full.roc.pred,x=bct$threshold,
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bcp)<-'validation'
+lda.full.best.threshold<-as.data.frame(t(rbind(bct,bcp)))
+pander(lda.full.best.threshold)
+```
+
 ## Top 20
+```{r lda.top20.get.train,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lda.res.top20[[1]])
+labM.lda.top20<-matrix(train.md$diagnosis,nrow = length(train.md$diagnosis),ncol = length(lda.res.top20))
+trainL.lda.top20<-lapply(lda.res.top20,
+                   function(.m)analyzePeaks::getPrediction(train.fm,.m))
+terrL.lda.top20<-lapply(trainL.lda.top20,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(train.md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+terrM.lda.top20<-as.data.frame(do.call(rbind,terrL.lda.top20))
+train.probL.lda.top20<-lapply(trainL.lda.top20,function(.x).x$probII)
+train.probM.lda.top20<-do.call(cbind,train.probL.lda.top20)
+train.auc<- caTools::colAUC(train.probM.lda.top20,train.cls,plotROC = TRUE)
+terrM.lda.top20$AUC<-t(train.auc)
+terrM.lda.top20<-cbind(
+  data.frame(mIdx=1:length(lda.res.top20),
+             type='lda',
+             nFeatures=length(mz)),
+  terrM.lda.top20)
+```
+
 ```{r lda.top20.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
 mz<-getReferenceMZ(lda.res.top20[[1]])
 labM.lda.top20<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lda.res.top20))
@@ -1082,7 +1389,76 @@ ridx<-unique(c(
 pander(derrM.lda.top20[ridx,])
 ```
 
+```{r lda.top20.analyse.best.model.train}
+idxBest<-which.max(terrM.lda.top20$AUC)
+lda.top20.best<-lda.res.top20[[idxBest]]
+t<-trainL.lda.top20[[idxBest]]
+t$diag<-as.character(train.cls)
+train.best[['lda.top20']]<-t$probII
+lda.top20.roc.train<-roc(t$diag,t$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bct<-coords(lda.top20.roc.train,"best",
+            best.method='c',
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bct)<-'training'
+```
+
+```{r lda.top20.analyse.best.model.test}
+p<-predL.lda.top20[[idxBest]]
+p$diag<-as.character(cls)
+test.best[['lda.top20']]<-p$probII
+lda.top20.roc.pred<-roc(p$diag,p$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bcp<-coords(lda.top20.roc.pred,x=bct$threshold,
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bcp)<-'validation'
+lda.top20.best.threshold<-as.data.frame(t(rbind(bct,bcp)))
+pander(lda.top20.best.threshold)
+```
+
 ## Top 10
+```{r lda.top10.get.train,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lda.res.top10[[1]])
+labM.lda.top10<-matrix(train.md$diagnosis,nrow = length(train.md$diagnosis),ncol = length(lda.res.top10))
+trainL.lda.top10<-lapply(lda.res.top10,
+                   function(.m)analyzePeaks::getPrediction(train.fm,.m))
+terrL.lda.top10<-lapply(trainL.lda.top10,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(train.md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+terrM.lda.top10<-as.data.frame(do.call(rbind,terrL.lda.top10))
+train.probL.lda.top10<-lapply(trainL.lda.top10,function(.x).x$probII)
+train.probM.lda.top10<-do.call(cbind,train.probL.lda.top10)
+train.auc<- caTools::colAUC(train.probM.lda.top10,train.cls,plotROC = TRUE)
+terrM.lda.top10$AUC<-t(train.auc)
+terrM.lda.top10<-cbind(
+  data.frame(mIdx=1:length(lda.res.top10),
+             type='lda',
+             nFeatures=length(mz)),
+  terrM.lda.top10)
+```
+
 ```{r lda.top10.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
 mz<-getReferenceMZ(lda.res.top10[[1]])
 labM.lda.top10<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lda.res.top10))
@@ -1124,11 +1500,78 @@ pander(derrM.lda.top10[ridx,])
 ```
 
 
+```{r lda.top10.analyse.best.model.train}
+idxBest<-which.max(terrM.lda.top10$AUC)
+lda.top10.best<-lda.res.top10[[idxBest]]
+t<-trainL.lda.top10[[idxBest]]
+t$diag<-as.character(train.cls)
+train.best[['lda.top10']]<-t$probII
+lda.top10.roc.train<-roc(t$diag,t$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bct<-coords(lda.top10.roc.train,"best",
+            best.method='c',
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bct)<-'training'
+```
+
+```{r lda.top10.analyse.best.model.test}
+p<-predL.lda.top10[[idxBest]]
+p$diag<-as.character(cls)
+test.best[['lda.top10']]<-p$probIIlda.top10.roc.pred<-roc(p$diag,p$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bcp<-coords(lda.top10.roc.pred,x=bct$threshold,
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bcp)<-'validation'
+lda.top10.best.threshold<-as.data.frame(t(rbind(bct,bcp)))
+pander(lda.top10.best.threshold)
+```
 
 
 # LASSO
 
 ## Full dataset
+```{r lasso.full.get.train,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lasso.res.full[[1]])
+labM.lasso.full<-matrix(train.md$diagnosis,nrow = length(train.md$diagnosis),ncol = length(lasso.res.full))
+trainL.lasso.full<-lapply(lasso.res.full,
+                   function(.m)analyzePeaks::getPrediction(train.fm,.m))
+terrL.lasso.full<-lapply(trainL.lasso.full,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(train.md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+terrM.lasso.full<-as.data.frame(do.call(rbind,terrL.lasso.full))
+train.probL.lasso.full<-lapply(trainL.lasso.full,function(.x).x$probII)
+train.probM.lasso.full<-do.call(cbind,train.probL.lasso.full)
+train.auc<- caTools::colAUC(train.probM.lasso.full,train.cls,plotROC = TRUE)
+terrM.lasso.full$AUC<-t(train.auc)
+terrM.lasso.full<-cbind(
+  data.frame(mIdx=1:length(lasso.res.full),
+             type='lasso',
+             nFeatures=length(mz)),
+  terrM.lasso.full)
+```
+
 ```{r lasso.full.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
 mz<-getReferenceMZ(lasso.res.full[[1]])
 labM.lasso.full<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lasso.res.full))
@@ -1169,7 +1612,76 @@ ridx<-unique(c(
 pander(derrM.lasso.full[ridx,])
 ```
 
+```{r lasso.full.analyse.best.model.train}
+idxBest<-which.max(terrM.lasso.full$AUC)
+lasso.full.best<-lasso.res.full[[idxBest]]
+t<-trainL.lasso.full[[idxBest]]
+t$diag<-as.character(train.cls)
+train.best[['lasso.full']]<-t$probII
+lasso.full.roc.train<-roc(t$diag,t$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bct<-coords(lasso.full.roc.train,"best",
+            best.method='c',
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bct)<-'training'
+```
+
+```{r lasso.full.analyse.best.model.test}
+p<-predL.lasso.full[[idxBest]]
+p$diag<-as.character(cls)
+test.best[['lasso.full']]<-p$probII
+lasso.full.roc.pred<-roc(p$diag,p$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bcp<-coords(lasso.full.roc.pred,x=bct$threshold,
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bcp)<-'validation'
+lasso.full.best.threshold<-as.data.frame(t(rbind(bct,bcp)))
+pander(lasso.full.best.threshold)
+```
+
 ## Top 20
+```{r lasso.top20.get.train,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lasso.res.top20[[1]])
+labM.lasso.top20<-matrix(train.md$diagnosis,nrow = length(train.md$diagnosis),ncol = length(lasso.res.top20))
+trainL.lasso.top20<-lapply(lasso.res.top20,
+                   function(.m)analyzePeaks::getPrediction(train.fm,.m))
+terrL.lasso.top20<-lapply(trainL.lasso.top20,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(train.md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+terrM.lasso.top20<-as.data.frame(do.call(rbind,terrL.lasso.top20))
+train.probL.lasso.top20<-lapply(trainL.lasso.top20,function(.x).x$probII)
+train.probM.lasso.top20<-do.call(cbind,train.probL.lasso.top20)
+train.auc<- caTools::colAUC(train.probM.lasso.top20,train.cls,plotROC = TRUE)
+terrM.lasso.top20$AUC<-t(train.auc)
+terrM.lasso.top20<-cbind(
+  data.frame(mIdx=1:length(lasso.res.top20),
+             type='lasso',
+             nFeatures=length(mz)),
+  terrM.lasso.top20)
+```
+
 ```{r lasso.top20.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
 mz<-getReferenceMZ(lasso.res.top20[[1]])
 labM.lasso.top20<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lasso.res.top20))
@@ -1210,7 +1722,76 @@ ridx<-unique(c(
 pander(derrM.lasso.top20[ridx,])
 ```
 
+```{r lasso.top20.analyse.best.model.train}
+idxBest<-which.max(terrM.lasso.top20$AUC)
+lasso.top20.best<-lasso.res.top20[[idxBest]]
+t<-trainL.lasso.top20[[idxBest]]
+t$diag<-as.character(train.cls)
+train.best[['lasso.top20']]<-t$probII
+lasso.top20.roc.train<-roc(t$diag,t$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bct<-coords(lasso.top20.roc.train,"best",
+            best.method='c',
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bct)<-'training'
+```
+
+```{r lasso.top20.analyse.best.model.test}
+p<-predL.lasso.top20[[idxBest]]
+p$diag<-as.character(cls)
+test.best[['lasso.top20']]<-p$probII
+lasso.top20.roc.pred<-roc(p$diag,p$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bcp<-coords(lasso.top20.roc.pred,x=bct$threshold,
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bcp)<-'validation'
+lasso.top20.best.threshold<-as.data.frame(t(rbind(bct,bcp)))
+pander(lasso.top20.best.threshold)
+```
+
 ## Top 10
+```{r lasso.top10.get.train,fig.width=8.5,fig.height=8.5,dev='png'} 
+mz<-getReferenceMZ(lasso.res.top10[[1]])
+labM.lasso.top10<-matrix(train.md$diagnosis,nrow = length(train.md$diagnosis),ncol = length(lasso.res.top10))
+trainL.lasso.top10<-lapply(lasso.res.top10,
+                   function(.m)analyzePeaks::getPrediction(train.fm,.m))
+terrL.lasso.top10<-lapply(trainL.lasso.top10,
+                   function(.x)diagnosticErrors(
+                     confusionMatrix(train.md$diagnosis, 
+                                     .x$class, 
+                                     negative=32)))
+terrM.lasso.top10<-as.data.frame(do.call(rbind,terrL.lasso.top10))
+train.probL.lasso.top10<-lapply(trainL.lasso.top10,function(.x).x$probII)
+train.probM.lasso.top10<-do.call(cbind,train.probL.lasso.top10)
+train.auc<- caTools::colAUC(train.probM.lasso.top10,train.cls,plotROC = TRUE)
+terrM.lasso.top10$AUC<-t(train.auc)
+terrM.lasso.top10<-cbind(
+  data.frame(mIdx=1:length(lasso.res.top10),
+             type='lasso',
+             nFeatures=length(mz)),
+  terrM.lasso.top10)
+```
+
 ```{r lasso.top10.get.predictions,fig.width=8.5,fig.height=8.5,dev='png'} 
 mz<-getReferenceMZ(lasso.res.top10[[1]])
 labM.lasso.top10<-matrix(md$diagnosis,nrow = length(md$diagnosis),ncol = length(lasso.res.top10))
@@ -1254,6 +1835,52 @@ pander(derrM.lasso.top10[ridx,])
 
 
 
+```{r lasso.top10.analyse.best.model.train}
+idxBest<-which.max(terrM.lasso.top10$AUC)
+lasso.top10.best<-lasso.res.top10[[idxBest]]
+t<-trainL.lasso.top10[[idxBest]]
+t$diag<-as.character(train.cls)
+train.best[['lasso.top10']]<-t$probII
+lasso.top10.roc.train<-roc(t$diag,t$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bct<-coords(lasso.top10.roc.train,"best",
+            best.method='c',
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bct)<-'training'
+```
+
+```{r lasso.top10.analyse.best.model.test}
+p<-predL.lasso.top10[[idxBest]]
+p$diag<-as.character(cls)
+test.best[['lasso.top10']]<-p$probII
+lasso.top10.roc.pred<-roc(p$diag,p$probII,
+                  smoothed = TRUE,ci=TRUE, 
+                  ci.alpha=0.9, 
+                  stratified=FALSE,plot=TRUE, 
+                  auc.polygon=TRUE, max.auc.polygon=TRUE, 
+                  grid=TRUE,print.auc=TRUE, 
+                  show.thres=TRUE)
+bcp<-coords(lasso.top10.roc.pred,x=bct$threshold,
+            transpose = FALSE,
+            ret=c("threshold",'tn','tp',
+                  'fn','fp','specificity',
+                  'sensitivity','precision',
+                  'accuracy','youden',
+                  'closest.topleft'))
+rownames(bcp)<-'validation'
+lasso.top10.best.threshold<-as.data.frame(t(rbind(bct,bcp)))
+pander(lasso.top10.best.threshold)
+```
 
 
 #
