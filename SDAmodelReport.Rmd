@@ -50,6 +50,7 @@ library(glmnet)
 library(analyzePeaks)
 library(crossval)
 library(pROC)
+library(ForecastCombinations)
 ticThreshold<-0.01
 absTicThreshold<-1000
 Npeaks<-10
@@ -663,6 +664,9 @@ getMD<-function(p){
   as.data.frame(metaData(p))
 }
 
+getRMSD<-function(pred,obs){
+  round(sqrt(mean((pred - as.numeric(obs)-1)^2)), 3)
+}
 ```
 
 ```{r echo=FALSE, include=FALSE}
@@ -1883,7 +1887,37 @@ pander(lasso.top10.best.threshold)
 ```
 
 
-#
+# Combine predictions
+```{r combine.predictions}
+scheme <- c("simple",  "variance based", "ols", "robust", "cls", "best")
+combine_f <- list()
+combine_res<-as.data.frame(
+  matrix(0,ncol=length(scheme),
+         nrow = 2,
+         dimnames = list(c('train','test'),
+                         scheme)))
+train_err<-sapply(train.best,getRMSD,obs=cls)
+test_err<-sapply(test.best,getRMSD,obs=cls)
+ind_err<-as.data.frame(rbind(train_err,test_err))
+rownames(ind_err)<-c('training','validation')
+for (i in scheme) {
+  combine_f[[i]] <- Forecast_comb(obs = (as.numeric(cls)-1),
+                                  fhat = train.best,
+                                  fhat_new=test.best,
+                                  Averaging_scheme = i)
+  combine_res[1,i] <- round(
+    sqrt(mean((combine_f[[i]]$fitted - 
+            as.numeric(cls)-1)^2)), 
+    3)
+  combine_res[2,i] <- round(
+    sqrt(mean((combine_f[[i]]$pred - 
+                 as.numeric(cls)-1)^2)), 
+    3)
+}
+pander(ind_err)
+pander(combine_res)
+```
+
 # Appendix {.tabset}
 ## Functions
 ```{r functions, eval=FALSE, include=TRUE}
