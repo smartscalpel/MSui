@@ -1907,10 +1907,12 @@ train_err<-sapply(train.best,getRMSD,obs=train.cls)
 test_err<-sapply(test.best,getRMSD,obs=cls)
 ind_err<-as.data.frame(rbind(train_err,test_err))
 rownames(ind_err)<-c('training','validation')
+m.train<-do.call(cbind,train.best)
+m.test<-do.call(cbind,test.best)
 for (i in scheme) {
-  combine_f[[i]] <- Forecast_comb(obs = (as.numeric(train.cls)-1),
-                                  fhat = train.best,
-                                  fhat_new=test.best,
+  combine_f[[i]] <- Forecast_comb(obs = (as.numeric(train.agg.cls)-1),
+                                  fhat = m.train,
+                                  fhat_new=m.test,
                                   Averaging_scheme = i)
   combine_res[1,i] <- round(
     sqrt(mean((combine_f[[i]]$fitted - 
