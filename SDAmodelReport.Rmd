@@ -783,6 +783,8 @@ if(filterTrain){
     train.md<-md
     train.cls<-cls
 }
+train.best<-list()
+test.best<-list()
 ```
 ```{r base.stat.plots}
 qplot(as.character(cls),log='y')
@@ -1901,18 +1903,18 @@ combine_res<-as.data.frame(
          nrow = 2,
          dimnames = list(c('train','test'),
                          scheme)))
-train_err<-sapply(train.best,getRMSD,obs=cls)
+train_err<-sapply(train.best,getRMSD,obs=train.cls)
 test_err<-sapply(test.best,getRMSD,obs=cls)
 ind_err<-as.data.frame(rbind(train_err,test_err))
 rownames(ind_err)<-c('training','validation')
 for (i in scheme) {
-  combine_f[[i]] <- Forecast_comb(obs = (as.numeric(cls)-1),
+  combine_f[[i]] <- Forecast_comb(obs = (as.numeric(train.cls)-1),
                                   fhat = train.best,
                                   fhat_new=test.best,
                                   Averaging_scheme = i)
   combine_res[1,i] <- round(
     sqrt(mean((combine_f[[i]]$fitted - 
-            as.numeric(cls)-1)^2)), 
+            as.numeric(train.cls)-1)^2)), 
     3)
   combine_res[2,i] <- round(
     sqrt(mean((combine_f[[i]]$pred - 
