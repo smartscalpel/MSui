@@ -792,13 +792,14 @@ qplot(ln,bins=100,log = 'x')
 ```{r datasetname.raw.spectra.facet,fig.width=8.5,fig.height=8.5,dev='png'}
 cat(format(Sys.time(), "%b %d %X"),dname,'Feature matrces are ready\n',file = logFile,append = TRUE)
 mz<-as.double(colnames(predict.fm))
-df<-cbind(data.frame(diag=cls),as.data.frame(predict.fm))
-pldf<-melt(df,id=c('diag'))
+md$diag<-cls
+df<-cbind(md,as.data.frame(predict.fm))
+pldf<-melt(df,id=names(md))
 pldf$mz<-round(as.numeric(as.character(pldf$variable)),4)
 
 labIdx<-order(pldf$value,decreasing = TRUE)[1:10]
-ggplot(pldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
-  labs(title ='Combined plot')
+#ggplot(pldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
+#  labs(title ='Combined plot')
 ggplot(pldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
   facet_grid(diag~.)+ 
   labs(title ='Intensity')
@@ -807,8 +808,8 @@ ggplot(pldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
 
 ```{r datasetname.raw.spectra.sc.facet.sum,fig.width=8.5,fig.height=8.5,dev='png'}
 sfm<-t(scale(t(predict.fm),scale = rowSums(predict.fm)/1e6,center = FALSE))
-sdf<-cbind(data.frame(diag=cls),as.data.frame(sfm))
-spldf<-melt(sdf,id=c('diag'))
+sdf<-cbind(md,as.data.frame(sfm))
+spldf<-melt(sdf,id=names(md))
 spldf$mz<-round(as.numeric(as.character(spldf$variable)),4)
 
 # pldf<-data.frame(mz=c(mz,mz),
@@ -816,8 +817,8 @@ spldf$mz<-round(as.numeric(as.character(spldf$variable)),4)
 #                  type=c(rep('high',length(mz)),rep('low',length(mz))),
 #                  scint=c(high/max(high),low/max(low)))
 labIdx<-order(spldf$value,decreasing = TRUE)[1:10]
-ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
-  labs(title ='Combined plot')
+#ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
+#  labs(title ='Combined plot')
 ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
   facet_grid(diag~.,scales = "free_y") +
   xlim(400, 1000) + 
@@ -827,8 +828,8 @@ ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
 
 ```{r datasetname.raw.spectra.sc.facet.max,fig.width=8.5,fig.height=8.5,dev='png'}
 sfm<-t(scale(t(predict.fm),scale = rowMax(predict.fm)/1e6,center = FALSE))
-sdf<-cbind(data.frame(diag=cls),as.data.frame(sfm))
-spldf<-melt(sdf,id=c('diag'))
+sdf<-cbind(md,as.data.frame(sfm))
+spldf<-melt(sdf,id=names(md))
 spldf$mz<-round(as.numeric(as.character(spldf$variable)),4)
 
 # pldf<-data.frame(mz=c(mz,mz),
@@ -836,8 +837,8 @@ spldf$mz<-round(as.numeric(as.character(spldf$variable)),4)
 #                  type=c(rep('high',length(mz)),rep('low',length(mz))),
 #                  scint=c(high/max(high),low/max(low)))
 labIdx<-order(spldf$value,decreasing = TRUE)[1:10]
-ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
-  labs(title ='Combined plot')
+#ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
+#  labs(title ='Combined plot')
 ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
   facet_grid(diag~.) +
   xlim(400, 1000) + 
