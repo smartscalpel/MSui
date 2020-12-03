@@ -665,7 +665,7 @@ getMD<-function(p){
 }
 
 getRMSD<-function(pred,obs){
-  round(sqrt(mean((pred - as.numeric(obs)-1)^2)), 3)
+  round(sqrt(mean((pred - (as.numeric(obs)-1))^2)), 3)
 }
 
 aggregatePredictions<-function(idx,matr,annot,fun=median){
@@ -771,6 +771,21 @@ predict.tot<-predict.fm
 md.tot<-md
 if(filterTrain){
   idx.train<-which(is.na(match(md$scan,mdf$scan)))
+  if(length(unique(cls[-idx.train]))<2){
+    cat('\n\n############\n',
+        '   **There is only one class in validation dataset**\n',
+        '   Further analysis performed with whole dataset\n',
+        '############\n\n')
+    filterTrain<- FALSE
+  }else if(length(unique(cls[idx.train]))<2){
+    cat('\n\n############\n',
+        '   **There is only one class in training dataset**\n',
+        '   Further analysis performed with whole dataset\n',
+        '############\n\n')
+    filterTrain<- FALSE
+  }
+}
+if(filterTrain){
   train.fm<-predict.fm[-idx.train,]
   predict.fm<-predict.fm[idx.train,]
   train.md<-md[-idx.train,]
@@ -779,9 +794,9 @@ if(filterTrain){
   cls<-cls[idx.train]
   ppeaks<-lpeaks[idx.train]
 }else{
-    train.fm<-predict.fm
-    train.md<-md
-    train.cls<-cls
+  train.fm<-predict.fm
+  train.md<-md
+  train.cls<-cls
 }
 train.best<-list()
 test.best<-list()
@@ -1910,17 +1925,17 @@ rownames(ind_err)<-c('training','validation')
 m.train<-do.call(cbind,train.best)
 m.test<-do.call(cbind,test.best)
 for (i in scheme) {
-  combine_f[[i]] <- Forecast_comb(obs = (as.numeric(train.agg.cls)-1),
+  combine_f[[i]] <- Forecast_comb(obs = (as.numeric(train.cls)-1),
                                   fhat = m.train,
                                   fhat_new=m.test,
                                   Averaging_scheme = i)
   combine_res[1,i] <- round(
     sqrt(mean((combine_f[[i]]$fitted - 
-            as.numeric(train.cls)-1)^2)), 
+            (as.numeric(train.cls)-1))^2)), 
     3)
   combine_res[2,i] <- round(
     sqrt(mean((combine_f[[i]]$pred - 
-                 as.numeric(cls)-1)^2)), 
+                 (as.numeric(cls)-1))^2)), 
     3)
 }
 pander(ind_err)
