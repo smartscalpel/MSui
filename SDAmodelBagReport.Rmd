@@ -665,11 +665,11 @@ getMD<-function(p){
 }
 
 getRMSD<-function(pred,obs){
-  round(sqrt(mean((pred - as.numeric(obs)-1)^2)), 3)
+  round(sqrt(mean((pred - (as.numeric(obs)-1))^2)), 3)
 }
 
 aggregatePredictions<-function(idx,matr,annot,fun=median){
-  apply(matr[annot==idx,],1,fun)
+  apply(matr[annot==idx,],2,fun)
 }
 ```
 
@@ -678,6 +678,8 @@ pathDef<-'~/Dropbox/Скальпель/DBData/peaks/'
 flDef<-c("peak2019.diag_32.expt_1.res_1.mode_2.dev_2.mz_2.tsv.gz",
         "peak2019.diag_6.expt_1.res_1.mode_2.dev_2.mz_2.tsv.gz" )
 modelDef<-'~/Dropbox/Скальпель/DBData/SDAreports2020/SDAreport.diag_6.res_1.mode_2.mz_2/SDAfilesReport.models.RData'
+anNameDef<-'spectrumid'
+funDef<-median
 ```
 
 # Read data
@@ -691,12 +693,16 @@ Before running the code a number of variables should be setted for appropriate d
 ```{r check.values}
 if(!(exists('fl')&
      exists('peak.path')&
-     exists('modelPath'))){
+     exists('modelPath')&
+     exists('anName')&
+     exists('aggFun'))){
   warning('not all obligatory parameters are provided\nUsing defaults.\n')
   cat(format(Sys.time(), "%b %d %X"),'not all obligatory parameters are provided\nUsing defaults.\n',file = logFile,append = TRUE)
   fl<-flDef
   peak.path<-pathDef
   modelPath<-modelDef
+  anName<-anNameDef
+  aggFun<-funDef
   wdir<-getwd()
   cacheDef<-TRUE
 }else{
@@ -771,6 +777,15 @@ predict.tot<-predict.fm
 md.tot<-md
 if(filterTrain){
   idx.train<-which(is.na(match(md$scan,mdf$scan)))
+  if(length(unique(cls[-idx.train]))<2){
+    cat('\n\n############\n',
+        '   **There is only one class in validation dataset**\n',
+        '   Further analysis performed with whole dataset\n',
+        '############\n\n')
+    filterTrain<- FALSE
+  }
+}
+if(filterTrain){
   train.fm<-predict.fm[-idx.train,]
   predict.fm<-predict.fm[idx.train,]
   train.md<-md[-idx.train,]
@@ -783,10 +798,41 @@ if(filterTrain){
     train.md<-md
     train.cls<-cls
 }
+pred.agg.fm<-do.call(rbind,
+                     lapply(unique(md[,anName]),
+                       aggregatePredictions,
+                       matr=predict.fm,
+                       annot=md[,anName],
+                       fun=aggFun))
+pred.agg.md<-as.data.frame(do.call(rbind,
+                     lapply(unique(md[,anName]),
+                            aggregatePredictions,
+                            matr=md,
+                            annot=md[,anName],
+                            fun=function(.x){.x[1]})))
+pred.agg.md$diag<-factor(pred.agg.md$diagnosis,levels=c(32,l[l!=32]),ordered=TRUE)
+agg.cls<-pred.agg.md$diag
+train.agg.fm<-do.call(rbind,
+                     lapply(unique(train.md[,anName]),
+                       aggregatePredictions,
+                       matr=train.fm,
+                       annot=train.md[,anName],
+                       fun=aggFun))
+train.agg.md<-as.data.frame(do.call(rbind,
+                     lapply(unique(train.md[,anName]),
+                            aggregatePredictions,
+                            matr=train.md,
+                            annot=train.md[,anName],
+                            fun=function(.x){.x[1]})))
+
+train.agg.md$diag<-factor(train.agg.md$diagnosis,levels=c(32,l[l!=32]),ordered=TRUE)
+train.agg.cls<-train.agg.md$diag
+train.best<-list()
+test.best<-list()
 ```
 ```{r base.stat.plots}
-qplot(as.character(cls),log='y')
-pander(table(cls))
+qplot(as.character(agg.cls),log='y')
+pander(table(agg.cls))
 ln<-sapply(ppeaks,length)
 qplot(ln,bins=100,log = 'x')
 
@@ -796,9 +842,8 @@ qplot(ln,bins=100,log = 'x')
 ```{r datasetname.raw.spectra.facet,fig.width=8.5,fig.height=8.5,dev='png'}
 cat(format(Sys.time(), "%b %d %X"),dname,'Feature matrces are ready\n',file = logFile,append = TRUE)
 mz<-as.double(colnames(predict.fm))
-md$diag<-cls
-df<-cbind(md,as.data.frame(predict.fm))
-pldf<-melt(df,id=names(md))
+df<-cbind(pred.agg.md,as.data.frame(pred.agg.fm))
+pldf<-melt(df,id=names(pred.agg.md))
 pldf$mz<-round(as.numeric(as.character(pldf$variable)),4)
 
 labIdx<-order(pldf$value,decreasing = TRUE)[1:10]
@@ -811,9 +856,9 @@ ggplot(pldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
 
 
 ```{r datasetname.raw.spectra.sc.facet.sum,fig.width=8.5,fig.height=8.5,dev='png'}
-sfm<-t(scale(t(predict.fm),scale = rowSums(predict.fm)/1e6,center = FALSE))
-sdf<-cbind(md,as.data.frame(sfm))
-spldf<-melt(sdf,id=names(md))
+sfm<-t(scale(t(pred.agg.fm),scale = rowSums(pred.agg.fm)/1e6,center = FALSE))
+sdf<-cbind(pred.agg.md,as.data.frame(sfm))
+spldf<-melt(sdf,id=names(pred.agg.md))
 spldf$mz<-round(as.numeric(as.character(spldf$variable)),4)
 
 # pldf<-data.frame(mz=c(mz,mz),
@@ -831,9 +876,9 @@ ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
 
 
 ```{r datasetname.raw.spectra.sc.facet.max,fig.width=8.5,fig.height=8.5,dev='png'}
-sfm<-t(scale(t(predict.fm),scale = rowMax(predict.fm)/1e6,center = FALSE))
-sdf<-cbind(md,as.data.frame(sfm))
-spldf<-melt(sdf,id=names(md))
+sfm<-t(scale(t(pred.agg.fm),scale = rowMax(pred.agg.fm)/1e6,center = FALSE))
+sdf<-cbind(pred.agg.md,as.data.frame(sfm))
+spldf<-melt(sdf,id=names(pred.agg.md))
 spldf$mz<-round(as.numeric(as.character(spldf$variable)),4)
 
 # pldf<-data.frame(mz=c(mz,mz),
@@ -856,16 +901,16 @@ ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
 
 ```{r datasetname.raw.pca.nosc.full,fig.width=8.5,fig.height=8.5}
 cat(format(Sys.time(), "%b %d %X"),dname,'PCA starts\n',file = logFile,append = TRUE)
-pca<-try(prcomp(predict.fm,scale. = FALSE),silent=TRUE)
+pca<-try(prcomp(pred.agg.fm,scale. = FALSE),silent=TRUE)
 if(class(pca)!="try-error"){
   fviz_screeplot(pca, ncp=15)
   fviz_pca_ind(pca, habillage='none',label = 'none',
                addEllipses=FALSE)
   fviz_pca_ind(pca, habillage='none',label = 'none',axes=c(1,3),
                addEllipses=FALSE)
-  fviz_pca_ind(pca, habillage=cls,
+  fviz_pca_ind(pca, habillage=pred.agg.md$diag,
                addEllipses=TRUE, ellipse.level=0.95)
-  fviz_pca_ind(pca, habillage=cls,axes=c(1,3),
+  fviz_pca_ind(pca, habillage=pred.agg.md$diag,axes=c(1,3),
                addEllipses=TRUE, ellipse.level=0.95)
 }else{
   cat('Non-scaled data did not converge\n')
@@ -875,15 +920,15 @@ if(class(pca)!="try-error"){
 ### Scaled data
 
 ```{r datasetname.raw.pca.sc.full,fig.width=8.5,fig.height=8.5}
-pca<-prcomp(predict.fm[,which(apply(predict.fm,2,sd)>0)],scale. = TRUE)
+pca<-prcomp(pred.agg.fm[,which(apply(pred.agg.fm,2,sd)>0)],scale. = TRUE)
 fviz_screeplot(pca, ncp=15)
 fviz_pca_ind(pca, habillage='none',label = 'none',
              addEllipses=FALSE)
 fviz_pca_ind(pca, habillage='none',label = 'none',axes=c(1,3),
              addEllipses=FALSE)
-fviz_pca_ind(pca, habillage=cls,
+fviz_pca_ind(pca, habillage=pred.agg.md$diag,
              addEllipses=TRUE, ellipse.level=0.95)
-fviz_pca_ind(pca, habillage=cls,axes=c(1,3),
+fviz_pca_ind(pca, habillage=pred.agg.md$diag,axes=c(1,3),
              addEllipses=TRUE, ellipse.level=0.95)
 ```
 
@@ -903,8 +948,16 @@ terrL.dda.full<-lapply(trainL.dda.full,
                                      negative=32)))
 terrM.dda.full<-as.data.frame(do.call(rbind,terrL.dda.full))
 train.probL.dda.full<-lapply(trainL.dda.full,function(.x).x$probII)
-train.probM.dda.full<-do.call(cbind,train.probL.dda.full)
-train.auc<- caTools::colAUC(train.probM.dda.full,train.cls,plotROC = TRUE)
+M<-do.call(cbind,train.probL.dda.full)
+agg.M<-do.call(rbind,
+                     lapply(unique(train.md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=train.md[,anName],
+                       fun=aggFun))
+train.probM.dda.full<-agg.M
+
+train.auc<- caTools::colAUC(train.probM.dda.full,train.agg.cls,plotROC = TRUE)
 terrM.dda.full$AUC<-t(train.auc)
 terrM.dda.full<-cbind(
   data.frame(mIdx=1:length(dda.res.full),
@@ -925,8 +978,15 @@ derrL.dda.full<-lapply(predL.dda.full,
                                      negative=32)))
 derrM.dda.full<-as.data.frame(do.call(rbind,derrL.dda.full))
 probL.dda.full<-lapply(predL.dda.full,function(.x).x$probII)
-probM.dda.full<-do.call(cbind,probL.dda.full)
-auc<- caTools::colAUC(probM.dda.full,cls,plotROC = TRUE)
+M<-do.call(cbind,probL.dda.full)
+agg.M<-do.call(rbind,
+                     lapply(unique(md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=md[,anName],
+                       fun=aggFun))
+probM.dda.full<-agg.M
+auc<- caTools::colAUC(probM.dda.full,agg.cls,plotROC = TRUE)
 derrM.dda.full$AUC<-t(auc)
 derrM.dda.full<-cbind(
   data.frame(mIdx=1:length(dda.res.full),
@@ -956,9 +1016,9 @@ pander(derrM.dda.full[ridx,])
 ```{r dda.full.analyse.best.model.train}
 idxBest<-which.max(terrM.dda.full$AUC)
 dda.full.best<-dda.res.full[[idxBest]]
-t<-trainL.dda.full[[idxBest]]
+t<-data.frame(probII=train.probM.dda.full[,idxBest],
+              diag=as.character(train.agg.cls))
 train.best[['dda.full']]<-t$probII
-t$diag<-as.character(train.cls)
 dda.full.roc.train<-roc(t$diag,t$probII,
                   smoothed = TRUE,ci=TRUE, 
                   ci.alpha=0.9, 
@@ -978,8 +1038,8 @@ rownames(bct)<-'training'
 ```
 
 ```{r dda.full.analyse.best.model.test}
-p<-predL.dda.full[[idxBest]]
-p$diag<-as.character(cls)
+p<-data.frame(probII=probM.dda.full[,idxBest],
+              diag=as.character(agg.cls))
 test.best[['dda.full']]<-p$probII
 dda.full.roc.pred<-roc(p$diag,p$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1014,8 +1074,15 @@ terrL.dda.top20<-lapply(trainL.dda.top20,
                                      negative=32)))
 terrM.dda.top20<-as.data.frame(do.call(rbind,terrL.dda.top20))
 train.probL.dda.top20<-lapply(trainL.dda.top20,function(.x).x$probII)
-train.probM.dda.top20<-do.call(cbind,train.probL.dda.top20)
-train.auc<- caTools::colAUC(train.probM.dda.top20,train.cls,plotROC = TRUE)
+M<-do.call(cbind,train.probL.dda.top20)
+agg.M<-do.call(rbind,
+                     lapply(unique(train.md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=train.md[,anName],
+                       fun=aggFun))
+train.probM.dda.top20<-agg.M
+train.auc<- caTools::colAUC(train.probM.dda.top20,train.agg.cls,plotROC = TRUE)
 terrM.dda.top20$AUC<-t(train.auc)
 terrM.dda.top20<-cbind(
   data.frame(mIdx=1:length(dda.res.top20),
@@ -1036,8 +1103,15 @@ derrL.dda.top20<-lapply(predL.dda.top20,
                                      negative=32)))
 derrM.dda.top20<-as.data.frame(do.call(rbind,derrL.dda.top20))
 probL.dda.top20<-lapply(predL.dda.top20,function(.x).x$probII)
-probM.dda.top20<-do.call(cbind,probL.dda.top20)
-auc<- caTools::colAUC(probM.dda.top20,cls,plotROC = TRUE)
+M<-do.call(cbind,probL.dda.top20)
+agg.M<-do.call(rbind,
+                     lapply(unique(md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=md[,anName],
+                       fun=aggFun))
+probM.dda.top20<-agg.M
+auc<- caTools::colAUC(probM.dda.top20,agg.cls,plotROC = TRUE)
 derrM.dda.top20$AUC<-t(auc)
 derrM.dda.top20<-cbind(    data.frame(mIdx=1:length(dda.res.top20),
              type='DDA',
@@ -1066,8 +1140,8 @@ pander(derrM.dda.top20[ridx,])
 ```{r dda.top20.analyse.best.model.train}
 idxBest<-which.max(terrM.dda.top20$AUC)
 dda.top20.best<-dda.res.top20[[idxBest]]
-t<-trainL.dda.top20[[idxBest]]
-t$diag<-as.character(train.cls)
+t<-data.frame(probII=train.probM.dda.top20[,idxBest],
+              diag=as.character(train.agg.cls))
 train.best[['dda.top20']]<-t$probII
 dda.top20.roc.train<-roc(t$diag,t$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1088,8 +1162,8 @@ rownames(bct)<-'training'
 ```
 
 ```{r dda.top20.analyse.best.model.test}
-p<-predL.dda.top20[[idxBest]]
-p$diag<-as.character(cls)
+p<-data.frame(probII=probM.dda.top20[,idxBest],
+              diag=as.character(agg.cls))
 test.best[['dda.top20']]<-p$probII
 dda.top20.roc.pred<-roc(p$diag,p$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1124,8 +1198,15 @@ terrL.dda.top10<-lapply(trainL.dda.top10,
                                      negative=32)))
 terrM.dda.top10<-as.data.frame(do.call(rbind,terrL.dda.top10))
 train.probL.dda.top10<-lapply(trainL.dda.top10,function(.x).x$probII)
-train.probM.dda.top10<-do.call(cbind,train.probL.dda.top10)
-train.auc<- caTools::colAUC(train.probM.dda.top10,train.cls,plotROC = TRUE)
+M<-do.call(cbind,train.probL.dda.top10)
+agg.M<-do.call(rbind,
+                     lapply(unique(train.md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=train.md[,anName],
+                       fun=aggFun))
+train.probM.dda.top10<-agg.M
+train.auc<- caTools::colAUC(train.probM.dda.top10,train.agg.cls,plotROC = TRUE)
 terrM.dda.top10$AUC<-t(train.auc)
 terrM.dda.top10<-cbind(
   data.frame(mIdx=1:length(dda.res.top10),
@@ -1146,8 +1227,15 @@ derrL.dda.top10<-lapply(predL.dda.top10,
                                      negative=32)))
 derrM.dda.top10<-as.data.frame(do.call(rbind,derrL.dda.top10))
 probL.dda.top10<-lapply(predL.dda.top10,function(.x).x$probII)
-probM.dda.top10<-do.call(cbind,probL.dda.top10)
-auc<- caTools::colAUC(probM.dda.top10,cls,plotROC = TRUE)
+M<-do.call(cbind,probL.dda.top10)
+agg.M<-do.call(rbind,
+                     lapply(unique(md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=md[,anName],
+                       fun=aggFun))
+probM.dda.top10<-agg.M
+auc<- caTools::colAUC(probM.dda.top10,agg.cls,plotROC = TRUE)
 derrM.dda.top10$AUC<-t(auc)
 derrM.dda.top10<-cbind(    
   data.frame(mIdx=1:length(dda.res.top10),
@@ -1178,8 +1266,8 @@ pander(derrM.dda.top10[ridx,])
 ```{r dda.top10.analyse.best.model.train}
 idxBest<-which.max(terrM.dda.top10$AUC)
 dda.top10.best<-dda.res.top10[[idxBest]]
-t<-trainL.dda.top10[[idxBest]]
-t$diag<-as.character(train.cls)
+t<-data.frame(probII=train.probM.dda.top10[,idxBest],
+              diag=as.character(train.agg.cls))
 train.best[['dda.top10']]<-t$probII
 dda.top10.roc.train<-roc(t$diag,t$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1200,8 +1288,8 @@ rownames(bct)<-'training'
 ```
 
 ```{r dda.top10.analyse.best.model.test}
-p<-predL.dda.top10[[idxBest]]
-p$diag<-as.character(cls)
+p<-data.frame(probII=probM.dda.top10[,idxBest],
+              diag=as.character(agg.cls))
 test.best[['dda.top10']]<-p$probII
 dda.top10.roc.pred<-roc(p$diag,p$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1238,8 +1326,15 @@ terrL.lda.full<-lapply(trainL.lda.full,
                                      negative=32)))
 terrM.lda.full<-as.data.frame(do.call(rbind,terrL.lda.full))
 train.probL.lda.full<-lapply(trainL.lda.full,function(.x).x$probII)
-train.probM.lda.full<-do.call(cbind,train.probL.lda.full)
-train.auc<- caTools::colAUC(train.probM.lda.full,train.cls,plotROC = TRUE)
+M<-do.call(cbind,train.probL.lda.full)
+agg.M<-do.call(rbind,
+                     lapply(unique(train.md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=train.md[,anName],
+                       fun=aggFun))
+train.probM.lda.full<-agg.M
+train.auc<- caTools::colAUC(train.probM.lda.full,train.agg.cls,plotROC = TRUE)
 terrM.lda.full$AUC<-t(train.auc)
 terrM.lda.full<-cbind(
   data.frame(mIdx=1:length(lda.res.full),
@@ -1260,8 +1355,15 @@ derrL.lda.full<-lapply(predL.lda.full,
                                      negative=32)))
 derrM.lda.full<-as.data.frame(do.call(rbind,derrL.lda.full))
 probL.lda.full<-lapply(predL.lda.full,function(.x).x$probII)
-probM.lda.full<-do.call(cbind,probL.lda.full)
-auc<- caTools::colAUC(probM.lda.full,cls,plotROC = TRUE)
+M<-do.call(cbind,probL.lda.full)
+agg.M<-do.call(rbind,
+                     lapply(unique(md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=md[,anName],
+                       fun=aggFun))
+probM.lda.full<-agg.M
+auc<- caTools::colAUC(probM.lda.full,agg.cls,plotROC = TRUE)
 derrM.lda.full$AUC<-t(auc)
 derrM.lda.full<-cbind(
   data.frame(mIdx=1:length(lda.res.full),
@@ -1291,9 +1393,9 @@ pander(derrM.lda.full[ridx,])
 ```{r lda.full.analyse.best.model.train}
 idxBest<-which.max(terrM.lda.full$AUC)
 lda.full.best<-lda.res.full[[idxBest]]
-t<-trainL.lda.full[[idxBest]]
-t$diag<-as.character(train.cls)
-train.best[['lda.full']]t<-t$probII
+t<-data.frame(probII=train.probM.lda.full[,idxBest],
+              diag=as.character(train.agg.cls))
+train.best[['lda.full']]<-t$probII
 lda.full.roc.train<-roc(t$diag,t$probII,
                   smoothed = TRUE,ci=TRUE, 
                   ci.alpha=0.9, 
@@ -1313,8 +1415,8 @@ rownames(bct)<-'training'
 ```
 
 ```{r lda.full.analyse.best.model.test}
-p<-predL.lda.full[[idxBest]]
-p$diag<-as.character(cls)
+p<-data.frame(probII=probM.lda.full[,idxBest],
+              diag=as.character(agg.cls))
 test.best[['lda.full']]<-p$probII
 lda.full.roc.pred<-roc(p$diag,p$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1348,8 +1450,15 @@ terrL.lda.top20<-lapply(trainL.lda.top20,
                                      negative=32)))
 terrM.lda.top20<-as.data.frame(do.call(rbind,terrL.lda.top20))
 train.probL.lda.top20<-lapply(trainL.lda.top20,function(.x).x$probII)
-train.probM.lda.top20<-do.call(cbind,train.probL.lda.top20)
-train.auc<- caTools::colAUC(train.probM.lda.top20,train.cls,plotROC = TRUE)
+M<-do.call(cbind,train.probL.lda.top20)
+agg.M<-do.call(rbind,
+                     lapply(unique(train.md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=train.md[,anName],
+                       fun=aggFun))
+train.probM.lda.top20<-agg.M
+train.auc<- caTools::colAUC(train.probM.lda.top20,train.agg.cls,plotROC = TRUE)
 terrM.lda.top20$AUC<-t(train.auc)
 terrM.lda.top20<-cbind(
   data.frame(mIdx=1:length(lda.res.top20),
@@ -1370,8 +1479,15 @@ derrL.lda.top20<-lapply(predL.lda.top20,
                                      negative=32)))
 derrM.lda.top20<-as.data.frame(do.call(rbind,derrL.lda.top20))
 probL.lda.top20<-lapply(predL.lda.top20,function(.x).x$probII)
-probM.lda.top20<-do.call(cbind,probL.lda.top20)
-auc<- caTools::colAUC(probM.lda.top20,cls,plotROC = TRUE)
+M<-do.call(cbind,probL.lda.top20)
+agg.M<-do.call(rbind,
+                     lapply(unique(md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=md[,anName],
+                       fun=aggFun))
+probM.lda.top20<-agg.M
+auc<- caTools::colAUC(probM.lda.top20,agg.cls,plotROC = TRUE)
 derrM.lda.top20$AUC<-t(auc)
 derrM.lda.top20<-cbind(    
   data.frame(mIdx=1:length(lda.res.top20),
@@ -1401,8 +1517,8 @@ pander(derrM.lda.top20[ridx,])
 ```{r lda.top20.analyse.best.model.train}
 idxBest<-which.max(terrM.lda.top20$AUC)
 lda.top20.best<-lda.res.top20[[idxBest]]
-t<-trainL.lda.top20[[idxBest]]
-t$diag<-as.character(train.cls)
+t<-data.frame(probII=train.probM.lda.top20[,idxBest],
+              diag=as.character(train.agg.cls))
 train.best[['lda.top20']]<-t$probII
 lda.top20.roc.train<-roc(t$diag,t$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1423,8 +1539,8 @@ rownames(bct)<-'training'
 ```
 
 ```{r lda.top20.analyse.best.model.test}
-p<-predL.lda.top20[[idxBest]]
-p$diag<-as.character(cls)
+p<-data.frame(probII=probM.lda.top20[,idxBest],
+              diag=as.character(agg.cls))
 test.best[['lda.top20']]<-p$probII
 lda.top20.roc.pred<-roc(p$diag,p$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1458,8 +1574,15 @@ terrL.lda.top10<-lapply(trainL.lda.top10,
                                      negative=32)))
 terrM.lda.top10<-as.data.frame(do.call(rbind,terrL.lda.top10))
 train.probL.lda.top10<-lapply(trainL.lda.top10,function(.x).x$probII)
-train.probM.lda.top10<-do.call(cbind,train.probL.lda.top10)
-train.auc<- caTools::colAUC(train.probM.lda.top10,train.cls,plotROC = TRUE)
+M<-do.call(cbind,train.probL.lda.top10)
+agg.M<-do.call(rbind,
+                     lapply(unique(train.md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=train.md[,anName],
+                       fun=aggFun))
+train.probM.lda.top10<-agg.M
+train.auc<- caTools::colAUC(train.probM.lda.top10,train.agg.cls,plotROC = TRUE)
 terrM.lda.top10$AUC<-t(train.auc)
 terrM.lda.top10<-cbind(
   data.frame(mIdx=1:length(lda.res.top10),
@@ -1480,8 +1603,15 @@ derrL.lda.top10<-lapply(predL.lda.top10,
                                      negative=32)))
 derrM.lda.top10<-as.data.frame(do.call(rbind,derrL.lda.top10))
 probL.lda.top10<-lapply(predL.lda.top10,function(.x).x$probII)
-probM.lda.top10<-do.call(cbind,probL.lda.top10)
-auc<- caTools::colAUC(probM.lda.top10,cls,plotROC = TRUE)
+M<-do.call(cbind,probL.lda.top10)
+agg.M<-do.call(rbind,
+                     lapply(unique(md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=md[,anName],
+                       fun=aggFun))
+probM.lda.top10<-agg.M
+auc<- caTools::colAUC(probM.lda.top10,agg.cls,plotROC = TRUE)
 derrM.lda.top10$AUC<-t(auc)
 derrM.lda.top10<-cbind(    
   data.frame(mIdx=1:length(lda.res.top10),
@@ -1512,8 +1642,8 @@ pander(derrM.lda.top10[ridx,])
 ```{r lda.top10.analyse.best.model.train}
 idxBest<-which.max(terrM.lda.top10$AUC)
 lda.top10.best<-lda.res.top10[[idxBest]]
-t<-trainL.lda.top10[[idxBest]]
-t$diag<-as.character(train.cls)
+t<-data.frame(probII=train.probM.lda.top10[,idxBest],
+              diag=as.character(train.agg.cls))
 train.best[['lda.top10']]<-t$probII
 lda.top10.roc.train<-roc(t$diag,t$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1534,9 +1664,10 @@ rownames(bct)<-'training'
 ```
 
 ```{r lda.top10.analyse.best.model.test}
-p<-predL.lda.top10[[idxBest]]
-p$diag<-as.character(cls)
-test.best[['lda.top10']]<-p$probIIlda.top10.roc.pred<-roc(p$diag,p$probII,
+p<-data.frame(probII=probM.lda.top10[,idxBest],
+              diag=as.character(agg.cls))
+test.best[['lda.top10']]<-p$probII
+lda.top10.roc.pred<-roc(p$diag,p$probII,
                   smoothed = TRUE,ci=TRUE, 
                   ci.alpha=0.9, 
                   stratified=FALSE,plot=TRUE, 
@@ -1571,8 +1702,15 @@ terrL.lasso.full<-lapply(trainL.lasso.full,
                                      negative=32)))
 terrM.lasso.full<-as.data.frame(do.call(rbind,terrL.lasso.full))
 train.probL.lasso.full<-lapply(trainL.lasso.full,function(.x).x$probII)
-train.probM.lasso.full<-do.call(cbind,train.probL.lasso.full)
-train.auc<- caTools::colAUC(train.probM.lasso.full,train.cls,plotROC = TRUE)
+M<-do.call(cbind,train.probL.lasso.full)
+agg.M<-do.call(rbind,
+                     lapply(unique(train.md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=train.md[,anName],
+                       fun=aggFun))
+train.probM.lasso.full<-agg.M
+train.auc<- caTools::colAUC(train.probM.lasso.full,train.agg.cls,plotROC = TRUE)
 terrM.lasso.full$AUC<-t(train.auc)
 terrM.lasso.full<-cbind(
   data.frame(mIdx=1:length(lasso.res.full),
@@ -1593,8 +1731,15 @@ derrL.lasso.full<-lapply(predL.lasso.full,
                                      negative=32)))
 derrM.lasso.full<-as.data.frame(do.call(rbind,derrL.lasso.full))
 probL.lasso.full<-lapply(predL.lasso.full,function(.x).x$probII)
-probM.lasso.full<-do.call(cbind,probL.lasso.full)
-auc<- caTools::colAUC(probM.lasso.full,cls,plotROC = TRUE)
+M<-do.call(cbind,probL.lasso.full)
+agg.M<-do.call(rbind,
+                     lapply(unique(md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=md[,anName],
+                       fun=aggFun))
+probM.lasso.full<-agg.M
+auc<- caTools::colAUC(probM.lasso.full,agg.cls,plotROC = TRUE)
 derrM.lasso.full$AUC<-t(auc)
 derrM.lasso.full<-cbind(
   data.frame(mIdx=1:length(lasso.res.full),
@@ -1624,8 +1769,8 @@ pander(derrM.lasso.full[ridx,])
 ```{r lasso.full.analyse.best.model.train}
 idxBest<-which.max(terrM.lasso.full$AUC)
 lasso.full.best<-lasso.res.full[[idxBest]]
-t<-trainL.lasso.full[[idxBest]]
-t$diag<-as.character(train.cls)
+t<-data.frame(probII=train.probM.lasso.full[,idxBest],
+              diag=as.character(train.agg.cls))
 train.best[['lasso.full']]<-t$probII
 lasso.full.roc.train<-roc(t$diag,t$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1646,8 +1791,8 @@ rownames(bct)<-'training'
 ```
 
 ```{r lasso.full.analyse.best.model.test}
-p<-predL.lasso.full[[idxBest]]
-p$diag<-as.character(cls)
+p<-data.frame(probII=probM.lasso.full[,idxBest],
+              diag=as.character(agg.cls))
 test.best[['lasso.full']]<-p$probII
 lasso.full.roc.pred<-roc(p$diag,p$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1681,8 +1826,15 @@ terrL.lasso.top20<-lapply(trainL.lasso.top20,
                                      negative=32)))
 terrM.lasso.top20<-as.data.frame(do.call(rbind,terrL.lasso.top20))
 train.probL.lasso.top20<-lapply(trainL.lasso.top20,function(.x).x$probII)
-train.probM.lasso.top20<-do.call(cbind,train.probL.lasso.top20)
-train.auc<- caTools::colAUC(train.probM.lasso.top20,train.cls,plotROC = TRUE)
+M<-do.call(cbind,train.probL.lasso.top20)
+agg.M<-do.call(rbind,
+                     lapply(unique(train.md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=train.md[,anName],
+                       fun=aggFun))
+train.probM.lasso.top20<-agg.M
+train.auc<- caTools::colAUC(train.probM.lasso.top20,train.agg.cls,plotROC = TRUE)
 terrM.lasso.top20$AUC<-t(train.auc)
 terrM.lasso.top20<-cbind(
   data.frame(mIdx=1:length(lasso.res.top20),
@@ -1703,8 +1855,15 @@ derrL.lasso.top20<-lapply(predL.lasso.top20,
                                      negative=32)))
 derrM.lasso.top20<-as.data.frame(do.call(rbind,derrL.lasso.top20))
 probL.lasso.top20<-lapply(predL.lasso.top20,function(.x).x$probII)
-probM.lasso.top20<-do.call(cbind,probL.lasso.top20)
-auc<- caTools::colAUC(probM.lasso.top20,cls,plotROC = TRUE)
+M<-do.call(cbind,probL.lasso.top20)
+agg.M<-do.call(rbind,
+                     lapply(unique(md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=md[,anName],
+                       fun=aggFun))
+probM.lasso.top20<-agg.M
+auc<- caTools::colAUC(probM.lasso.top20,agg.cls,plotROC = TRUE)
 derrM.lasso.top20$AUC<-t(auc)
 derrM.lasso.top20<-cbind(
     data.frame(mIdx=1:length(lasso.res.top20),
@@ -1734,8 +1893,8 @@ pander(derrM.lasso.top20[ridx,])
 ```{r lasso.top20.analyse.best.model.train}
 idxBest<-which.max(terrM.lasso.top20$AUC)
 lasso.top20.best<-lasso.res.top20[[idxBest]]
-t<-trainL.lasso.top20[[idxBest]]
-t$diag<-as.character(train.cls)
+t<-data.frame(probII=train.probM.lasso.top20[,idxBest],
+              diag=as.character(train.agg.cls))
 train.best[['lasso.top20']]<-t$probII
 lasso.top20.roc.train<-roc(t$diag,t$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1756,8 +1915,8 @@ rownames(bct)<-'training'
 ```
 
 ```{r lasso.top20.analyse.best.model.test}
-p<-predL.lasso.top20[[idxBest]]
-p$diag<-as.character(cls)
+p<-data.frame(probII=probM.lasso.top20[,idxBest],
+              diag=as.character(agg.cls))
 test.best[['lasso.top20']]<-p$probII
 lasso.top20.roc.pred<-roc(p$diag,p$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1791,8 +1950,15 @@ terrL.lasso.top10<-lapply(trainL.lasso.top10,
                                      negative=32)))
 terrM.lasso.top10<-as.data.frame(do.call(rbind,terrL.lasso.top10))
 train.probL.lasso.top10<-lapply(trainL.lasso.top10,function(.x).x$probII)
-train.probM.lasso.top10<-do.call(cbind,train.probL.lasso.top10)
-train.auc<- caTools::colAUC(train.probM.lasso.top10,train.cls,plotROC = TRUE)
+M<-do.call(cbind,train.probL.lasso.top10)
+agg.M<-do.call(rbind,
+                     lapply(unique(train.md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=train.md[,anName],
+                       fun=aggFun))
+train.probM.lasso.top10<-agg.M
+train.auc<- caTools::colAUC(train.probM.lasso.top10,train.agg.cls,plotROC = TRUE)
 terrM.lasso.top10$AUC<-t(train.auc)
 terrM.lasso.top10<-cbind(
   data.frame(mIdx=1:length(lasso.res.top10),
@@ -1813,8 +1979,17 @@ derrL.lasso.top10<-lapply(predL.lasso.top10,
                                      negative=32)))
 derrM.lasso.top10<-as.data.frame(do.call(rbind,derrL.lasso.top10))
 probL.lasso.top10<-lapply(predL.lasso.top10,function(.x).x$probII)
-probM.lasso.top10<-do.call(cbind,probL.lasso.top10)
-auc<- caTools::colAUC(probM.lasso.top10,cls,plotROC = TRUE)
+
+M<-do.call(cbind,probL.lasso.top10)
+agg.M<-do.call(rbind,
+                     lapply(unique(md[,anName]),
+                       aggregatePredictions,
+                       matr=M,
+                       annot=md[,anName],
+                       fun=aggFun))
+probM.lasso.top10<-agg.M
+
+auc<- caTools::colAUC(probM.lasso.top10,agg.cls,plotROC = TRUE)
 derrM.lasso.top10$AUC<-t(auc)
 derrM.lasso.top10<-cbind(   
   data.frame(mIdx=1:length(lasso.res.top10),
@@ -1847,8 +2022,8 @@ pander(derrM.lasso.top10[ridx,])
 ```{r lasso.top10.analyse.best.model.train}
 idxBest<-which.max(terrM.lasso.top10$AUC)
 lasso.top10.best<-lasso.res.top10[[idxBest]]
-t<-trainL.lasso.top10[[idxBest]]
-t$diag<-as.character(train.cls)
+t<-data.frame(probII=train.probM.lasso.top10[,idxBest],
+              diag=as.character(train.agg.cls))
 train.best[['lasso.top10']]<-t$probII
 lasso.top10.roc.train<-roc(t$diag,t$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1869,8 +2044,8 @@ rownames(bct)<-'training'
 ```
 
 ```{r lasso.top10.analyse.best.model.test}
-p<-predL.lasso.top10[[idxBest]]
-p$diag<-as.character(cls)
+p<-data.frame(probII=probM.lasso.top10[,idxBest],
+              diag=as.character(agg.cls))
 test.best[['lasso.top10']]<-p$probII
 lasso.top10.roc.pred<-roc(p$diag,p$probII,
                   smoothed = TRUE,ci=TRUE, 
@@ -1901,22 +2076,24 @@ combine_res<-as.data.frame(
          nrow = 2,
          dimnames = list(c('train','test'),
                          scheme)))
-train_err<-sapply(train.best,getRMSD,obs=cls)
-test_err<-sapply(test.best,getRMSD,obs=cls)
+train_err<-sapply(train.best,getRMSD,obs=train.agg.cls)
+test_err<-sapply(test.best,getRMSD,obs=agg.cls)
 ind_err<-as.data.frame(rbind(train_err,test_err))
 rownames(ind_err)<-c('training','validation')
+m.train<-do.call(cbind,train.best)
+m.test<-do.call(cbind,test.best)
 for (i in scheme) {
-  combine_f[[i]] <- Forecast_comb(obs = (as.numeric(cls)-1),
-                                  fhat = train.best,
-                                  fhat_new=test.best,
+  combine_f[[i]] <- Forecast_comb(obs = (as.numeric(train.agg.cls)-1),
+                                  fhat = m.train,
+                                  fhat_new=m.test,
                                   Averaging_scheme = i)
   combine_res[1,i] <- round(
     sqrt(mean((combine_f[[i]]$fitted - 
-            as.numeric(cls)-1)^2)), 
+            (as.numeric(train.agg.cls)-1))^2)), 
     3)
   combine_res[2,i] <- round(
     sqrt(mean((combine_f[[i]]$pred - 
-                 as.numeric(cls)-1)^2)), 
+                 (as.numeric(agg.cls)-1))^2)), 
     3)
 }
 pander(ind_err)
