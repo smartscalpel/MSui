@@ -32,25 +32,27 @@ library(ggplot2)
 library(ggrepel)
 library(data.table)
 library(plyr)
-#library(xcms)
 library(xtable)
+library(xcms)
 library("FactoMineR")
 library(cluster)
 library(dendextend)
 library(factoextra)
 library(corrplot)
-#library("PerformanceAnalytics")
-#library("pvclust")
+library(ncdf4)
+library("PerformanceAnalytics")
+library("pvclust")
 library("sda")
 library(RColorBrewer)
 library(MALDIquant)
 library(MALDIquantForeign)
-library("crossval")
 library(glmnet)
 library(analyzePeaks)
 library(crossval)
 library(pROC)
 library(ForecastCombinations)
+library(Vennerable)
+library(openxlsx)
 ticThreshold<-0.01
 absTicThreshold<-1000
 Npeaks<-10
@@ -748,6 +750,8 @@ md<-do.call(rbind,dl)
 ```{r datasetname.raw.metadata.dataSet}
 diag<-unlist(sapply(peaks,function(.x)metaData(.x)$diag))
 spectrumid<-unlist(sapply(peaks,function(.x)metaData(.x)$spectrumid))
+qplot(as.character(diag),log='y')
+pander(table(diag))
 ln<-sapply(peaks,length)
 qplot(ln,bins=100,log = 'x')
 idx<-which(ln>Npeaks)
@@ -821,6 +825,7 @@ pldf$mz<-round(as.numeric(as.character(pldf$variable)),4)
 labIdx<-order(pldf$value,decreasing = TRUE)[1:10]
 #ggplot(pldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
 #  labs(title ='Combined plot')
+
 ggplot(pldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
   facet_grid(diag~.)+ 
   labs(title ='Intensity')

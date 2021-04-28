@@ -1,0 +1,14 @@
+Package: scalpeldb
+Type: Package
+Title: Set of functions to work with ScalpelDB
+Version: 0.0.7
+Date: 2019-10-13
+Author: Anatoly Sorokin 
+Maintainer: Anatoly Sorokin <lptolik@gmail.com>
+Description: Package to load data from scalpelDB and make them ready for AI.
+License: MIT+ file LICENSE
+LazyLoad: yes
+Depends: MALDIquant, Matrix, DBI
+Imports: RColorBrewer, plyr, reshape2, data.table
+Suggests: testthat, knitr
+RoxygenNote: 6.1.1

@@ -1,0 +1,1545 @@
+---
+title: "SDA and Lasso classification of the MassPeaks data"
+author: "Anatoly Sorokin"
+date: '`r format(Sys.time(), "%d.%m.%Y")`'
+output:
+  pdf_document:
+    keep_tex: yes
+    number_sections: yes
+  html_document: default
+params:
+  format: !r if(opts_knit$get("rmarkdown.pandoc.to") == 'html') c('screen', 'print')
+    else 'print'
+  version: !r if(nchar(Sys.which("git"))) system("git describe --long --dirty --abbrev=10  --tags  --always",
+    intern=TRUE) else date()
+header-includes:
+- \usepackage[T2A]{fontenc}
+- \usepackage[utf8]{inputenc}
+- \usepackage[english,russian]{babel}
+- \usepackage{grffile}
+- \usepackage{rotating}
+- \usepackage{caption}
+- \usepackage{longtable}
+- \usepackage{lscape}
+---
+```{r loadPackages, include=FALSE, cache=FALSE}
+## load additional packages in this chunk
+library(pander)
+library(knitr)
+library(scalpeldb)
+library('Matrix')
+library(ggplot2)
+library(ggrepel)
+library(data.table)
+library(plyr)
+library(xtable)
+library(xcms)
+library("FactoMineR")
+library(cluster)
+library(dendextend)
+library(factoextra)
+library(corrplot)
+library(ncdf4)
+library("PerformanceAnalytics")
+library("pvclust")
+library("sda")
+library(RColorBrewer)
+library(MALDIquant)
+library(MALDIquantForeign)
+library(Vennerable)
+library("crossval")
+library(glmnet)
+library(openxlsx)
+ticThreshold<-0.01
+absTicThreshold<-1000
+Npeaks<-10
+logFile<-'/Users/lptolik/Documents/Projects/MSui/SDAfilesReport.log'
+```
+
+```{r setup, include=FALSE, cache=FALSE}
+## This chunk should contain global configuration commands.
+## Use this to set knitr options and related things. Everything
+## in this chunk will be included in an appendix to document the
+## configuration used.
+#output <- opts_knit$get("rmarkdown.pandoc.to")
+opts_knit$set(stop_on_error = 2L)
+
+## By default R code is only included in HTML versions of the report
+## (where it can be collapsed). You can generate a PDF version
+## using rmarkdown::pdf_document to get a copy for print. Extensive
+## chunks of R code may or may not be desired in /hat setting. If you
+## want them simply change the following arguments to `echo = TRUE`.
+## In either case the default can be overwritten for individual chunks.
+#opts_chunk$set(echo = output=="html")
+#opts_chunk$set(warning = output=="html")
+#opts_chunk$set(message = output=="html")
+
+## Cache options
+opts_chunk$set(cache=TRUE)
+
+## Figure options
+## Set default figure format
+#options(reportmd.figure.format=params$format)
+
+## Set 'hide.fig.code' to FALSE to include code chunks that
+## produce Figures in the output. Note that this affects all chunks
+## that provide a figure caption.
+opts_chunk$set(hold=TRUE, hide.fig.code=FALSE)
+
+## Set up default plotting options for different formats.
+## These can be overwritten for individual chunks
+#interactiveFig()
+#screenFig()
+#printFig()
+
+## Pander options
+panderOptions("digits", 3)
+panderOptions("table.split.table", 160)
+#panderOptions("table.style", "grid")
+
+## Configure Figure and Table lables
+#options(figcap.prefix = "Figure", figcap.sep = ":", figcap.prefix.highlight = "**")
+#options(tabcap.prefix = "Table", tabcap.sep = ":", tabcap.prefix.highlight = "**")
+
+## Install required knitr hooks
+#installHooks()
+```
+
+```{r functions, include=FALSE}
+## Custom functions used in the analysis should go into this chunk.
+## They will be listed in their own section of the appendix.
+##==================== CAT score ====================##
+getCorrStruct<-function(X,cutoff=0.85){
+  cm<-cor(X)
+  h<-hclust(as.dist(1-abs(cm)),method = 'ward.D2')
+  c<-cutree(h,h=1)
+  ncl<-max(c);ncl
+  mmm<-min(sapply(1:ncl,function(k){j<-which(c==k);return(min(min(abs(cm[j,j]))))}))
+  while(mmm<cutoff){
+    ccl<-ncl+1
+    c<-cutree(h,k=ccl)
+    ncl<-max(c);ncl
+    mmm<-min(sapply(1:ncl,function(k){j<-which(c==k);return(min(min(abs(cm[j,j]))))}))
+  }
+  return(c)
+}
+
+groupCATscore<-function(X,class,cutoff=0.85){
+  tstat = catscore(as.matrix(X), class)
+  c<-getCorrStruct(X,cutoff)
+  laply(c,function(jj){j<-which(c==jj);tmp<-sign(tstat[j,])*sqrt(sum(tstat[j,]^2));tmp[j==j[1]]})->tmp
+colnames(tmp)<-paste0('g',colnames(tmp))
+res<-cbind(as.data.frame(tstat[TRUE,]),tmp)
+return(res[order(abs(tmp[,1]),decreasing = TRUE),])
+
+}
+
+##==================== Functions ====================##
+data(isotopes)
+
+lasso.res<-list()
+lda.res<-list()
+dda.res<-list()
+print_table<-function(mat){
+  addtorow          <- list()
+  addtorow$pos      <- list()
+  addtorow$pos[[1]] <- c(0)
+  addtorow$command  <- c(
+    paste(
+      "\\hline \n",
+      "\\endhead \n",
+      "\\hline \n",
+      "\\multicolumn{3}{l}{\\footnotesize Continued on next page} \n",
+      "\\endfoot \n",
+      "\\endlastfoot \n",sep = ""
+    )
+  )
+  cat(
+    sprintf(
+      "\\begin{center}\n\\captionof{table}{Wide ranges of continious peaks (width>%d)}\n\\scriptsize",50
+    )
+  )
+  print(
+    xtable(
+      mat)
+    ,size = "small",include.colnames = TRUE,
+    tabular.environment = "longtable",
+    floating = FALSE,include.rownames = TRUE,
+    add.to.row = addtorow,
+    hline.after =c(-1)
+  )
+  cat("\\end{center}\n ")
+}
+roundScan<-function(i){
+  scan <- as.data.table(getScan(xraw, sel$scanidx[i], sel$mzrange))
+  sc1<-scan[,.(intensity=median(intensity)),by=.(mz=round(mz,0))]
+  m<-matrix(rep(0,2000),nrow = 1)
+  m[1,sc1[mz<=200]$mz]<-sc1[mz<=200]$intensity
+  return(m)
+}
+
+parseScan<-function(i){
+scan <- as.data.table(getScan(xraw, sel$scanidx[i], sel$mzrange))
+p<-data.frame(id=as.integer(-1),
+mz=scan$mz,
+mz1=round(scan$mz,0),
+mz100=round(scan$mz,2),
+rt=xraw@scantime[i],
+scan=i,
+intensity=scan$intensity,
+spectrid=as.integer(-1),
+reltic=-1e-6)
+tot<-sum(p$intensity)
+p$reltic<-p$intensity/tot
+return(p)
+}
+
+predfun.dda <- function(Xtrain, Ytrain, Xtest, Ytest,negative) {
+dda.fit <- sda(Xtrain, Ytrain, diagonal=TRUE, verbose=FALSE)
+dda.res[[length(dda.res)+1]]<<-dda.fit
+  ynew <- predict(dda.fit, Xtest, verbose=FALSE)$class
+return(confusionMatrix(Ytest, ynew, negative=negative)) }
+
+predfun.lda <- function(Xtrain, Ytrain, Xtest, Ytest,negative) {
+lda.fit <- sda(Xtrain, Ytrain, diagonal=FALSE, verbose=FALSE)
+lda.res[[length(lda.res)+1]]<<-lda.fit
+  ynew <- predict(lda.fit, Xtest, verbose=FALSE)$class
+return(confusionMatrix(Ytest, ynew, negative=negative)) }
+
+predfun.lasso <- function(Xtrain, Ytrain, Xtest, Ytest,negative,labels) {
+lasso.fit <- cv.glmnet(Xtrain, Ytrain, family='binomial', 
+                       alpha=1, parallel=TRUE, 
+                       standardize=TRUE, 
+                       type.measure='auc')
+lasso.res[[length(lasso.res)+1]]<<-lasso.fit
+lambda <- lasso.fit$lambda.min
+  ynew <- round(predict(lasso.fit, Xtest, 
+                        type = "response",
+                        s="lambda.min")+1,0)
+  if(length(unique(ynew))<length(labels)){
+  res<-factor(
+    ynew,
+    labels = labels[unique(ynew)])
+  }else{
+  res<-factor(
+    ynew,
+    labels = labels)
+  }
+return(confusionMatrix(Ytest, res, negative=negative)) }
+
+
+########################
+## FUNCTIONS ADOPTED FROM MALDIQUANT
+#######################
+
+## .unlist
+##  wrapper for unlist
+##
+## params:
+##  x: an R object
+##
+## returns:
+##  see also ?unlist
+##
+.unlist <- function(x) {
+  unlist(x, recursive=FALSE, use.names=FALSE)
+}
+
+#' .colCors
+#'
+#' Calculate the correlation for two matrices columnwise.
+#'
+#' @param x matrix/data.frame
+#' @return double
+#' @author Sebastian Gibb <mail@@sebastiangibb.de>
+#' @noRd
+.colCors <- function(x, y, na.rm=FALSE) {
+  stopifnot(is.matrix(x) && is.matrix(y))
+  stopifnot(all(dim(x) == dim(y)))
+
+  if (na.rm) {
+    isNA <- is.na(x) | is.na(y)
+    x[isNA] <- NA_real_
+    y[isNA] <- NA_real_
+  }
+
+  cmX <- colMeans(x, na.rm=na.rm)
+  cmY <- colMeans(y, na.rm=na.rm)
+
+  (colMeans(x * y, na.rm=na.rm) - (cmX * cmY)) /
+    (sqrt(colMeans(x * x, na.rm=na.rm) - cmX * cmX) *
+     sqrt(colMeans(y * y, na.rm=na.rm) - cmY * cmY))
+}
+
+#' .pseudoCluster
+#'
+#' Find possible isotopic cluster in mass/mz data.
+#'
+#' @param x double, mass
+#' @param size integer, cluster size, number of peaks per cluster
+#' @param distance double, distance between isotopes (mass of a neutron; see
+#' Park et al 2008); could be of length > 1 (if > 1: order will affect later
+#' removal in .monoisotopicPattern).
+#' @param tolerance double, mass tolerance
+#' @return a matrix of indices (nrow(x) == n) of potential clusters
+#' @references
+#' K. Park, J.Y. Yoon, S. Lee, E. Paek, H. Park, H.J. Jung, and S.W. Lee. 2008.
+#' Isotopic peak intensity ratio based algorithm for determination of isotopic
+#' clusters and monoisotopic masses of polypeptides from high-resolution
+#' mass spectrometric data.
+#' Analytical Chemistry, 80: 7294-7303.
+#' @noRd
+.pseudoCluster <- function(x, size=3L, distance=1.00235, tolerance=1e-4) {
+  if (size < 2L) {
+    stop("The ", sQuote("size"), " of a cluster has to be at least 2!")
+  }
+  mm <- matrix(x, nrow=size, ncol=length(x) * length(distance), byrow=TRUE)
+  ms <- mm + (rep(distance, each=size) * 0L:(size - 1L))
+
+  i <- match.closest(ms, x, tolerance=mm * tolerance)
+  dim(i) <- dim(ms)
+
+  i[, !is.na(colSums(i)), drop=FALSE]
+}
+
+#' .F
+#'
+#' Map mass to poisson mean/lambda.
+#'
+#' @param mass double, mass from experimental peak list
+#' @return double suitable to pass to `dpois`
+#' @references
+#' E.J. Breen, F.G. Hopwood, K.L. Williams, and M.R. Wilkins. 2000.
+#' Automatic poisson peak harvesting for high throughput protein identification.
+#' Electrophoresis 21 (2000): 2243-2251.
+#' @noRd
+.F <- function(x)0.000594 * x + 0.03091
+
+#' .P
+#'
+#' Model isotopic distribution by poisson distribution.
+#'
+#' @param mass double, mass from experimental peak list
+#' @param isotopes integer, which isotopes
+#' @return double, isotopic distribution
+#' @references
+#' E.J. Breen, F.G. Hopwood, K.L. Williams, and M.R. Wilkins. 2000.
+#' Automatic poisson peak harvesting for high throughput protein identification.
+#' Electrophoresis 21 (2000): 2243-2251.
+#' @noRd
+.P <- function(x, isotopes)dpois(isotopes, .F(x))
+
+#' .Psum
+#'
+#' Model isotopic distribution by poisson distribution and sum to 1 (similar to
+#' TIC).
+#'
+#' @param mass double, mass from experimental peak list
+#' @param isotopes integer, which isotopes
+#' @return double, isotopic distribution
+#' @references
+#' E.J. Breen, F.G. Hopwood, K.L. Williams, and M.R. Wilkins. 2000.
+#' Automatic poisson peak harvesting for high throughput protein identification.
+#' Electrophoresis 21 (2000): 2243-2251.
+#' @noRd
+.Psum <- function(x, isotopes) {
+  ni <- length(isotopes)
+  nx <- length(x)
+  p <- .P(rep.int(x, rep.int(ni, nx)), isotopes)
+  dim(p) <- c(ni, nx)
+  t(t(p) / colSums(p))
+}
+
+#' .monoisotopicPattern
+#'
+#' Model isotopic distribution by poisson distribution.
+#'
+#' @param x double, mass from experimental peak list
+#' @param y double, intensity from experimental peak list
+#' @param tolerance double, mass tolerance for .pseudoCluster
+#' @param minCor double, minimal correlation between experimental and model
+#' intensities
+#' @param distance double, distance between isotopes (mass of a neutron; see
+#' Park et al 2008); could be of length > 1; if length > 1 the order matters.
+#' The first distance elements are prefered (the last elements are possible
+#' removed because the contain duplicated indices).
+#' @param size integer, cluster size (number of peaks for a possible cluster),
+#' see .pseudoCluster
+#' @return matrix, index of monoisotopic masses in first row
+#' @references
+#' E.J. Breen, F.G. Hopwood, K.L. Williams, and M.R. Wilkins. 2000.
+#' Automatic poisson peak harvesting for high throughput protein identification.
+#' Electrophoresis 21 (2000): 2243-2251.
+#' @noRd
+.monoisotopicPattern <- function(x, y, minCor=0.95, tolerance=1e-4,
+                                 distance=1.00235, size=3L) {
+  pc <- .pseudoCluster(x, size=size, distance=distance, tolerance=tolerance)
+  y <- y[pc]
+  dim(y) <- dim(pc)
+  y <- t(t(y)/colSums(y))
+  p <- .Psum(x[pc[1L,]], isotopes=0L:(size-1L))
+  cr <- .colCors(y, p)
+  pc <- pc[, cr > minCor, drop=FALSE]
+  pc[duplicated(as.vector(pc))] <- NA_real_
+  pc[, !is.na(colSums(pc)), drop=FALSE]
+}
+
+#' .monoisotopic
+#'
+#' Loop through multiple .monoisotopicPattern outputs and remove duplicated
+#' peaks.
+#'
+#' @param x double, mass from experimental peak list
+#' @param y double, intensity from experimental peak list
+#' @param size integer vector, cluster size
+#' @param \ldots further arguments passed to .monoisotopicPattern
+#' @return double, index of monoisotopic masses
+#' @noRd
+.monoisotopic <- function(x, y, size=3L:10L, ...) {
+  if (length(x) && length(x) == length(y)) {
+    pattern <- lapply(sort.int(size, decreasing=TRUE),
+                      function(s).monoisotopicPattern(x=x, y=y, size=s, ...))
+    upattern <- .unlist(pattern)
+    upattern[duplicated(upattern)] <- NA_real_
+    upattern <- relist(upattern, pattern)
+    sort.int(.unlist(lapply(upattern,
+                            function(p)p[1L, !is.na(colSums(p))])))
+  } else {
+    double()
+  }
+}
+
+#' .isotopic
+#'
+#' Loop through multiple .monoisotopicPattern outputs, remove duplicated
+#' peaks, and return isotopic series.
+#'
+#' @param x double, mass from experimental peak list
+#' @param y double, intensity from experimental peak list
+#' @param size integer vector, cluster size
+#' @param \ldots further arguments passed to .monoisotopicPattern
+#' @return double, index of monoisotopic masses
+#' @noRd
+.isotopic <- function(x, y, size=3L:10L, ...) {
+  if (length(x) && length(x) == length(y)) {
+    pattern <- lapply(sort.int(size, decreasing=TRUE),
+                      function(s).monoisotopicPattern(x=x, y=y, size=s, ...))
+    upattern <- .unlist(pattern)
+    upattern[duplicated(upattern)] <- NA_real_
+    upattern <- relist(upattern, pattern)
+    sort.int(.unlist(lapply(upattern,
+                            function(p)p[-1L, !is.na(colSums(p))])))
+  } else {
+    double()
+  }
+}
+
+.myPeaks<-function(p, minCor=0.95, tolerance=1e-4, size=2L:10L) {
+  niI<-.isotopic(x=MALDIquant::mass(p), y=MALDIquant::intensity(p),
+                 minCor=0.95, tolerance=1e-4,
+                 distance=1.00235, size=2L:7L)
+  iP<-p[-niI]
+  niICl<-.isotopic(x=MALDIquant::mass(iP), y=MALDIquant::intensity(iP),
+                   minCor=0.95, tolerance=1e-4,
+                   distance=1.99705, size=2L:7L)
+  iPCl<-iP[-niICl]
+  return(iPCl)
+}
+
+.myPeakList<-function(object, minCor=0.95, tolerance=1e-4, size=2L:10L) {
+  lapply(object,.myPeaks,minCor=minCor, tolerance=tolerance, size=size)
+}
+
+
+.mPeaks<-function(object, minCor=0.95, tolerance=1e-4,
+                              distance=1.00235, size=3L:10L) {
+object[.monoisotopic(x=MALDIquant::mass(object), y=MALDIquant::intensity(object),
+                       minCor=minCor, tolerance=tolerance,
+                       distance=distance, size=size)]
+}
+
+.mPeakList<-function(object, minCor=0.95, tolerance=1e-4,
+                              distance=1.00235, size=3L:10L) {
+  lapply(object,.mPeaks,minCor=minCor, tolerance=tolerance,
+                       distance=distance, size=size)
+}
+
+### mycrossval.R  (2014-03-29)
+###
+###    Generic Function for Cross Valdidation 
+###
+### Copyright 2009-14  Korbinian Strimmer
+###
+###
+### This file is part of the `mycrossval' library for R and related languages.
+### It is made available under the terms of the GNU General Public
+### License, version 3, or at your option, any later version,
+### incorporated herein by reference.
+### 
+### This program is distributed in the hope that it will be
+### useful, but WITHOUT ANY WARRANTY; without even the implied
+### warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+### PURPOSE.  See the GNU General Public License for more
+### details.
+### 
+### You should have received a copy of the GNU General Public
+### License along with this program; if not, write to the Free
+### Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+### MA 02111-1307, USA
+
+
+
+# general routines for conducting cross validation
+
+
+#  predfun(Xtrain, Ytrain, Xtest, Ytest, ...)
+#  must be given
+
+# B times repeated K-fold cross-validation 
+mycrossval = function(predfun,
+                       X, Y, 
+                       smpl, # data frame with two colums: ff the file of the spectra and diag for diagnosis
+                       ff, # mappings of X to smpl$ff
+                       K=6,  # number of folds
+                       B=20,  # number of repetitions
+                       verbose=TRUE,
+                       ...    # optional arguments for predfun
+)
+{
+  ygrouped = group.samples(as.factor(smpl$diag))
+ 
+  # makes no sense to have more folds than entries in largest group
+  groupsize = sapply(ygrouped, length)
+  nfolds = min(K, max(groupsize))
+  if (verbose) cat("Number of folds:", nfolds, "\n")
+
+
+  allfolds = B*nfolds
+  if (verbose) cat("Total number of CV fits:", allfolds, "\n")
+ 
+  stat.cv = NULL
+ 
+  i = 1
+  for (b in 1:B)
+  {
+    if (verbose) cat("\nRound #", b, "of", B, "\n")
+
+    folds = get.folds(ygrouped, K=nfolds)
+
+    for (f in 1:nfolds)
+    {
+      if (verbose) cat("CV Fit #", i, "of", allfolds, "\n")
+
+      #### prepare  test and training data set ####
+
+      test.idx = which(ff%in%smpl$ff[folds[[f]]])
+      train.x = X[-test.idx, , drop=FALSE]                     
+      train.y = Y[-test.idx]
+      test.x = X[test.idx, , drop=FALSE] 
+      test.y = Y[test.idx]
+
+      ### learn predictor and compute test error ####
+      stat.new = predfun(train.x, train.y, test.x, test.y, ...)
+      stat.cv = rbind(stat.cv, stat.new)
+
+      rownames(stat.cv)[i] = paste0("B",b,".F",f)
+
+      i = i+1
+    }   
+  }
+
+  stat = apply(stat.cv, 2, mean)
+  stat.se = apply(stat.cv, 2, sd) / sqrt(allfolds)
+
+  return(list(stat.cv=stat.cv, stat=stat, stat.se=stat.se))
+}
+
+
+########################################################################
+# private functions
+########################################################################
+
+# return a list with samples arranged by group
+group.samples = function(y)
+{
+  # split samples into groups
+  if(is.factor(y))
+  {
+    ygrouped = split(seq(y), y)
+  }
+  else
+  {
+    ygrouped = list(all=seq(length(y)))
+  }
+
+  return( ygrouped )
+}
+
+# divide samples into sets of similar size with 
+# evenly distributed samples (balanced per group) 
+get.folds = function(ygrouped, K)
+{
+  # makes no sense to have more folds than entries in largest group
+  groupsize = sapply(ygrouped, length)
+  nfolds = min(K, max(groupsize))
+  if (K != nfolds) cat("Number of folds:", nfolds, "\n")
+  
+  # assign the members of each group evenly to the folds
+  m = NULL
+  for (i in 1:length(ygrouped) )
+  {
+     a = ceiling(groupsize[i]/nfolds)
+     ridx = sample.int(groupsize[i], groupsize[i])
+     v = c( rep(NA, nfolds*a-groupsize[i]), ygrouped[[i]][ridx] ) # pad with NAs
+     ridx = sample.int(nfolds, nfolds) # reshuffle column containing the NAs
+     v[1:nfolds] = v[ridx]
+     m = c(m,v)
+  }
+  m = matrix(m, nrow=nfolds) # note that all NAs of a group are all in one column
+
+  folds =  vector("list", nfolds)
+  for(j in 1:nfolds)
+  {
+    keep = !is.na(m[j , ])
+    folds[[j]] = m[j, keep]
+  }
+
+  return( folds )
+}
+getMD<-function(p){
+  as.data.frame(metaData(p))
+}
+
+```
+
+```{r echo=FALSE, include=FALSE}
+pathDef<-'~/Dropbox/Скальпель/DBData/peaks/'
+flDef<-c("peak2019.diag_32.expt_1.res_1.mode_2.dev_2.mz_2.tsv.gz",
+        "peak2019.diag_6.expt_1.res_1.mode_2.dev_2.mz_2.tsv.gz" )
+```
+
+# Read data
+Before running the code a number of variables should be setted for appropriate data loading:
+ 
+ 3. the path to folder with data files *path*
+ 4. names of files to build dataset from *fl*
+ 
+
+
+```{r check.values}
+if(!(exists('fl')&
+     exists('path'))){
+  warning('not all obligatory parameters are provided\nUsing defaults.\n')
+  cat(format(Sys.time(), "%b %d %X"),'not all obligatory parameters are provided\nUsing defaults.\n',file = logFile,append = TRUE)
+  fl<-flDef
+  path<-pathDef
+  wd<-getwd()
+  cacheDef<-TRUE
+}else{
+  cacheDef<-TRUE #FALSE
+}
+lipids<-read.csv('DetectedLipids.csv')
+lipids<-lipids[order(lipids$PEAK),]
+lfl<-strsplit(x = fl,split = '\\.')
+dfl<-unique(ldply(lfl,.fun = function(l1)
+  data.frame(diag=sub('diag_', '',l1[2]),
+             res=sub('res_', '',l1[4]),
+             mode=sub('mode_', '',l1[5]),
+             mz=sub('mz_', '',l1[7]))))
+idx<-which(dfl$diag!=32)
+if(length(idx)!=1){
+  stop('there is more than one experimental setup in the datafiles\n')
+}
+dname<-paste0('diag_',dfl$diag[idx],
+              '.res_',dfl$res[idx],
+              '.mode_',dfl$mode[idx],
+              '.mz_',dfl$mz[idx])
+cat(format(Sys.time(), "%b %d %X"),dname,"'",wd,"','",path,"'",'\n\t',
+    fl,'\n',file = logFile,append = TRUE)
+```
+
+```{r fl}
+fl
+```
+
+```{r path}
+path
+```
+
+```{r makePeakList,cache=cacheDef}
+peaks<-getPeakList(fl,path)
+dl<-lapply(peaks, getMD)
+md<-do.call(rbind,dl)
+
+```
+
+# Анализ сырых данных **datasetname**
+
+
+```{r datasetname.raw.metadata.dataSet}
+diag<-unlist(sapply(peaks,function(.x)metaData(.x)$diag))
+spectrumid<-unlist(sapply(peaks,function(.x)metaData(.x)$spectrumid))
+qplot(as.character(diag),log='y')
+pander(table(diag))
+ln<-sapply(peaks,length)
+qplot(ln,bins=100,log = 'x')
+idx<-which(ln>Npeaks)
+ff<-factor(spectrumid)
+```
+
+```{r datasetname.mi.dataSet}
+mpeaks<-.myPeakList(peaks,tolerance = 1e-3)
+mln<-sapply(mpeaks,length)
+#idx<-which(ln>quantile(ln,probs = 0.25))
+idxMI<-which(mln>Npeaks)
+qplot(mln,bins=100,log = 'x')
+```
+
+```{r datasetname.raw.align.peaks,cache=TRUE}
+# rt<-unlist(sapply(peaks,function(.x)metaData(.x)$rt))
+# rt5<-rt%/%5
+# rtSegment<-factor(paste0(spectrumid,'_',rt5))
+# avgSpectra <-averageMassSpectra(spectra,labels = rtSegment)
+# aln<-sapply(avgSpectra,length)
+wf<-determineWarpingFunctions(peaks[idx],
+                              method="lowess",
+                              plot=FALSE,minFrequency=0.05)
+aPeaks<-warpMassPeaks(peaks[idx],wf)
+rff<-ff[idx]
+mdfm<-md[idx,]
+```
+
+```{r datasetname.mi.align.peaks,cache=TRUE}
+mwf<-determineWarpingFunctions(mpeaks[idxMI],
+                               method="lowess",
+                               plot=FALSE,minFrequency=0.05)
+aPeaksMI<-warpMassPeaks(mpeaks[idxMI],mwf)
+miff<-ff[idxMI]
+mdmi<-md[idxMI,]
+```
+
+
+```{r datasetname.raw.bin.peaks,cache=TRUE}
+bPeaks <- binPeaks(aPeaks, tolerance=2e-3)
+fpeaks <- filterPeaks(bPeaks,
+                      labels=diag[idx],
+                      minFrequency=0.25, mergeWhitelists=TRUE)
+```
+
+```{r datasetname.mi.bin.peaks,cache=TRUE}
+bPeaksMI <- binPeaks(aPeaksMI, tolerance=2e-5)
+fpeaksMI <- filterPeaks(bPeaksMI,
+                        labels=diag[idxMI],
+                        minFrequency=0.25, mergeWhitelists=TRUE)
+```
+
+```{r datasetname.raw.featureMatrix}
+featureMatrix <- intensityMatrix(fpeaks)
+idNA<-which(is.na(featureMatrix),arr.ind =TRUE)
+featureMatrix[idNA]<-0
+```
+
+```{r datasetname.mi.featureMatrix}
+featureMatrixMI <- intensityMatrix(fpeaksMI)
+idNA<-which(is.na(featureMatrixMI),arr.ind =TRUE)
+featureMatrixMI[idNA]<-0
+```
+
+
+```{r datasetname.raw.spectra.facet,fig.width=8.5,fig.height=8.5,dev='png'}
+cat(format(Sys.time(), "%b %d %X"),dname,'Feature matrces are ready\n',file = logFile,append = TRUE)
+mz<-as.double(colnames(featureMatrix))
+df<-cbind(data.frame(diag=diag[idx]),as.data.frame(featureMatrix))
+pldf<-melt(df,id=c('diag'))
+pldf$mz<-round(as.numeric(as.character(pldf$variable)),4)
+
+labIdx<-order(pldf$value,decreasing = TRUE)[1:10]
+ggplot(pldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
+  labs(title ='Combined plot')
+ggplot(pldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
+  facet_grid(diag~.)+ 
+  labs(title ='Intensity')
+```
+
+```{r datasetname.mi.spectra.facet,fig.width=8.5,fig.height=8.5,dev='png'}
+mzMI<-as.double(colnames(featureMatrixMI))
+dfMI<-cbind(data.frame(diag=diag[idxMI]),as.data.frame(featureMatrixMI))
+pldfMI<-melt(dfMI,id=c('diag'))
+pldfMI$mz<-round(as.numeric(as.character(pldfMI$variable)),4)
+
+# pldf<-data.frame(mz=c(mz,mz),
+#                  intensity=c(high,low),
+#                  type=c(rep('high',length(mz)),rep('low',length(mz))),
+#                  scint=c(high/max(high),low/max(low)))
+labIdx<-order(pldfMI$value,decreasing = TRUE)[1:10]
+ggplot(pldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
+  labs(title ='Combined plot')
+ggplot(pldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
+  facet_grid(diag~.)+ 
+  labs(title ='Intensity')
+```
+
+```{r datasetname.raw.spectra.sc.facet.sum,fig.width=8.5,fig.height=8.5,dev='png'}
+sfm<-t(scale(t(featureMatrix),scale = rowSums(featureMatrix)/1e6,center = FALSE))
+sdf<-cbind(data.frame(diag=diag[idx]),as.data.frame(sfm))
+spldf<-melt(sdf,id=c('diag'))
+spldf$mz<-round(as.numeric(as.character(spldf$variable)),4)
+
+# pldf<-data.frame(mz=c(mz,mz),
+#                  intensity=c(high,low),
+#                  type=c(rep('high',length(mz)),rep('low',length(mz))),
+#                  scint=c(high/max(high),low/max(low)))
+labIdx<-order(spldf$value,decreasing = TRUE)[1:10]
+ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
+  labs(title ='Combined plot')
+ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
+  facet_grid(diag~.,scales = "free_y") +
+  xlim(400, 1000) + 
+  labs(title ='Intensity')
+```
+
+
+```{r datasetname.mi.spectra.sc.facet.sum,fig.width=8.5,fig.height=8.5,dev='png'}
+sfmMI<-t(scale(t(featureMatrixMI),scale = rowSums(featureMatrixMI)/1e6,center = FALSE))
+sdfMI<-cbind(data.frame(diag=diag[idxMI]),as.data.frame(sfmMI))
+spldfMI<-melt(sdfMI,id=c('diag'))
+spldfMI$mz<-round(as.numeric(as.character(spldfMI$variable)),4)
+
+# pldf<-data.frame(mz=c(mz,mz),
+#                  intensity=c(high,low),
+#                  type=c(rep('high',length(mz)),rep('low',length(mz))),
+#                  scint=c(high/max(high),low/max(low)))
+labIdxMI<-order(spldfMI$value,decreasing = TRUE)[1:10]
+ggplot(spldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
+  labs(title ='Combined plot')
+ggplot(spldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
+  facet_grid(diag~.,scales = "free_y")+ 
+  xlim(400, 1000) + 
+  labs(title ='Intensity')
+```
+
+```{r datasetname.raw.spectra.sc.facet.max,fig.width=8.5,fig.height=8.5,dev='png'}
+sfm<-t(scale(t(featureMatrix),scale = rowMax(featureMatrix)/1e6,center = FALSE))
+sdf<-cbind(data.frame(diag=diag[idx]),as.data.frame(sfm))
+spldf<-melt(sdf,id=c('diag'))
+spldf$mz<-round(as.numeric(as.character(spldf$variable)),4)
+
+# pldf<-data.frame(mz=c(mz,mz),
+#                  intensity=c(high,low),
+#                  type=c(rep('high',length(mz)),rep('low',length(mz))),
+#                  scint=c(high/max(high),low/max(low)))
+labIdx<-order(spldf$value,decreasing = TRUE)[1:10]
+ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
+  labs(title ='Combined plot')
+ggplot(spldf)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
+  facet_grid(diag~.) +
+  xlim(400, 1000) + 
+  labs(title ='Intensity')
+```
+
+
+```{r datasetname.mi.spectra.sc.facet.max,fig.width=8.5,fig.height=8.5,dev='png'}
+sfmMI<-t(scale(t(featureMatrixMI),scale = rowMax(featureMatrixMI)/1e6,center = FALSE))
+sdfMI<-cbind(data.frame(diag=diag[idxMI]),as.data.frame(sfmMI))
+spldfMI<-melt(sdfMI,id=c('diag'))
+spldfMI$mz<-round(as.numeric(as.character(spldfMI$variable)),4)
+
+# pldf<-data.frame(mz=c(mz,mz),
+#                  intensity=c(high,low),
+#                  type=c(rep('high',length(mz)),rep('low',length(mz))),
+#                  scint=c(high/max(high),low/max(low)))
+labIdxMI<-order(spldfMI$value,decreasing = TRUE)[1:10]
+ggplot(spldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value,color=diag,alpha=0.5))+
+  labs(title ='Combined plot')
+ggplot(spldfMI)+geom_segment(aes(x=mz,xend=mz,y=0,yend=value))+
+  facet_grid(diag~.)+ 
+  xlim(400, 1000) + 
+  labs(title ='Intensity')
+```
+
+
+```{r datasetname.raw.sda.full,fig.width=8.5,fig.height=10.5,results='asis'}
+ddar2 <- sda.ranking(Xtrain=featureMatrix, L=diag[idx],
+                     fdr=FALSE, diagonal=TRUE)
+plot(ddar2)
+
+```
+
+```{r datasetname.raw.plot.sda.full,fig.width=8.5,fig.height=10.5}
+mddar2<-ddar2
+class(mddar2)<-'matrix'
+dfddar<-as.data.frame(mddar2)
+dfddar$mz<-as.double(rownames(dfddar))
+dfddar<-cbind(dfddar,data.frame(int=colSums(featureMatrix)[dfddar$idx]))
+dfddar$scoreR<-rank(dfddar$score)
+dfddar$intR<-rank(dfddar$int)
+qplot(score,int,data=dfddar,colour=intR)
+
+```
+```{r datasetname.save.raw.sda}
+mddarTot<-mddar2
+dfddarTot<-dfddar
+save(fl,path,mddarTot,dfddarTot,file = 'SDAfilesReport.sdaTot.Rdata')
+```
+
+```{r datasetname.mi.sda,fig.width=8.5,fig.height=10.5,results='asis'}
+ddar2MI <- sda.ranking(Xtrain=featureMatrixMI, L=diag[idxMI],
+                       fdr=FALSE, diagonal=TRUE)
+plot(ddar2MI)
+
+```
+
+```{r datasetname.mi.plot.sda,fig.width=8.5,fig.height=10.5}
+mddar2MI<-ddar2MI
+class(mddar2MI)<-'matrix'
+dfddarMI<-as.data.frame(mddar2MI)
+dfddarMI$mz<-as.double(rownames(dfddarMI))
+dfddarMI<-cbind(dfddarMI,data.frame(int=colSums(featureMatrixMI)[dfddarMI$idx]))
+dfddarMI$scoreR<-rank(dfddarMI$score)
+dfddarMI$intR<-rank(dfddarMI$int)
+qplot(score,int,data=dfddarMI,colour=intR)
+idxDdar<-match.closest(dfddarMI$mz,lipids$PEAK,tolerance = 0.05)
+rownames(dfddarMI)<-round(as.numeric(rownames(dfddarMI)),4)
+pander(cbind(dfddarMI,lipids[idxDdar,c('NAME')])[1:20,],caption = "datasetname.mi")
+```
+```{r datasetname.save.mi.sda}
+mddarTotMI<-mddar2MI
+dfddarTotMI<-dfddarMI
+save(fl,path,mddarTotMI,dfddarTotMI,file = 'SDAfilesReport.sdaTot.MI.Rdata')
+```
+
+## PCA
+
+### Full data
+
+#### Non-scaled data
+
+```{r datasetname.raw.pca.nosc.full,fig.width=8.5,fig.height=8.5}
+cat(format(Sys.time(), "%b %d %X"),dname,'PCA starts\n',file = logFile,append = TRUE)
+pca<-try(prcomp(featureMatrix,scale. = FALSE),silent=TRUE)
+if(class(pca)!="try-error"){
+  fviz_screeplot(pca, ncp=15)
+  fviz_pca_ind(pca, habillage='none',label = 'none',
+               addEllipses=FALSE)
+  fviz_pca_ind(pca, habillage='none',label = 'none',axes=c(1,3),
+               addEllipses=FALSE)
+  fviz_pca_ind(pca, habillage=diag[idx],
+               addEllipses=TRUE, ellipse.level=0.95)
+  fviz_pca_ind(pca, habillage=diag[idx],axes=c(1,3),
+               addEllipses=TRUE, ellipse.level=0.95)
+}else{
+  cat('Non-scaled data did not converge\n')
+}
+```
+
+#### Scaled data
+
+```{r datasetname.raw.pca.sc.full,fig.width=8.5,fig.height=8.5}
+pca<-prcomp(featureMatrix,scale. = TRUE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+             addEllipses=FALSE)
+fviz_pca_ind(pca, habillage='none',label = 'none',axes=c(1,3),
+             addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag[idx],
+             addEllipses=TRUE, ellipse.level=0.95)
+fviz_pca_ind(pca, habillage=diag[idx],axes=c(1,3),
+             addEllipses=TRUE, ellipse.level=0.95)
+```
+
+### Monoisotopic
+
+#### Non-scaled data
+
+```{r datasetname.mi.pca.nosc,fig.width=8.5,fig.height=8.5}
+pcaMI<-try(prcomp(featureMatrixMI,scale. = FALSE),silent=TRUE)
+if(class(pcaMI)!="try-error"){
+  fviz_screeplot(pcaMI, ncp=15)
+  fviz_pca_ind(pcaMI, habillage='none',label = 'none',
+               addEllipses=FALSE)
+  fviz_pca_ind(pcaMI, habillage='none',label = 'none',axes=c(1,3),
+               addEllipses=FALSE)
+  fviz_pca_ind(pcaMI, habillage=diag[idxMI],
+               addEllipses=TRUE, ellipse.level=0.95)
+  fviz_pca_ind(pcaMI, habillage=diag[idxMI],axes=c(1,3),
+               addEllipses=TRUE, ellipse.level=0.95)
+}else{
+  cat('Non-scaled data did not converge\n')
+}
+```
+
+#### Scaled data
+
+```{r datasetname.mi.pca.sc,fig.width=8.5,fig.height=8.5}
+pcaMI<-prcomp(featureMatrixMI,scale. = TRUE)
+fviz_screeplot(pcaMI, ncp=15)
+fviz_pca_ind(pcaMI, habillage='none',label = 'none',
+             addEllipses=FALSE)
+fviz_pca_ind(pcaMI, habillage='none',label = 'none',axes=c(1,3),
+             addEllipses=FALSE)
+fviz_pca_ind(pcaMI, habillage=diag[idxMI],
+             addEllipses=TRUE, ellipse.level=0.95)
+fviz_pca_ind(pcaMI, habillage=diag[idxMI],axes=c(1,3),
+             addEllipses=TRUE, ellipse.level=0.95)
+```
+
+
+## Diag 
+
+### Total spectra
+```{r datasetname.fm5}
+cat(format(Sys.time(), "%b %d %X"),dname,'Classification has started. Full data.\n',file = logFile,append = TRUE)
+idx5<-which(diag[idx]%in% unique(diag))
+```
+
+```{r datasetname.save.fm5}
+fm<-featureMatrix[idx5,]
+mdf<-mdfm[idx5,]
+cls<-diag[idx[idx5]]
+save(path,fl,fm,cls,mdf,file = 'SDAfilesReport.fm.Rdata')
+```
+
+
+
+```{r datasetname.raw.sda,fig.width=8.5,fig.height=10.5,results='asis',cache=FALSE}
+ddar5 <- sda.ranking(Xtrain=featureMatrix[idx5,], L=diag[idx[idx5]],
+                     fdr=TRUE, diagonal=FALSE)
+plot(ddar5)
+
+```
+
+```{r datasetname.raw.plot.sda,fig.width=8.5,fig.height=10.5,cache=FALSE}
+mddar5<-ddar5
+class(mddar5)<-'matrix'
+dfddar<-as.data.frame(mddar5)
+dfddar$mz<-as.double(rownames(dfddar))
+dfddar<-cbind(dfddar,data.frame(int=colSums(featureMatrix)[dfddar$idx]))
+dfddar$scoreR<-rank(dfddar$score)
+dfddar$intR<-rank(dfddar$int)
+qplot(score,int,data=dfddar,colour=intR)
+idxDdar<-match.closest(dfddar$mz,lipids$PEAK,tolerance = 0.05)
+#cbind(dfddar,lipids[idxDdar,])
+rownames(dfddar)<-round(as.numeric(rownames(dfddar)),4)
+dfddar$lipids<-lipids[idxDdar,c('NAME')]
+pander(dfddar[1:50,],caption = "datasetname.raw")
+#pander(dfddar[1:20,])
+```
+
+```{r datasetname.raw.sda_topR,fig.width=8.5,fig.height=10.5,results='asis',cache=FALSE}
+mddar5_topR<-mddar5[which(dfddar$intR> dim(dfddar)[1]/2),]
+ddar5_topR<-mddar5_topR
+class(ddar5_topR)<-class(ddar5)
+attr(ddar5_topR,'diagonal')<-attr(ddar5,'diagonal')
+attr(ddar5_topR,'cl.count')<-attr(ddar5,'cl.count')
+plot(ddar5_topR,main='The 40 Top Ranking Features above 50% of intensity')
+
+```
+
+```{r datasetname.raw.sda_byInt,fig.width=8.5,fig.height=10.5,cache=FALSE}
+d<-dfddar[which(dfddar$intR> dim(dfddar)[1]/2),]
+pander(d[1:50,],caption = "datasetname.raw Top 50% of intensity")
+
+```
+
+```{r datasetname.save.sda}
+mddar<-mddar5
+dfddar<-dfddar
+save(path,fl,mddar,dfddar,file = 'SDAfilesReport.sda.Rdata')
+```
+
+
+```{r datasetname.class.sda.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'SDA classification. Full data.\n',file = logFile,append = TRUE)
+# set seed to get reproducible results
+#set.seed(1234)
+lasso.res<-list()
+lda.res<-list()
+dda.res<-list()
+smpl<-unique(data.frame(ff=ff[idx[idx5]],diag=diag[idx[idx5]]))
+cv.out <- mycrossval(predfun.dda,
+                   X=featureMatrix[idx5,],
+                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+dda.res.full<-dda.res
+dda.res<-list()
+dim(featureMatrix[idx5,])
+```
+
+```{r datasetname.class.sda.top20}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:20, "idx"]
+cv.out <- mycrossval(predfun.dda,
+                   X=featureMatrix[idx5,top],
+                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+dda.res.top20<-dda.res
+dda.res<-list()
+dim(featureMatrix[idx5,top])
+```
+
+```{r datasetname.class.sda.top10}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:10, "idx"]
+cv.out <- mycrossval(predfun.dda,
+                   X=featureMatrix[idx5,top],
+                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+dda.res.top10<-dda.res
+dda.res<-list()
+dim(featureMatrix[idx5,top])
+```
+
+```{r datasetname.class.lda.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'LDA classification. Full data.\n',file = logFile,append = TRUE)
+# set seed to get reproducible results
+#set.seed(1234)
+cv.out <- mycrossval(predfun.lda,
+                   X=featureMatrix[idx5,],
+                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lda.res.full<-lda.res
+lda.res<-list()
+dim(featureMatrix[idx5,])
+```
+
+```{r datasetname.class.lda.top20}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:20, "idx"]
+cv.out <- mycrossval(predfun.lda,
+                   X=featureMatrix[idx5,top],
+                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lda.res.top20<-lda.res
+lda.res<-list()
+dim(featureMatrix[idx5,top])
+```
+
+```{r datasetname.class.lda.top10}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:10, "idx"]
+cv.out <- mycrossval(predfun.lda,
+                   X=featureMatrix[idx5,top],
+                   Y=as.character(diag[idx[idx5]]),smpl=smpl,ff=ff[idx[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lda.res.top10<-lda.res
+lda.res<-list()
+dim(featureMatrix[idx5,top])
+```
+
+```{r datasetname.class.lasso.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'LASSO classification. Full data.\n',file = logFile,append = TRUE)
+# set seed to get reproducible results
+#set.seed(1234)
+Y=factor(as.character(diag[idx[idx5]]))
+cv.out <- mycrossval(predfun.lasso,
+                   X=featureMatrix[idx5,],
+                   Y=Y,smpl=smpl,ff=ff[idx[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   labels=levels(Y),
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lasso.res.full<-lasso.res
+bestMod<-lasso.res[[which.min(
+  sapply(lasso.res,function(.x).x$lambda.min)
+)]]
+lasso.res<-list()
+dim(featureMatrix[idx5,])
+```
+
+```{r datasetname.class.lasso.top20}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:20, "idx"]
+Y=factor(as.character(diag[idx[idx5]]))
+cv.out <- mycrossval(predfun.lasso,
+                   X=featureMatrix[idx5,top],
+                   Y=Y,smpl=smpl,ff=ff[idx[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   labels=levels(Y),
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lasso.res.top20<-lasso.res
+lasso.res<-list()
+dim(featureMatrix[idx5,top])
+```
+
+```{r datasetname.class.lasso.top10}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:10, "idx"]
+Y=factor(as.character(diag[idx[idx5]]))
+cv.out <- mycrossval(predfun.lasso,
+                   X=featureMatrix[idx5,top],
+                   Y=Y,smpl=smpl,ff=ff[idx[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   labels=levels(Y),
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lasso.res.top10<-lasso.res
+lasso.res<-list()
+dim(featureMatrix[idx5,top])
+```
+
+
+```{r datasetname.raw.pca.nosc,fig.width=8.5,fig.height=8.5,cache=FALSE}
+cat(format(Sys.time(), "%b %d %X"),dname,'Second round of PCA. Full data.\n',file = logFile,append = TRUE)
+pca<-prcomp(featureMatrix[idx5,],scale. = FALSE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag[idx[idx5]],
+addEllipses=TRUE, ellipse.level=0.95)
+col.ff<-as.numeric(ff[idx[idx5]])
+fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
+```
+
+
+```{r datasetname.raw.pca.sc,fig.width=8.5,fig.height=8.5,cache=FALSE}
+cidx<-which(apply(featureMatrix[idx5,],2,sd)>0)
+pca<-prcomp(featureMatrix[idx5,cidx],scale. = TRUE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag[idx[idx5]],
+addEllipses=TRUE, ellipse.level=0.95)
+col.ff<-as.numeric(ff[idx[idx5]])
+fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
+```
+
+```{r datasetname.save.models}
+save(path,fl,dda.res.full,dda.res.top20,dda.res.top10,
+     lda.res.full,lda.res.top20,lda.res.top10,
+     lasso.res.full,lasso.res.top20,lasso.res.top10,
+     file = 'SDAfilesReport.models.RData')
+save(path,fl,bestMod,file = 'SDAfilesReport.model.rda')
+
+```
+
+### Monoisotopic
+
+```{r datasetname.mi.fm5}
+cat(format(Sys.time(), "%b %d %X"),dname,'Classification has started. Monoisotopic data.\n',file = logFile,append = TRUE)
+idx5<-which(diag[idxMI]%in% unique(diag))
+```
+
+```{r datasetname.save.mi.fm5}
+fm<-featureMatrixMI[idx5,]
+mdf<-mdmi[idx5,]
+cls<-diag[idxMI[idx5]]
+save(path,fl,fm,mdf,cls,file = 'SDAfilesReport.fm.mi.Rdata')
+```
+
+
+```{r datasetname.mi.raw.sda,fig.width=8.5,fig.height=10.5,results='asis',cache=FALSE}
+ddar5 <- sda.ranking(Xtrain=featureMatrixMI[idx5,], L=diag[idxMI[idx5]],
+                     fdr=TRUE, diagonal=FALSE)
+plot(ddar5)
+
+```
+
+```{r datasetname.mi.raw.plot.sda,fig.width=8.5,fig.height=10.5,cache=FALSE}
+mddar5<-ddar5
+class(mddar5)<-'matrix'
+dfddar<-as.data.frame(mddar5)
+dfddar$mz<-as.double(rownames(dfddar))
+dfddar<-cbind(dfddar,data.frame(int=colSums(featureMatrixMI)[dfddar$idx]))
+dfddar$scoreR<-rank(dfddar$score)
+dfddar$intR<-rank(dfddar$int)
+qplot(score,int,data=dfddar,colour=intR)
+idxDdar<-match.closest(dfddar$mz,lipids$PEAK,tolerance = 0.05)
+#cbind(dfddar,lipids[idxDdar,])
+rownames(dfddar)<-round(as.numeric(rownames(dfddar)),4)
+pander(cbind(dfddar,lipids[idxDdar,c('NAME')])[1:50,],caption = "datasetname.mi.raw")
+#pander(dfddar[1:20,])
+```
+```{r datasetname.mi.save.sda}
+mddar<-mddar5
+dfddar<-dfddar
+save(path,fl,mddar,dfddar,file = 'SDAfilesReport.mi.sda.Rdata')
+```
+
+
+```{r datasetname.mi.class.sda.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'SDA classification. Monoisotopic data.\n',file = logFile,append = TRUE)
+# set seed to get reproducible results
+#set.seed(1234)
+lasso.res<-list()
+lda.res<-list()
+dda.res<-list()
+smpl<-unique(data.frame(ff=ff[idxMI[idx5]],diag=diag[idxMI[idx5]]))
+cv.out <- mycrossval(predfun.dda,
+                   X=featureMatrixMI[idx5,],
+                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+dda.res.full<-dda.res
+dda.res<-list()
+dim(featureMatrixMI[idx5,])
+```
+
+```{r datasetname.mi.class.sda.top20}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:20, "idx"]
+cv.out <- mycrossval(predfun.dda,
+                   X=featureMatrixMI[idx5,top],
+                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+dda.res.top20<-dda.res
+dda.res<-list()
+dim(featureMatrixMI[idx5,top])
+```
+
+```{r datasetname.mi.class.sda.top10}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:10, "idx"]
+cv.out <- mycrossval(predfun.dda,
+                   X=featureMatrixMI[idx5,top],
+                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+dda.res.top10<-dda.res
+dda.res<-list()
+dim(featureMatrixMI[idx5,top])
+```
+
+```{r datasetname.mi.class.lda.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'LDA classification. Monoisotopic data.\n',file = logFile,append = TRUE)
+# set seed to get reproducible results
+#set.seed(1234)
+cv.out <- mycrossval(predfun.lda,
+                   X=featureMatrixMI[idx5,],
+                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lda.res.full<-lda.res
+lda.res<-list()
+dim(featureMatrixMI[idx5,])
+```
+
+```{r datasetname.mi.class.lda.top20}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:20, "idx"]
+cv.out <- mycrossval(predfun.lda,
+                   X=featureMatrixMI[idx5,top],
+                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lda.res.top20<-lda.res
+lda.res<-list()
+dim(featureMatrixMI[idx5,top])
+```
+
+```{r datasetname.mi.class.lda.top10}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:10, "idx"]
+cv.out <- mycrossval(predfun.lda,
+                   X=featureMatrixMI[idx5,top],
+                   Y=as.character(diag[idxMI[idx5]]),smpl=smpl,ff=ff[idxMI[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lda.res.top10<-lda.res
+lda.res<-list()
+dim(featureMatrixMI[idx5,top])
+```
+
+```{r datasetname.mi.class.lasso.full}
+cat(format(Sys.time(), "%b %d %X"),dname,'LASSO classification. Monoisotopic data.\n',file = logFile,append = TRUE)
+# set seed to get reproducible results
+#set.seed(1234)
+Y=factor(as.character(diag[idxMI[idx5]]))
+cv.out <- mycrossval(predfun.lasso,
+                   X=featureMatrixMI[idx5,],
+                   Y=Y,smpl=smpl,ff=ff[idxMI[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   labels=levels(Y),
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lasso.res.full<-lasso.res
+bestMod<-lasso.res[[which.min(
+  sapply(lasso.res,function(.x).x$lambda.min)
+)]]
+lasso.res<-list()
+dim(featureMatrixMI[idx5,])
+```
+
+```{r datasetname.mi.class.lasso.top20}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:20, "idx"]
+Y=factor(as.character(diag[idxMI[idx5]]))
+cv.out <- mycrossval(predfun.lasso,
+                   X=featureMatrixMI[idx5,top],
+                   Y=Y,smpl=smpl,ff=ff[idxMI[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   labels=levels(Y),
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lasso.res.top20<-lasso.res
+lasso.res<-list()
+dim(featureMatrixMI[idx5,top])
+```
+
+```{r datasetname.mi.class.lasso.top10}
+# set seed to get reproducible results
+#set.seed(1234)
+top <- ddar5[1:10, "idx"]
+Y=factor(as.character(diag[idxMI[idx5]]))
+cv.out <- mycrossval(predfun.lasso,
+                   X=featureMatrixMI[idx5,top],
+                   Y=Y,smpl=smpl,ff=ff[idxMI[idx5]],
+                   K=6, B=20,
+                   negative="32",
+                   labels=levels(Y),
+                   verbose=FALSE)
+cv.out$stat
+cv.out$stat.se
+pander(diagnosticErrors(cv.out$stat))
+lasso.res.top10<-lasso.res
+lasso.res<-list()
+dim(featureMatrixMI[idx5,top])
+```
+
+
+```{r datasetname.mi.raw.pca.nosc,fig.width=8.5,fig.height=8.5,cache=FALSE}
+cat(format(Sys.time(), "%b %d %X"),dname,'Second round of PCA. Monoisotopic data.\n',file = logFile,append = TRUE)
+pca<-prcomp(featureMatrixMI[idx5,],scale. = FALSE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag[idxMI[idx5]],
+addEllipses=TRUE, ellipse.level=0.95)
+col.ff<-as.numeric(ff[idxMI[idx5]])
+fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
+```
+
+
+```{r datasetname.mi.raw.pca.sc,fig.width=8.5,fig.height=8.5,cache=FALSE}
+cidx<-which(apply(featureMatrixMI[idx5,],2,sd)>0)
+pca<-prcomp(featureMatrixMI[idx5,cidx],scale. = TRUE)
+fviz_screeplot(pca, ncp=15)
+fviz_pca_ind(pca, habillage='none',label = 'none',
+addEllipses=FALSE)
+fviz_pca_ind(pca, habillage=diag[idxMI[idx5]],
+addEllipses=TRUE, ellipse.level=0.95)
+col.ff<-as.numeric(ff[idxMI[idx5]])
+fviz_pca_ind(pca, habillage='none',col.ind =col.ff,fill.ind = col.ff,label = 'none',palette = 'topo.colors')
+```
+
+```{r datasetname.mi.save.models}
+save(path,fl,dda.res.full,dda.res.top20,dda.res.top10,
+     lda.res.full,lda.res.top20,lda.res.top10,
+     lasso.res.full,lasso.res.top20,lasso.res.top10,
+     file = 'SDAfilesReport.mi.models.RData')
+save(path,fl,bestMod,file = 'SDAfilesReport.mi.model.rda')
+cat(format(Sys.time(), "%b %d %X"),dname,'Completed.\n',file = logFile,append = TRUE)
+```
+
+
+
+
+
+#
+# Appendix {.tabset}
+## Functions
+```{r functions, eval=FALSE, include=TRUE}
+```
+```{r queries, eval=FALSE, include=TRUE}
+```
+
+## Setup R
+```{r setup, eval=FALSE}
+```
+
+## Versions
+### Document version
+```{r docVersion, echo=FALSE, results='asis', cache=FALSE}
+cat(params$version)
+```
+
+### Session Info
+```{r sessionInfo, echo=FALSE, results='asis', class='text', warning=FALSE}
+si<-devtools::session_info()
+cat('Platform\n\n')
+pander::pander(si$platform)
+cat('Packages\n\n')
+knitr::kable(as.data.frame(si$packages)[,c('ondiskversion','loadedversion','date','source')],align = c('l','l'))
+```
+
